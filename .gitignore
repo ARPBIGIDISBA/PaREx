@@ -23,7 +23,7 @@ dist/
 target/
 dist/
 
-# JetBrains IDE
+# JetBrains IºDE
 .idea/
 
 # Unit test reports
@@ -48,3 +48,4 @@ Thumbs.db
 *.mov
 *.wmv
 
+.vscode
