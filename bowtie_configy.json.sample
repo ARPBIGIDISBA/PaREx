@@ -1,0 +1,7 @@
+{
+    "BASE_PATH": "/home/micro/Analysis/Trimmomatic",
+    "BOWTIE_PATH": "/home/biel/Programs/bowtie2-2.2.6/bowtie2",
+    "LIBS_PATH": "/home/biel/indexed_libs",
+    "INPUT_PATH": "/home/micro/Analysis/assemblies/fastq-MiSeq",
+    "BOWTIE_OPTIONS": ["-X", "1000", "-S"]
+}

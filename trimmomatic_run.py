@@ -8,12 +8,18 @@ import os
 from modules.general_functions import get_args, execute_command
 import logging
 
+# Leer el archivo de configuración
+with open('config.json', 'r') as file:
+    config = json.load(file)
+
 # Parametros de configuración de este script
-BASE_PATH = '/home/micro/Analysis/Trimmomatic'
-TRIMMOMATIC_JAR_PATH = "/home/micro/Programs/Trimmomatic-0.39/trimmomatic-0.39.jar"
-INPUT_PATH = '/home/micro/Analysis/assemblies/fastq-MiSeq'
+BASE_PATH = config['BASE_PATH']
+TRIMMOMATIC_JAR_PATH = config['TRIMMOMATIC_JAR_PATH']
+INPUT_PATH = config['INPUT_PATH']
+
 # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
-TRIMMOMATIC_OPTIONS = ["LEADING:3", "TRAILING:3", "SLIDINGWINDOW:4:15", "MINLEN:36"]
+TRIMMOMATIC_OPTIONS = config['TRIMMOMATIC_OPTIONS']
+
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
 SAMPLES, LINEAGE, lines, logging = get_args()

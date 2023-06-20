@@ -1,0 +1,6 @@
+{
+    "BASE_PATH": "/home/micro/Analysis/Trimmomatic",
+    "TRIMMOMATIC_JAR_PATH": "/home/micro/Programs/Trimmomatic-0.39/trimmomatic-0.39.jar",
+    "INPUT_PATH": "/home/micro/Analysis/assemblies/fastq-MiSeq",
+    "TRIMMOMATIC_OPTIONS": ["LEADING:3", "TRAILING:3", "SLIDINGWINDOW:4:15", "MINLEN:36"]
+}

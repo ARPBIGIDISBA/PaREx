@@ -5,18 +5,21 @@
 '''
 import os
 from modules.general_functions import read_args_bowtie, execute_command
+import json
+
+# Leer el archivo de configuración
+with open('bowtie_config.json', 'r') as file:
+    config = json.load(file)
 
 # Parametros de configuración de este script
-BASE_PATH = '/home/micro/Analysis/Trimmomatic'
-BOWTIE_PATH = "/home/biel/Programs/bowtie2-2.2.6/bowtie2"
-INPUT_PATH = '/home/micro/Analysis/assemblies/fastq-MiSeq'
-# Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
-BOWTIE_OPTIONS = ["-X", "1000", "-S"]
-LIBS_PATH = '/home/biel/indexed_libs'
+BASE_PATH = config['BASE_PATH']
+BOWTIE_PATH = config['BOWTIE_PATH']
+LIBS_PATH = config['LIBS_PATH']
+INPUT_PATH = config['INPUT_PATH']
+BOWTIE_OPTIONS = config['BOWTIE_OPTIONS']
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
 SAMPLES, LINEAGE, GENE, lines, logging = read_args_bowtie()
-
 
 # Constrantes para el nombre de los ficheros de salida
 files = ["1P", "1U", "2P", "2U"]

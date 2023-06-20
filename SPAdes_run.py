@@ -5,14 +5,22 @@
     Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
 '''
 import os
+import json 
 from modules.general_functions import get_args, execute_command
 
-# Parametros de configuración de este script el resto no tocar
-BASE_PATH = ' /home/micro/Analysis/assemblies/denovo_assemblies_SPAdes/'
-SPADES_PATH = "/home/micro/Programs/SPAdes-3.15.0/bin/spades.py"
-ASSEMBLIES_PATH = '/home/micro/Analysis/assemblies/fastq-MiSeq'
-SPADES_OPTIONS = ["--careful"] # list of coma separated options https://github.com/ablab/spades#sec3.2
-OUTPUT_PATH = '/home/micro/Analysis/assemblies/denovo_assemblies_SPAdes'
+
+
+# Leer el archivo de configuración
+with open('config.json', 'r') as file:
+    config = json.load(file)
+
+# Parametros de configuración de este script
+BASE_PATH = config['BASE_PATH']
+SPADES_PATH = config['SPADES_PATH']
+ASSEMBLIES_PATH = config['ASSEMBLIES_PATH']
+# list of coma separated options https://github.com/ablab/spades#sec3.2
+SPADES_OPTIONS = config['SPADES_OPTIONS']
+OUTPUT_PATH = config['OUTPUT_PATH']
 
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
