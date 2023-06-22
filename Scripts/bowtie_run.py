@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-default_config_json = os.path.join(script_directory, "bowtie_config.jsons")
+default_config_json = os.path.join(script_directory, "bowtie_config.json")
 
 
 def bowtie_run(project_name, reference, config_file=default_config_json):

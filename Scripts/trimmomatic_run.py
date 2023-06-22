@@ -33,7 +33,7 @@ def trimmomatic_run(project_name, config_json=default_config_json):
     '''
 
     # Leer las muestras y ficheros de configuracion
-    samples, config = read_args(config_json, project_name)
+    samples, config = read_args(project_name, config_json)
 
     # Parametros de configuración de este script
     PROJECTS_PATH = config['PROJECTS_PATH']

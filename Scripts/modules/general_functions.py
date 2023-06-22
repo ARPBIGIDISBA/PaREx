@@ -10,7 +10,7 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-def read_args(config_json, PROJECT_NAME):
+def read_args(project_name, config_json):
     ''' Función para leer los argumentos de la línea de comandos, el fichero de samples y la configuración del json'''
     
     # Leer el archivo catde configuración
@@ -18,15 +18,15 @@ def read_args(config_json, PROJECT_NAME):
         config = json.load(file)
 
     # Create project directory in case it is not created
-    project_path = os.path.join(config["PROJECTS_PATH"], PROJECT_NAME)
+    project_path = os.path.join(config["PROJECTS_PATH"], project_name)
     os.makedirs(project_path, exist_ok=True)
 
-    sample_file = os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}")
+    sample_file = os.path.join(project_path, f"SAMPLES_LIST_{project_name}")
     try:
         with open(sample_file, 'r') as file:
             samples = file.readlines()
 
-        return samples, config, logging
+        return samples, config
     except Exception:
         traceback.print_exc()
         logger.error("Problem readingh the sample list file ")
