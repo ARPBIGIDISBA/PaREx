@@ -10,12 +10,15 @@ import traceback
 logger = logging.getLogger(__name__)
 
 
-def read_args(project_name, config_json):
-    ''' Función para leer los argumentos de la línea de comandos, el fichero de samples y la configuración del json'''
-    
+def read_config(config_json):
     # Leer el archivo catde configuración
     with open(config_json, 'r') as file:
         config = json.load(file)
+        return config
+
+
+def read_args(project_name, config):
+    ''' Función para leer los argumentos de la línea de comandos, el fichero de samples y la configuración del json'''
 
     # Create project directory in case it is not created
     project_path = os.path.join(config["PROJECTS_PATH"], project_name)
@@ -26,7 +29,7 @@ def read_args(project_name, config_json):
         with open(sample_file, 'r') as file:
             samples = file.readlines()
 
-        return samples, config
+        return samples
     except Exception:
         traceback.print_exc()
         logger.error("Problem readingh the sample list file ")
@@ -51,3 +54,19 @@ def execute_command(command):
 
     # Return True if the process was successful
     return (process.returncode == 0)
+
+
+def configure_logs(project_name, script_name, config, log_mode="w"):
+    LOG_MODE = log_mode  # "a" to append or "w" to overwrite
+    print(config["LOGS_PATH"], project_name)
+    LOG_PATH = os.path.join(config["LOGS_PATH"], project_name)
+    os.makedirs(LOG_PATH, exist_ok=True)
+    LOG_NAME = os.path.join(LOG_PATH, f'{project_name}_{script_name}.log')                       
+    LOG_FORMAT = '%(asctime)s - %(levelname)s - %(message)s - %(name)s - %(pathname)s:%(lineno)d'
+    logging.basicConfig(level=logging.DEBUG,
+                        format=LOG_FORMAT,
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(LOG_NAME, mode=LOG_MODE),
+                            logging.StreamHandler()
+                        ])

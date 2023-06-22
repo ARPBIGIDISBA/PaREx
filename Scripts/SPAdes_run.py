@@ -11,16 +11,16 @@ import sys
 import shutil
 import argparse
 import logging
-from modules.general_functions import read_args, execute_command
-
+from modules.general_functions import read_config, read_args, execute_command, configure_logs
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 default_config_json = os.path.join(script_directory, "SPAdes_config.json")
+config = read_config(default_config_json)
 
 
-def SPAdes_run(project_name, config_file=default_config_json):
+def SPAdes_run(project_name, config=config):
     ''' 
         this function is used to apply the SPAdes program to the fastq.gz files
 
@@ -35,7 +35,7 @@ def SPAdes_run(project_name, config_file=default_config_json):
     '''
 
     # Read command line arguments, sample list and config file
-    samples, config = read_args(project_name, config_file)
+    samples = read_args(project_name, config)
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
     # list of coma separated options https://github.com/ablab/spades#sec3.2
@@ -95,16 +95,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     args = parser.parse_args()
-    PROJECT_NAME = args.PROJECT_NAME
+    project_name = args.PROJECT_NAME
 
     # Start the python logging variable to generate a file
-    LOG_MODE = "w"  # "a" to append or "w" to overwrite
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(f'{PROJECT_NAME}_trimmomatic.log', mode=LOG_MODE),
-                            logging.StreamHandler()
-                        ])
+    configure_logs(project_name, "SPAdes", config)
+
     logger = logging.getLogger(__name__)
-    SPAdes_run(PROJECT_NAME, logger)
+
+    SPAdes_run(project_name, config)

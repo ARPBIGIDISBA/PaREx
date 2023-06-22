@@ -7,7 +7,7 @@ import os
 import sys
 import argparse
 import logging
-from modules.general_functions import read_args, execute_command
+from modules.general_functions import read_args, execute_command, read_config, configure_logs
 
 
 logger = logging.getLogger(__name__)
@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 default_config_json = os.path.join(script_directory, "bowtie_config.json")
+config = read_config(default_config_json)
 
 
-def bowtie_run(project_name, reference, config_file=default_config_json):
+def bowtie_run(project_name, reference, config=config):
     ''' 
         this function is used to apply the bowtie program to the fastq.gz files
         with a reference file
@@ -33,7 +34,7 @@ def bowtie_run(project_name, reference, config_file=default_config_json):
     '''
 
     # Read command line arguments, sample list and config file
-    samples, config = read_args(project_name, config_file)
+    samples = read_args(project_name, config)
 
     
     # list of coma separated options https://bowtie-bio.sourceforge.net/tutorial.shtml
@@ -45,9 +46,10 @@ def bowtie_run(project_name, reference, config_file=default_config_json):
     PROJECT_PATH = os.path.join(config["PROJECTS_PATH"], project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
-    reference_file = os.path.join(config['REFERENCE_PATH'], reference, reference)
+    base_ref = os.path.join(REFERENCE_PATH, reference)
+    reference_file = os.path.join(base_ref, reference)
     
-    if not os.path.exists(reference_file):
+    if not os.path.exists(base_ref):
         logger.error("The reference path is not correct")
         logger.error(f"This forlder does not exist:{reference_file}")
         sys.exit(1)
@@ -99,21 +101,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('REFERENCE', type=str, help='Reference for alignment')
-    parser.add_argument('--config', type=str, default=default_config_json, help='Configuración del script')
-
+    
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     REFERENCE = args.REFERENCE
 
-    # Start the python logging variable to generate a file
-    LOG_MODE = "w"  # "a" to append or "w" to overwrite
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(f'{PROJECT_NAME}_bowtie.log', mode=LOG_MODE),
-                            logging.StreamHandler()
-                        ])
+    configure_logs(PROJECT_NAME, f"bowtie_{REFERENCE}", config)
     logger = logging.getLogger(__name__)
 
-    bowtie_run(args.PROJECT_NAME, args.REFERENCE, args.config)
+    bowtie_run(args.PROJECT_NAME, args.REFERENCE, config)

@@ -21,10 +21,12 @@ if __name__ == "__main__":
     reference = args.REFERENCE
     
     logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        format='%(asctime)s - %(levelname)s - %(message)s - %(name)s - %(pathname)s:%(lineno)d',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         handlers=[
-                            logging.FileHandler(f'{PROJECT_NAME}_pipeline_multiline.log', mode=LOG_MODE),
+                            logging.FileHandler(
+                                f'{PROJECT_NAME}_pipeline_multiline.log',
+                                mode="w"),
                             logging.StreamHandler()
                         ])
     logger = logging.getLogger(__name__)
@@ -32,8 +34,8 @@ if __name__ == "__main__":
     # Execute trimmomatic process
     trimmomatic_run(PROJECT_NAME)
 
-    # Execute SPAdes analisis
-    SPAdes_run(PROJECT_NAME)
+    # # Execute SPAdes analisis
+    # SPAdes_run(PROJECT_NAME)
 
-    # Execute bowtie analisis
-    bowtie_run(PROJECT_NAME, reference)
+    # # Execute bowtie analisis
+    # bowtie_run(PROJECT_NAME, reference)
