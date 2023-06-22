@@ -19,6 +19,18 @@ default_config_json = os.path.join(script_directory, "trimmomatic_config.json")
 
 
 def trimmomatic_run(project_name, config_json=default_config_json):
+    ''' 
+        this function is used to apply the Trimmomatic program to the fastq.gz files
+
+        parameters:
+            project_name (str): Name of the project
+            config_json (str): Path to the config file by default is trimmomatic_config.json
+
+        results:
+            Two files R1_001.fastq.gz and R2_001.fastq.gz written in 
+            PROJECTS_PATH/project_name/ANALYSIS_{project_name}/FASTQ_Trimmomatic
+            filename format will be  sample_name_trim_R1.fastq.gz and sample_name_trim_R2.fastq.gz
+    '''
 
     # Leer las muestras y ficheros de configuracion
     samples, config = read_args(config_json, project_name)

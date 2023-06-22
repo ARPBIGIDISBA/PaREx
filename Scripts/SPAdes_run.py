@@ -21,6 +21,19 @@ default_config_json = os.path.join(script_directory, "SPAdes_config.json")
 
 
 def SPAdes_run(project_name, config_file=default_config_json):
+    ''' 
+        this function is used to apply the SPAdes program to the fastq.gz files
+
+        parameters:
+            project_name (str): Name of the project
+            config_json (str): Path to the config file by default is SPAdes_config.json
+
+        results:
+            One fasta file with the assembly SPAdes.denovoassembly.fasta written in
+            PROJECTS_PATH/project_name/ANALYSIS_{project_name}/denovo_assemblies_SPAdes
+
+    '''
+
     # Read command line arguments, sample list and config file
     samples, config = read_args(project_name, config_file)
 

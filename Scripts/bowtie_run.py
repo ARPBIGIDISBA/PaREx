@@ -18,6 +18,20 @@ default_config_json = os.path.join(script_directory, "bowtie_config.jsons")
 
 
 def bowtie_run(project_name, reference, config_file=default_config_json):
+    ''' 
+        this function is used to apply the bowtie program to the fastq.gz files
+        with a reference file
+
+        parameters:
+            project_name (str): Name of the project
+            reference (str): Name of the reference file
+            config_json (str): Path to the config file by default is trimmomatic_config.json
+
+        results:
+            this generates a sam file in OUTPUT_PATH
+            PROJECTS_PATH/project_name/ANALYSIS_{project_name}/sam_files
+    '''
+
     # Read command line arguments, sample list and config file
     samples, config = read_args(project_name, config_file)
 
