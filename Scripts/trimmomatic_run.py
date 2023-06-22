@@ -19,7 +19,6 @@ TRIMMOMATIC_JAR_PATH = config['TRIMMOMATIC_JAR_PATH']
 # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
 TRIMMOMATIC_OPTIONS = config['TRIMMOMATIC_OPTIONS']
 
-
 # Crear el directorio para el lineage
 PROJECT_PATH = os.path.join(PROJECTS_PATH, PROJECT_NAME)
 os.makedirs(PROJECT_PATH, exist_ok=True)
