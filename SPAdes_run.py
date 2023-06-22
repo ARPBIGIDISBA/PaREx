@@ -11,7 +11,7 @@ from modules.general_functions import get_args, execute_command
 
 
 # Leer el archivo de configuración
-with open('config.json', 'r') as file:
+with open('SPADES_config.json', 'r') as file:
     config = json.load(file)
 
 # Parametros de configuración de este script

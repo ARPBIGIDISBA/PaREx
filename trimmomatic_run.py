@@ -1,15 +1,16 @@
 '''
-    Autor: Matias Bonet Fullana 
     Este script se utiliza para aplicar el programa Trimmomatic a los ficheros fastq.gz
     Tiene como entrada los ficheros fastq.gz de las muestras
     Da como resultado dos ficheros R1_001.fastq.gz y R2_001.fastq.gz escritos en OUT
 '''
+
 import os
 from modules.general_functions import get_args, execute_command
 import logging
+import json
 
-# Leer el archivo de configuración
-with open('config.json', 'r') as file:
+# Leer el archivo catde configuración
+with open('trimmomatic_config.json', 'r') as file:
     config = json.load(file)
 
 # Parametros de configuración de este script
