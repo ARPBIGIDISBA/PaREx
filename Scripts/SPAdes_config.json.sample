@@ -1,7 +1,5 @@
 {
-    "BASE_PATH": "/home/micro/Analysis/assemblies/denovo_assemblies_SPAdes",
-    "SPADES_PATH": "/home/micro/Programs/SPAdes-3.15.0/bin/spades.py",
-    "ASSEMBLIES_PATH": "/home/micro/Analysis/assemblies/fastq-MiSeq",
-    "SPADES_OPTIONS": ["--careful"],
-    "OUTPUT_PATH": "/home/micro/Analysis/assemblies/denovo_assemblies_SPAdes"
+    "PROJECTS_PATH": "/wgs/pipelines_microbiologia/Projects",
+    "SPADES_PATH": "/wgs/pipelines_microbiologia/Programs/SPAdes-3.15.5-Linux/bin/spades.py",
+    "SPADES_OPTIONS": ["--careful"]
 }
