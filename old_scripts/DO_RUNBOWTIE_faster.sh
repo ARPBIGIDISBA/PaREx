@@ -42,3 +42,6 @@ mv /home/micro/Analysis/sam_files/CNB/"$line"_mapPAO1.sam.gz /media/micro/easyst
 echo "Done aligning $line..."
 
 done < $SAMPLES
+
+#3
+	/home/micro/Programs/bowtie2-2.2.6/bowtie2 --phred

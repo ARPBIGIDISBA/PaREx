@@ -1,9 +1,9 @@
 '''
-    Autor: Matias Bonet Fullana 
     Este script se utiliza para aplicar el programa Trimmomatic a los ficheros fastq.gz
     Tiene como entrada los ficheros fastq.gz de las muestras
     Da como resultado dos ficheros R1_001.fastq.gz y R2_001.fastq.gz escritos en OUT
 '''
+
 import os
 from modules.general_functions import read_args, execute_command
 import json

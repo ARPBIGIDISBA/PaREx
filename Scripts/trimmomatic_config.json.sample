@@ -1,0 +1,5 @@
+{
+    "PROJECTS_PATH": "/wgs/pipelines_microbiologia/Projects",
+    "TRIMMOMATIC_JAR_PATH": "/wgs/pipelines_microbiologia/Programs/Trimmomatic-0.39/Trimmomatic-0.39.jar",
+    "TRIMMOMATIC_OPTIONS": ["LEADING:3", "TRAILING:3", "SLIDINGWINDOW:4:15", "MINLEN:36"]
+}
