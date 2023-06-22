@@ -5,6 +5,7 @@ import logging
 import json
 import os
 
+LOG_MODE = "w" # Si pones W sobre escribe en cada ejecución y con "a" añade al log uno
 
 def read_args(config_json):
     ''' Función para leer los argumentos de la línea de comandos, el fichero de samples y la configuración del json'''
@@ -15,7 +16,7 @@ def read_args(config_json):
     args = parser.parse_args()
 
     PROJECT_NAME = args.PROJECT_NAME
-
+    script_name = config_json.split("_")[0]
     # Leer el archivo catde configuración
     with open(config_json, 'r') as file:
         config = json.load(file)
@@ -30,7 +31,7 @@ def read_args(config_json):
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     handlers=[
-                        logging.FileHandler(f'{PROJECT_NAME}.log'),
+                        logging.FileHandler(f'{PROJECT_NAME}_{script_name}.log', mode=LOG_MODE),
                         logging.StreamHandler()
                     ])
     

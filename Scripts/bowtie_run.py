@@ -5,7 +5,6 @@
 '''
 import os
 from modules.general_functions import read_args_bowtie, execute_command
-import json
 
 # Leer el archivo de configuración
 with open('bowtie_config.json', 'r') as file:
@@ -19,7 +18,7 @@ INPUT_PATH = config['INPUT_PATH']
 BOWTIE_OPTIONS = config['BOWTIE_OPTIONS']
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
-SAMPLES, LINEAGE, GENE, lines, logging = read_args_bowtie()
+SAMPLES, LINEAGE, GENE, lines, logging = read_args_bowtie('bowtie_config.json')
 
 # Constrantes para el nombre de los ficheros de salida
 files = ["1P", "1U", "2P", "2U"]
@@ -44,4 +43,4 @@ for line in lines:
 
     execute_command(command, logging)
 
-    logging.info(f"Sample {line} processed")º
+    logging.info(f"Sample {line} processed")

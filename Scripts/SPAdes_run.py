@@ -7,6 +7,8 @@
 
 '''
 import os
+import sys
+import shutil
 from modules.general_functions import read_args, execute_command
 
 
@@ -15,9 +17,7 @@ PROJECT_NAME, samples, config, logging = read_args("SPAdes_config.json")
 
 logger = logging.getLogger(__name__)
 
-# Parametros de configuración de este script
-PROJECTS_PATH = config['PROJECTS_PATH']
-
+PROJECTS_PATH = config["PROJECTS_PATH"]
 # list of coma separated options https://github.com/ablab/spades#sec3.2
 SPADES_PROGRAM_PATH = config['SPADES_PATH']
 SPADES_OPTIONS = config['SPADES_OPTIONS']
@@ -29,6 +29,11 @@ os.makedirs(PROJECT_PATH, exist_ok=True)
 
 TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "FASTQ_Trimmomatic")
 
+if not os.path.exists(TRIMMOMATIC_FILES_PATH):
+    logger.error("You have to run first the trimmomatic process")
+    logger.error(f"This forlder does not exist:{TRIMMOMATIC_FILES_PATH}")
+    sys.exit(1)
+
 OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
 os.makedirs(OUTPUT_PATH, exist_ok=True)
 
@@ -39,20 +44,31 @@ for sample_name in samples:
 
     # Definir los ficheros de entrada 1 y 2 
 
-    input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1_001.fastq")
-    input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2_001.fastq")
-
-    command = ["python", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+    input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+    input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+    execute = True
+    if not os.path.exists(input_r1_path):
+        execute = False
+        logger.error("You have to run first the trimmomatic process")
+        logger.error(f"This file does not exist:{input_r1_path}")
+       
+    if not os.path.exists(input_r2_path):
+        execute = False
+        logger.error("You have to run first the trimmomatic process")
+        logger.error(f"This file does not exist:{input_r2_path}")
     
-    result = execute_command(command, logger)
+    if execute:
+        command = ["python", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
 
-    if result:
-        logger.info("SPAdes assembly finished")
-        # Renombrar los archivos de salida
-        old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
-        new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+        result = execute_command(command, logger)
 
-        os.rename(old_file_path, new_file_path)
-        logger.info(f"Rename files for other analysis {new_file_path}")
-    else:
-        logger.error("SPAdes assembly failed")
+        if result:
+            logger.info("SPAdes assembly finished")
+            # Renombrar los archivos de salida
+            old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+            new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
+            shutil.move(old_file_path, new_file_path)
+            logger.info(f"Rename files for other analysis {new_file_path}")
+        else:
+            logger.error("SPAdes assembly failed")

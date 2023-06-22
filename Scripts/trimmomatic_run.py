@@ -5,6 +5,8 @@
 '''
 
 import os
+import sys
+import shutil
 from modules.general_functions import read_args, execute_command
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
@@ -37,6 +39,10 @@ for sample_name in samples:
     # Crear los paths de entrada y salida
     input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{PROJECT_NAME}", f"{sample_name}_R1_001.fastq.gz")
     input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{PROJECT_NAME}", f"{sample_name}_R2_001.fastq.gz")
+    if not os.path.exists(input_r1_path) or os.path.exists(input_r2_path):
+        logger.error(f"The fastq.gz file for {sample_name} don't exist")
+        logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
+        sys.exit(1)
 
     # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
     output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
@@ -52,7 +58,7 @@ for sample_name in samples:
         for suffix, new_suffix in [("1P", "R1"), ("2P", "R2")]:
             old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
             new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
-            os.rename(old_file_path, new_file_path)
+            shutil.move(old_file_path, new_file_path)
             logger.info(f"Renaming file {new_file_path}")
             os.system(f"gunzip {new_file_path}")
             logger.info(f"Unzip file {new_file_path}")
@@ -63,7 +69,7 @@ for sample_name in samples:
         for suffix in ["1U", "2U"]:
             old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
             new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-            os.rename(old_file_path, new_file_path)
+            shutil.move(old_file_path, new_file_path)
             logger.info(f"Storing unpaired file {new_file_path}")
 
     else:
