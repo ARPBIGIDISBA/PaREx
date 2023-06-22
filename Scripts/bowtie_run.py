@@ -77,15 +77,9 @@ def bowtie_run(project_name, reference, config_file=default_config_json):
             result = execute_command(command)
 
             if result:
-                logger.info("SPAdes assembly finished")
-                # Renombrar los archivos de salida
-                old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
-                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
-
-                shutil.move(old_file_path, new_file_path)
-                logger.info("Rename files for other analysis %s", new_file_path)
+                logger.info("Bowtie alignment finished")
             else:
-                logger.error("SPAdes assembly failed")
+                logger.error("Bowtie alignment failed")
 
 
 if __name__ == "__main__":
