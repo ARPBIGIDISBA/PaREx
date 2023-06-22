@@ -8,14 +8,15 @@ import os
 import sys
 import shutil
 import argparse
-from modules.general_functions import read_args, execute_command
 import logging
+from modules.general_functions import read_args, execute_command
 
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 default_config_json = os.path.join(script_directory, "trimmomatic_config.json")
+
 
 def trimmomatic_run(project_name, config_json=default_config_json):
 

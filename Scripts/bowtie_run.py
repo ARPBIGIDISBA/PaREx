@@ -5,7 +5,6 @@
 '''
 import os
 import sys
-import shutil
 import argparse
 import logging
 from modules.general_functions import read_args, execute_command
