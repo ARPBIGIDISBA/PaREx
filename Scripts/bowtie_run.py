@@ -1,46 +1,112 @@
 '''
-    Este script se usa para hacer una nalisis bowtie
-    Tiene como entrada los ficheros fastq.gz de las muestras
-    
+    Este script aplica el progama bowtie para buscar una referencia de alineamiento
+    utilizar como entrada dos parametros PROJECT NAME  y fichero de referencia
+    https://bowtie-bio.sourceforge.net/tutorial.shtml
 '''
 import os
-from modules.general_functions import read_args_bowtie, execute_command
-
-# Leer el archivo de configuración
-with open('bowtie_config.json', 'r') as file:
-    config = json.load(file)
-
-# Parametros de configuración de este script
-BASE_PATH = config['BASE_PATH']
-BOWTIE_PATH = config['BOWTIE_PATH']
-LIBS_PATH = config['LIBS_PATH']
-INPUT_PATH = config['INPUT_PATH']
-BOWTIE_OPTIONS = config['BOWTIE_OPTIONS']
-
-# Leer los argumentos de la línea de comandos y el fichero de configuración
-SAMPLES, LINEAGE, GENE, lines, logging = read_args_bowtie('bowtie_config.json')
-
-# Constrantes para el nombre de los ficheros de salida
-files = ["1P", "1U", "2P", "2U"]
-
-# Crear el directorio para el lineage
-LINEAGE_PATH = os.path.join(BASE_PATH, LINEAGE)
-os.makedirs(LINEAGE_PATH, exist_ok=True)
-
-for line in lines:
-    # Limpiar por si hay espacios en blanco
-    line = line.strip()
-    logging.info(f"Processing sample {line}")
-
-    gene_index_path = os.path.join(LIBS_PATH, GENE, GENE)
-    gene_index_path = os.path.join(LIBS_PATH, GENE, GENE)
-    input_r1_path = os.path.join(INPUT_PATH, LINEAGE, 'new_fastq', f"new_{line}_L001_R1_001.fastq")
-    input_r2_path = os.path.join(INPUT_PATH, LINEAGE, 'new_fastq', f"new_{line}_L001_R2_001.fastq")
-    output_path = os.path.join(INPUT_PATH, LINEAGE, 'sam_files', f"{line}_map{GENE}.sam")
-
-    command = [BOWTIE_PATH, "--phred33", "-x", gene_index_path, "-q", "-1", input_r1_path, "-2", input_r2_path] + BOWTIE_OPTIONS+ [output_path]
+import sys
+import shutil
+import argparse
+import logging
+from modules.general_functions import read_args, execute_command
 
 
-    execute_command(command, logging)
+logger = logging.getLogger(__name__)
 
-    logging.info(f"Sample {line} processed")
+script_path = os.path.abspath(__file__)
+script_directory = os.path.dirname(script_path)
+default_config_json = os.path.join(script_directory, "bowtie_config.jsons")
+
+
+def bowtie_run(project_name, reference, config_file=default_config_json):
+    # Read command line arguments, sample list and config file
+    samples, config = read_args(project_name, config_file)
+
+    
+    # list of coma separated options https://bowtie-bio.sourceforge.net/tutorial.shtml
+    BOWTIE_PROGRAM = config['BOWTIE_PATH']
+    BOWTIE_OPTIONS = config['BOWTIE_OPTIONS']
+    REFERENCE_PATH = config['REFERENCE_PATH']
+
+    # Create project directory in case it is not created
+    PROJECT_PATH = os.path.join(config["PROJECTS_PATH"], project_name)
+    os.makedirs(PROJECT_PATH, exist_ok=True)
+
+    reference_file = os.path.join(config['REFERENCE_PATH'], reference, reference)
+    
+    if not os.path.exists(reference_file):
+        logger.error("The reference path is not correct")
+        logger.error(f"This forlder does not exist:{reference_file}")
+        sys.exit(1)
+
+    OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "sam_files")
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
+    
+    TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "FASTQ_Trimmomatic")
+    if not os.path.exists(TRIMMOMATIC_FILES_PATH):
+        logger.error("You have to run first the trimmomatic process")
+        logger.error("This forlder does not exist:%s", TRIMMOMATIC_FILES_PATH)
+        sys.exit(1)
+
+    for sample_name in samples:
+        # Limpiar por si hay espacios en blanco
+        sample_name = sample_name.strip()
+        logger.info("Processing %s", sample_name)
+
+        # Definir los ficheros de entrada 1 y 2 
+        # Definir los ficheros de entrada 1 y 2 
+        input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+        input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+        execute = True
+        if not os.path.exists(input_r1_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r1_path)
+        
+        if not os.path.exists(input_r2_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r2_path)
+
+        if execute:
+            command = [BOWTIE_PROGRAM, "-x", reference_file, "-q",
+                       "-1", input_r1_path,
+                       "-2", input_r2_path,
+                       "-S", OUTPUT_PATH] + BOWTIE_OPTIONS
+
+            result = execute_command(command)
+
+            if result:
+                logger.info("SPAdes assembly finished")
+                # Renombrar los archivos de salida
+                old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
+                shutil.move(old_file_path, new_file_path)
+                logger.info("Rename files for other analysis %s", new_file_path)
+            else:
+                logger.error("SPAdes assembly failed")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
+    parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    parser.add_argument('REFERENCE', type=str, help='Reference for alignment')
+    parser.add_argument('--config', type=str, default=default_config_json, help='Configuración del script')
+
+    args = parser.parse_args()
+    PROJECT_NAME = args.PROJECT_NAME
+    REFERENCE = args.REFERENCE
+
+    # Start the python logging variable to generate a file
+    LOG_MODE = "w"  # "a" to append or "w" to overwrite
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(f'{PROJECT_NAME}_bowtie.log', mode=LOG_MODE),
+                            logging.StreamHandler()
+                        ])
+    logger = logging.getLogger(__name__)
+
+    bowtie_run(args.PROJECT_NAME, args.REFERENCE, args.config)

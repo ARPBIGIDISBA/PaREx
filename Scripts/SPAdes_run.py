@@ -9,66 +9,89 @@
 import os
 import sys
 import shutil
+import argparse
+import logging
 from modules.general_functions import read_args, execute_command
 
 
-# Read command line arguments, sample list and config file
-PROJECT_NAME, samples, config, logging = read_args("SPAdes_config.json")
-
 logger = logging.getLogger(__name__)
-
-PROJECTS_PATH = config["PROJECTS_PATH"]
-# list of coma separated options https://github.com/ablab/spades#sec3.2
-SPADES_PROGRAM_PATH = config['SPADES_PATH']
-SPADES_OPTIONS = config['SPADES_OPTIONS']
+script_path = os.path.abspath(__file__)
+script_directory = os.path.dirname(script_path)
+default_config_json = os.path.join(script_directory, "SPAdes_config.json")
 
 
-# Crear el directorio para el lineage
-PROJECT_PATH = os.path.join(PROJECTS_PATH, PROJECT_NAME)
-os.makedirs(PROJECT_PATH, exist_ok=True)
+def SPAdes_run(project_name, config_file=default_config_json):
+    # Read command line arguments, sample list and config file
+    samples, config = read_args(project_name, config_file)
 
-TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "FASTQ_Trimmomatic")
+    PROJECTS_PATH = config["PROJECTS_PATH"]
+    # list of coma separated options https://github.com/ablab/spades#sec3.2
+    SPADES_PROGRAM_PATH = config['SPADES_PATH']
+    SPADES_OPTIONS = config['SPADES_OPTIONS']
 
-if not os.path.exists(TRIMMOMATIC_FILES_PATH):
-    logger.error("You have to run first the trimmomatic process")
-    logger.error(f"This forlder does not exist:{TRIMMOMATIC_FILES_PATH}")
-    sys.exit(1)
+    # Create project directory in case it is not created
+    PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
+    os.makedirs(PROJECT_PATH, exist_ok=True)
 
-OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
-os.makedirs(OUTPUT_PATH, exist_ok=True)
-
-for sample_name in samples:
-    # Limpiar por si hay espacios en blanco
-    sample_name = sample_name.strip()
-    logger.info(f"Processing {sample_name}")
-
-    # Definir los ficheros de entrada 1 y 2 
-
-    input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
-    input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
-    execute = True
-    if not os.path.exists(input_r1_path):
-        execute = False
+    TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "FASTQ_Trimmomatic")
+    if not os.path.exists(TRIMMOMATIC_FILES_PATH):
         logger.error("You have to run first the trimmomatic process")
-        logger.error(f"This file does not exist:{input_r1_path}")
-       
-    if not os.path.exists(input_r2_path):
-        execute = False
-        logger.error("You have to run first the trimmomatic process")
-        logger.error(f"This file does not exist:{input_r2_path}")
-    
-    if execute:
-        command = ["python", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+        logger.error("This forlder does not exist:%s", TRIMMOMATIC_FILES_PATH)
+        sys.exit(1)
 
-        result = execute_command(command, logger)
+    OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-        if result:
-            logger.info("SPAdes assembly finished")
-            # Renombrar los archivos de salida
-            old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
-            new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+    for sample_name in samples:
+        # Limpiar por si hay espacios en blanco
+        sample_name = sample_name.strip()
+        logger.info("Processing %s", sample_name)
 
-            shutil.move(old_file_path, new_file_path)
-            logger.info(f"Rename files for other analysis {new_file_path}")
-        else:
-            logger.error("SPAdes assembly failed")
+        # Definir los ficheros de entrada 1 y 2 
+        input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+        input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+        execute = True
+        if not os.path.exists(input_r1_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r1_path)
+        
+        if not os.path.exists(input_r2_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r2_path)
+        
+        if execute:
+            command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+
+            result = execute_command(command)
+
+            if result:
+                logger.info("SPAdes assembly finished")
+                # Renombrar los archivos de salida
+                old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
+                shutil.move(old_file_path, new_file_path)
+                logger.info(f"Rename files for other analysis {new_file_path}")
+            else:
+                logger.error("SPAdes assembly failed")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
+    parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    args = parser.parse_args()
+    PROJECT_NAME = args.PROJECT_NAME
+
+    # Start the python logging variable to generate a file
+    LOG_MODE = "w"  # "a" to append or "w" to overwrite
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(f'{PROJECT_NAME}_trimmomatic.log', mode=LOG_MODE),
+                            logging.StreamHandler()
+                        ])
+    logger = logging.getLogger(__name__)
+    SPAdes_run(PROJECT_NAME, logger)

@@ -1,0 +1,6 @@
+{
+    "PROJECTS_PATH": "/wgs/pipelines_microbiologia/Projects",
+    "REFERENCE_PATH": "/wgs/pipelines_microbiologia/Reference4alignment",
+    "BOWTIE_PATH": "/home/biel/Programs/bowtie2-2.2.6/bowtie2",
+    "BOWTIE_OPTIONS": ["-X", "1000", "-S"]
+}
