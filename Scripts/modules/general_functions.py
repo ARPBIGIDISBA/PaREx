@@ -1,15 +1,14 @@
+# Funciones para todos los scripts
 import argparse
 import subprocess
 import logging
 import json
 import os
-# Se escribe el log en un fichero con el nombre del lineage
 
 
-# Funcion para leer dos parametros de la linea de comandos par luego leer un fichero con la lista de samples y lineage
 def read_args(config_json):
-    # Leer los argumentos de la línea de comandos
-    # Definir los argumentos que el programa espera
+    ''' Función para leer los argumentos de la línea de comandos, el fichero de samples y la configuración del json'''
+    
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
 
@@ -26,8 +25,15 @@ def read_args(config_json):
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
     SAMPLE_FILE = os.path.join(PROJECT_PATH, f"SAMPLES_LIST_{PROJECT_NAME}")
-    logging.basicConfig(level=logging.INFO, filename=f'{PROJECT_NAME}.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
-
+    
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    handlers=[
+                        logging.FileHandler(f'{PROJECT_NAME}.log'),
+                        logging.StreamHandler()
+                    ])
+    
     try:
         with open(SAMPLE_FILE, 'r') as file:
             samples = file.readlines()
@@ -68,7 +74,7 @@ def read_args_bowtie():
         exit(1)
 
 
-# Ejecutar un comando y loggear la salida
+# Execute a command and log the output
 def execute_command(command, logging):
     # Enseñar el comando que se va a ejecutar
     logging.info(f"Ejecutando el comando: {' '.join(command)}")
@@ -81,4 +87,7 @@ def execute_command(command, logging):
     if stdout:
         logging.info(stdout.decode())
     if stderr:
-        logging.error(stderr.decode())
+        logging.info(stderr.decode())
+
+    # Return True if the process was successful
+    return (process.returncode == 0) 

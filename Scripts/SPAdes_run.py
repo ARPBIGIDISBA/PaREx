@@ -3,37 +3,38 @@
     Ejecuta el programa en python spades sobre los ficheros fastq
     Tiene como entrada los ficheros fastq.gz de las muestras
     Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
+    Here are the command options for spades https://github.com/ablab/spades#sec3.2
+
 '''
 import os
-import json 
-from modules.general_functions import get_args, execute_command
+from modules.general_functions import read_args, execute_command
 
 
+# Read command line arguments, sample list and config file
+PROJECT_NAME, samples, config, logging = read_args("SPAdes_config.json")
 
-# Leer el archivo de configuración
-with open('SPADES_config.json', 'r') as file:
-    config = json.load(file)
+logger = logging.getLogger(__name__)
 
 # Parametros de configuración de este script
-BASE_PATH = config['BASE_PATH']
-SPADES_PATH = config['SPADES_PATH']
+PROJECTS_PATH = config['PROJECTS_PATH']
+
 ASSEMBLIES_PATH = config['ASSEMBLIES_PATH']
 # list of coma separated options https://github.com/ablab/spades#sec3.2
 SPADES_OPTIONS = config['SPADES_OPTIONS']
-OUTPUT_PATH = config['OUTPUT_PATH']
-
-
-# Leer los argumentos de la línea de comandos y el fichero de configuración
-SAMPLES, LINEAGE, lines, logging = get_args()
 
 
 # Crear el directorio para el lineage
-dir_path = os.path.join(BASE_PATH, LINEAGE)
-os.makedirs(dir_path, exist_ok=True)
+PROJECT_PATH = os.path.join(PROJECTS_PATH, PROJECT_NAME)
+os.makedirs(PROJECT_PATH, exist_ok=True)
 
-for line in lines:
+OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
+os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+for sample_name in samples:
     # Limpiar por si hay espacios en blanco
-    line = line.strip()
+    sample_name = sample_name.strip()
+    logger.info(f"Processing {sample_name}")
+    
 
     # Crear el directorio para el sample
     subdir_path = os.path.join(dir_path, line)

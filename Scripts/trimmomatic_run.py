@@ -7,10 +7,10 @@
 import os
 from modules.general_functions import read_args, execute_command
 
-
 # Leer los argumentos de la línea de comandos y el fichero de configuración
 PROJECT_NAME, samples, config, logging = read_args("trimmomatic_config.json")
 
+logger = logging.getLogger(__name__)
 
 # Parametros de configuración de este script
 PROJECTS_PATH = config['PROJECTS_PATH']
@@ -30,7 +30,7 @@ os.makedirs(OUTPUT_PATH, exist_ok=True)
 for sample_name in samples:
     # Limpiar por si hay espacios en blanco
     sample_name = sample_name.strip()
-    logging.info(f"Processing {sample_name}")
+    logger.info(f"Processing {sample_name}")
     # Crear el directorio para el sample
     SAMPLE_PATH = os.path.join(PROJECT_PATH, sample_name)
     os.makedirs(SAMPLE_PATH, exist_ok=True)
@@ -46,7 +46,7 @@ for sample_name in samples:
     command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE", "-phred33",
                input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
     
-    result = execute_command(command, logging)
+    result = execute_command(command, logger)
 
     if result:
         # Renombrar los ficheros de salida de 1P y 2P a R1_001 y R2_001
@@ -54,9 +54,9 @@ for sample_name in samples:
             old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
             new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
             os.rename(old_file_path, new_file_path)
-            logging.info(f"Renaming file {new_file_path}")
+            logger.info(f"Renaming file {new_file_path}")
             os.system(f"gunzip {new_file_path}")
-            logging.info(f"Unzip file {new_file_path}")
+            logger.info(f"Unzip file {new_file_path}")
 
         # Mover los unpairs para futura calidad un directorio
         UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
@@ -65,4 +65,7 @@ for sample_name in samples:
             old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
             new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
             os.rename(old_file_path, new_file_path)
-            logging.info(f"Storing unpaired file {new_file_path}")
+            logger.info(f"Storing unpaired file {new_file_path}")
+
+    else:
+        logger.error("There is an error in Trimmomatic execution, check the log files")
