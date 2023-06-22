@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 # Parametros de configuración de este script
 PROJECTS_PATH = config['PROJECTS_PATH']
 
-ASSEMBLIES_PATH = config['ASSEMBLIES_PATH']
 # list of coma separated options https://github.com/ablab/spades#sec3.2
+SPADES_PROGRAM_PATH = config['SPADES_PATH']
 SPADES_OPTIONS = config['SPADES_OPTIONS']
 
 
@@ -27,8 +27,7 @@ SPADES_OPTIONS = config['SPADES_OPTIONS']
 PROJECT_PATH = os.path.join(PROJECTS_PATH, PROJECT_NAME)
 os.makedirs(PROJECT_PATH, exist_ok=True)
 
-OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
-os.makedirs(OUTPUT_PATH, exist_ok=True)
+TRIMMOMATIC_OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{PROJECT_NAME}", "FASTQ_Trimmomatic")
 
 for sample_name in samples:
     # Limpiar por si hay espacios en blanco
@@ -41,10 +40,10 @@ for sample_name in samples:
     os.makedirs(subdir_path, exist_ok=True)
 
     # Definir los ficheros de entrada 1 y 2 
-    input_r1_path = os.path.join(ASSEMBLIES_PATH, LINEAGE, f"{line}_R1_001.fastq")
-    input_r2_path = os.path.join(ASSEMBLIES_PATH, LINEAGE, f"{line}_R2_001.fastq")
+    input_r1_path = os.path.join(TRIMMOMATIC_OUTPUT_PATH, f"{sample_name}_trim_R1_001.fastq")
+    input_r2_path = os.path.join(TRIMMOMATIC_OUTPUT_PATH, f"{sample_name}_trim_R2_001.fastq")
 
-    command = ["python", SPADES_PATH, "-o", subdir_path, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS 
+    command = ["python", SPADES_PROGRAM_PATH, "-o", subdir_path, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS 
     
     execute_command(command, logging)
 

@@ -90,4 +90,4 @@ def execute_command(command, logging):
         logging.info(stderr.decode())
 
     # Return True if the process was successful
-    return (process.returncode == 0) 
+    return (process.returncode == 0)
