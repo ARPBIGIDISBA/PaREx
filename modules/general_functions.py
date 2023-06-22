@@ -57,16 +57,16 @@ def read_args_bowtie():
 
 
 # Ejecutar un comando y loggear la salida
-def execute_comman(command, logging):
+def execute_command(command, logging):
     # Enseñar el comando que se va a ejecutar
     logging.info(f"Ejecutando el comando: {' '.join(command)}")
 
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    # Capturar las salidas del comando y añadirlas al fichero de salida
-    stdout, stderr = process.communicate()
+    # process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # # Capturar las salidas del comando y añadirlas al fichero de salida
+    # stdout, stderr = process.communicate()
 
-    # Log the output
-    if stdout:
-        logging.info(stdout.decode())
-    if stderr:
-        logging.error(stderr.decode())
+    # # Log the output
+    # if stdout:
+    #     logging.info(stdout.decode())
+    # if stderr:
+    #     logging.error(stderr.decode())

@@ -6,7 +6,7 @@
 '''
 import os
 import json 
-from modules.general_functions import get_args, execute_command
+from modules.general_functions import read_args, execute_command
 
 
 
@@ -24,7 +24,7 @@ OUTPUT_PATH = config['OUTPUT_PATH']
 
 
 # Leer los argumentos de la línea de comandos y el fichero de configuración
-SAMPLES, LINEAGE, lines, logging = get_args()
+SAMPLES, LINEAGE, lines, logging = read_args()
 
 
 # Crear el directorio para el lineage

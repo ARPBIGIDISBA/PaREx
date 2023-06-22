@@ -5,11 +5,12 @@
     Da como resultado dos ficheros R1_001.fastq.gz y R2_001.fastq.gz escritos en OUT
 '''
 import os
-from modules.general_functions import get_args, execute_command
-import logging
+from modules.general_functions import read_args, execute_command
+import json
+
 
 # Leer el archivo de configuración
-with open('config.json', 'r') as file:
+with open('trimmomatic_config.json', 'r') as file:
     config = json.load(file)
 
 # Parametros de configuración de este script
@@ -20,9 +21,8 @@ INPUT_PATH = config['INPUT_PATH']
 # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
 TRIMMOMATIC_OPTIONS = config['TRIMMOMATIC_OPTIONS']
 
-
 # Leer los argumentos de la línea de comandos y el fichero de configuración
-SAMPLES, LINEAGE, lines, logging = get_args()
+SAMPLES, LINEAGE, lines, logging = read_args()
 
 # Constrantes para el nombre de los ficheros de salida
 files = ["1P", "1U", "2P", "2U"]

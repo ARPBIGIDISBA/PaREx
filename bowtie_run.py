@@ -1,5 +1,5 @@
 '''
-    Este script se usa para hacer una nalisis bowtie
+    Este script se usa para hacer una analisis bowtie
     Tiene como entrada los ficheros fastq.gz de las muestras
     
 '''
@@ -33,7 +33,6 @@ for line in lines:
     line = line.strip()
     logging.info(f"Processing sample {line}")
 
-    gene_index_path = os.path.join(LIBS_PATH, GENE, GENE)
     gene_index_path = os.path.join(LIBS_PATH, GENE, GENE)
     input_r1_path = os.path.join(INPUT_PATH, LINEAGE, 'new_fastq', f"new_{line}_L001_R1_001.fastq")
     input_r2_path = os.path.join(INPUT_PATH, LINEAGE, 'new_fastq', f"new_{line}_L001_R2_001.fastq")
