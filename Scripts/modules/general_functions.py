@@ -87,7 +87,6 @@ def init_configs(script_directory, config_json):
 def configure_logs(project_name, script_name, config, log_mode="w"):
     
     LOG_MODE = log_mode  # "a" to append or "w" to overwrite
-    print(config["LOGS_PATH"], project_name)
     LOG_PATH = os.path.join(config["LOGS_PATH"], project_name)
     os.makedirs(LOG_PATH, exist_ok=True)
     LOG_NAME = os.path.join(LOG_PATH, f'{project_name}_{script_name}.log')                       
@@ -99,3 +98,4 @@ def configure_logs(project_name, script_name, config, log_mode="w"):
                             logging.FileHandler(LOG_NAME, mode=LOG_MODE),
                             logging.StreamHandler()
                         ])
+    logging.info("Log file: %s", LOG_NAME)
