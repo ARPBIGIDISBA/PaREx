@@ -17,7 +17,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "OPRD.json")
+config = init_configs(script_directory, "oprD.json")
 
 def print_metadata(json_file):
     protein_data = json.load(open(json_file))['BlastOutput2'][0]['report']
@@ -27,7 +27,6 @@ def print_metadata(json_file):
 
     for key, value in protein_data["results"].items():
         for result in value:
-            logger.info("-----------------------------------------------")
             logger.info("Result of %s", result["query_title"])
             logger.info("Result of %s", key)
             logger.info("Number of hits: %s", len(result["hits"]))
@@ -35,8 +34,10 @@ def print_metadata(json_file):
             logger.info("Stats: %s", stats_str)
             for hit in result["hits"]:
                 logger.info("Hit: %s", hit["description"][0]["title"])
+                logger.info("Gaps %s", hit["hsps"][0]["gaps"])
 
-def OPRD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
+
+def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -72,7 +73,7 @@ def OPRD_run(project_name, config=config, only_output = False, direct_file = Non
 
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
     
-    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "OPRD_results")
+    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "oprD_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 
@@ -140,7 +141,7 @@ def OPRD_run(project_name, config=config, only_output = False, direct_file = Non
                     if os.path.exists(output_file_nucleotide) and os.path.exists(output_file_protein):
                         result = True
                     else:
-                        logger.error("You have to run first the OPRD process")
+                        logger.error("You have to run first the oprD process")
                         logger.error("File not found: %s", output_file_nucleotide)
                         logger.error("File not found: %s", output_file_protein)
                 else:
@@ -151,19 +152,21 @@ def OPRD_run(project_name, config=config, only_output = False, direct_file = Non
                 if result and not normal_output:
                     # Read the json file and get the results
                     logger.info("***********************************************")
-                    logger.info("OPRD Analysis sample %s againts %s", sample_name, name)
+                    logger.info("oprD Analysis sample %s againts %s", sample_name, name)
                     logger.info("***********************************************")
                     
-                    logger.info("**** Nucleotide analysis ****")
+                    logger.info("-----------------------------------------------")
+                    logger.info("--- Nucleotide analysis %s ----------------", name)
+                    logger.info("-----------------------------------------------")
                     print_metadata(output_file_nucleotide)
-                    # logger.info("**** Protein analysis ****")
-                    # print_metadata(output_file_protein)
+
+                    logger.info("-----------------------------------------------")
+                    logger.info("--- Protein analysis %s --------------", name)
+                    logger.info("-----------------------------------------------")
+                    print_metadata(output_file_protein)
                     
-
-
                 else:
-                    logger.error("Resfinder failed assembly failed on sample %s", sample_name)
-                break
+                    logger.error("oprD failed assembly failed on sample %s", sample_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
@@ -176,8 +179,8 @@ if __name__ == "__main__":
     project_name = args.PROJECT_NAME
 
     # Start the python logging variable to generate a file
-    configure_logs(project_name, "OPRD", config)
+    configure_logs(project_name, "oprD", config)
 
     logger = logging.getLogger(__name__)
 
-    OPRD_run(project_name, config, args.parse_output, args.file, args.normal_output)
+    oprD_run(project_name, config, args.parse_output, args.file, args.normal_output)
