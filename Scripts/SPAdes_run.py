@@ -11,14 +11,13 @@ import sys
 import shutil
 import argparse
 import logging
-from modules.general_functions import read_config, read_args, execute_command, configure_logs
+from modules.general_functions import read_args, execute_command
+from modules.general_functions import configure_logs, init_configs
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-default_config_json = os.path.join(script_directory, "SPAdes_config.json")
-config = read_config(default_config_json)
-
+config = init_configs(script_directory, "SPAdes.json")
 
 def SPAdes_run(project_name, config=config):
     ''' 

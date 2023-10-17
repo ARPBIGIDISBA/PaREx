@@ -35,7 +35,7 @@ if __name__ == "__main__":
     trimmomatic_run(PROJECT_NAME)
 
     # # Execute SPAdes analisis
-    # SPAdes_run(PROJECT_NAME)
+    SPAdes_run(PROJECT_NAME)
 
     # # Execute bowtie analisis
-    # bowtie_run(PROJECT_NAME, reference)
+    bowtie_run(PROJECT_NAME, reference)

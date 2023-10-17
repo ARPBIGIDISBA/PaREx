@@ -1,0 +1,5 @@
+{
+    "RESFINDER_PATH": "/home/mbonet/microbiologia/Programs/resfinder/src/resfinder",
+    "RESFINDER_OPTIONS": ["--acquired", "--point"],
+     "IGNORED_GENES": ["blaPAO"]
+}

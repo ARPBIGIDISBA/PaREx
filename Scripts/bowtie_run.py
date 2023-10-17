@@ -7,15 +7,16 @@ import os
 import sys
 import argparse
 import logging
-from modules.general_functions import read_args, execute_command, read_config, configure_logs
+from modules.general_functions import read_args, execute_command, init_configs
+from modules.general_functions import configure_logs
 
 
 logger = logging.getLogger(__name__)
 
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-default_config_json = os.path.join(script_directory, "bowtie_config.json")
-config = read_config(default_config_json)
+
+config = init_configs(script_directory, "bowtie.json")
 
 
 def bowtie_run(project_name, reference, config=config):
@@ -26,7 +27,7 @@ def bowtie_run(project_name, reference, config=config):
         parameters:
             project_name (str): Name of the project
             reference (str): Name of the reference file
-            config_json (str): Path to the config file by default is trimmomatic_config.json
+            config dict with the configuration parameters merge of general.json and bowtie.json
 
         results:
             this generates a sam file in OUTPUT_PATH
@@ -84,10 +85,11 @@ def bowtie_run(project_name, reference, config=config):
             logger.error("This file does not exist: %s", input_r2_path)
 
         if execute:
+            output_file = os.path.join(OUTPUT_PATH, f"{sample_name}.sam")
             command = [BOWTIE_PROGRAM, "-x", reference_file, "-q",
                        "-1", input_r1_path,
                        "-2", input_r2_path,
-                       "-S", OUTPUT_PATH] + BOWTIE_OPTIONS
+                       "-S", output_file] + BOWTIE_OPTIONS
 
             result = execute_command(command)
 

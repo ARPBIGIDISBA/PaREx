@@ -1,0 +1,175 @@
+'''
+    Este script aplica el ensamblaje de novo con SPAdes a los ficheros fastq.gz
+    Ejecuta el programa en python spades sobre los ficheros fastq
+    Tiene como entrada los ficheros fastq.gz de las muestras
+    Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
+    Here are the command options for spades https://github.com/ablab/spades#sec3.2
+
+'''
+import os
+import argparse
+import logging
+import json
+from modules.general_functions import read_args, execute_command
+from modules.general_functions import configure_logs, init_configs
+
+logger = logging.getLogger(__name__)
+script_path = os.path.abspath(__file__)
+script_directory = os.path.dirname(script_path)
+config = init_configs(script_directory, "resfinder.json")
+
+def print_metadata(data):
+    logger.info("**********************")
+    logger.info("***** Metadata ******")
+    logger.info("**********************")
+    for db_key, db_info in data["databases"].items():
+        logger.info(f"Database used: {db_key}")
+        string = ""
+        for info_key, info_value in db_info.items():
+            string += f"{info_key}: {info_value} "
+        logger.info(string)
+
+    logger.info("Software %s version %s", data["software_name"], data["software_version"])
+    logger.info("**********************")
+
+
+def filter_output(data, ignore_list):
+    '''
+        This function is used to filter the output of the resfinder program 
+        and generate csv output clean
+    '''
+    csv_full = "name; identity; start_pos; end_pos; coverage; ref_id;query_id;query_start_pos; query_end_pos;ref_acc;grade; phenotypes\n"
+    csv_posible= csv_full
+    posible = False
+    full = False
+    for seq_key, seq_info in data["seq_regions"].items():
+        name = seq_info["name"]
+        if name not in ignore_list:
+            alignment = seq_info["alignment_length"]
+            seq_length = seq_info["ref_seq_lenght"]
+            identity = seq_info["identity"]
+            start_pos = seq_info["ref_start_pos"]
+            end_pos = seq_info["ref_end_pos"]
+            coverage = seq_info["coverage"]
+            phenotypes = ', '.join(seq_info['phenotypes'])
+
+            logger.info("Gene: %s identity %2.f. (%s, %s)", name, identity, start_pos, end_pos)
+            line = f"{name};{identity};{start_pos};{end_pos};{coverage};{seq_info['ref_id']}"
+            line += f";{seq_info['query_start_pos']}{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
+            if alignment != seq_length or coverage < 100:
+                if alignment != seq_length:
+                    logger.info("   Distint lenght: %s %s", alignment, seq_length)
+                if coverage < 100:
+                    logger.info("   Coverage minus 100%%: %s", coverage)
+                posible = True
+                csv_posible = csv_posible + line
+            else:
+                full = True
+                csv_full = csv_full + line
+    
+    # To not generate the csv file if there is no result
+    if not full:
+        full = False
+    else:
+        csv_full = csv_full.replace(".", ",")
+    if not posible:
+        posible = False
+    else:
+        csv_posible = csv_posible.replace(".", ",")
+    return csv_full, csv_posible
+
+def resfinder_run(project_name, config=config, only_output = False):
+    ''' 
+        this function is used to apply the resfinder program to the denovo files output of SPAdes
+
+        parameters:
+            project_name (str): Name of the project
+            config dict (dict): readed from Path  is resfinder.json
+
+        results:
+            
+
+    '''
+
+    # Read command line arguments, sample list and config file
+    samples = read_args(project_name, config)
+
+    PROJECTS_PATH = config["PROJECTS_PATH"]
+    # list of coma separated options https://github.com/ablab/spades#sec3.2
+    RESFINDER_PROGRAM_PATH = config['RESFINDER_PATH']
+    RESFINDER_OPTIONS = config['RESFINDER_OPTIONS']
+
+    # Create project directory in case it is not created
+    PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
+    os.makedirs(PROJECT_PATH, exist_ok=True)
+
+    SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
+    
+    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "resfinder_results")
+    os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+
+    previous_dir = os.getcwd()
+    os.chdir(RESFINDER_PROGRAM_PATH)
+
+    for sample_name in samples:
+        # Limpiar por si hay espacios en blanco
+        sample_name = sample_name.strip()
+        logger.info("Processing sample %s", sample_name)
+
+        # Definir los ficheros de entrada 1 y 2 
+        SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+        logger.info("Using SPAdes file: %s", SPADES_FILE)
+        execute = True
+        if not os.path.exists(SPADES_FILE):
+            execute = False
+
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", SPADES_FILE)
+        
+        
+        if execute:
+            command = ["python3", "run_resfinder.py", "-o", OUTPUT_PATH, "-s", "OTHER", "-ifa", SPADES_FILE] + RESFINDER_OPTIONS
+
+            output_json = os.path.join(OUTPUT_PATH, f"{sample_name}.json")
+            if only_output:
+                if os.path.exists(output_json):
+                    result = True
+                else:
+                    logger.error("You have to run first the resfinder process")
+                    logger.error("File not found: %s", output_json)
+            else:
+                result = execute_command(command)
+
+            if result:
+                # Read the json file and get the results
+                with open(output_json) as json_file:
+                    data = json.load(json_file)
+                    logger.info("Resfinder results for sample %s", sample_name)
+                    print_metadata(data)
+                    csv_full, csv_posible = filter_output(data, config["IGNORED_GENES"])
+                    if csv_full:
+                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.full.csv"), "w") as file:
+                            file.write(csv_full)
+                    if csv_posible:
+                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.posible.csv"), "w") as file:
+                            file.write(csv_posible)
+            else:
+                logger.error("Resfinder failed assembly failed on sample %s", sample_name)
+
+    os.chdir(previous_dir)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
+    parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')
+
+    args = parser.parse_args()
+    project_name = args.PROJECT_NAME
+
+    # Start the python logging variable to generate a file
+    configure_logs(project_name, "resfinder", config)
+
+    logger = logging.getLogger(__name__)
+
+    resfinder_run(project_name, config, args.parse_output)
