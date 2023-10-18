@@ -21,9 +21,45 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "oprD.json")
 
 def print_differences_protein(hsps):
-        # "qseq": "ATGAAAGTGATGAAGTGGAGCGCCATTGCACTGGCGGTTTCCGCAGGTAGCACTCAGTTCGCCGTGGCCGACGCATTCGTCAGCGATCAGGCCGAAGCGAAGGGGTTCATCGAAGACAGCAGCCTCGACCTGCTGCTCCGCAACTACTATTTCAACCGTGACGGCAAGAGCGGCAGCGGGGACCGCGTCGACTGGACCCAAGGCTTCCTCACCACCTATGAATCCGGCTTCACCCAAGGCACTGTGGGCTTCGGCGTCGATGCCTTCGGCTACCTCGGCCTGAAGCTCGACGGTACCTCTGACAAGAGCGGCACCGGCAACCTGCCAGTAATGAACGACGGAACGCCCCGTGACGACTACAGCCGCGCCGGTGGCGCCGTGAAGGTACGCATCTCCAAGACCATGCTGAAGTGGGGCGAGATGCAGCCGACCGCTCCGGTCTTCGCCGCTGGGGGCAGCCGCCTGTTCCCCCAGACCGCGACCGGCTTCCAGCTGCAGAGCAGCGAACTCGAAGGGCTCGACCTCGAGGCAGGCCACTTCACCGAGGGCAAGGAGCCGACCACCGTCAAATCGCGTGGCGAACTCTATGCCACCTACGCAGGCGAGACCGCCAAGAGCGCCGATTTCATTGGGGGCCGCTACGCAATCACCGATAACCTCAGCGCCTCCCTGTACGGCGCCGAACTCGAAGACATCTATCGCCAGTATTACCTGAACAGCAACTACACCATCCCACTGGCATCCGACCAATCGCTGGGCTTCGATTTCAACATCTACCGCACAAACGATGAAGGCAAGGCCAAGGCCGGCGACATCAGCAACACCACTTGGTCCCTGGCGGCAGCCTACACTCTGGATGCGCACACTTTCACCTTGGCCTACCAGAAGGTCCATGGCGATCAGCCGTTTGATTATATCGGCTTCGGCCGCAACGGCTCTGGCGCAGGTGGCGACTCGATTTTCCTCGCCAACTCTGTCCAGTACTCCGACTTCAACGGCCCTGGCGAGAAATCCTGGCAGGCTCGCTACGACCTGAACCTAGCCTCCTATGGCGTTCCCGGCCTGACTTTCATGGTCCGCTATATCAATGGCAAGGACATCGATGGCACCAAGATGTCTGACAACAACGTCGGCTATAAGAACTACGGCTACGGCGAGGACGGCAAGCACCACGAGACCAACCTCGAAGCCAAGTACGTGGTCCA-GTCCGGTCCGGCCAAGGACCTGTCGTTCCGCATCCGCCAGGCCTGGCACCGTGCCAACGCCGACCAGGGCGAAGGCGACCAGAACGAGTTCCGCCTGATCGTCGACTATCCGCTGTCGATCCTGTAA",
-        # "hseq": "ATGAAAGTGATGAAGTGGAGCGCCATTGCACTGGCGGTTTCCGCAGGTAGCACTCAGTTCGCCGTGGCCGACGCATTCGTCAGCGATCAGGCCGAAGCGAAGGGGTTCATCGAAGACAGCAGCCTCGACCTGCTGCTCCGCAACTACTATTTCAACCGTGACGGCAAGAGCGGCAGCGGGGACCGCGTCGACTGGACCCAAGGCTTCCTCACCACCTATGAATCCGGCTTCACCCAAGGCACCGTGGGCTTCGGCGTCGATGCCTTCGGCTACCTCGGTCTGAAGCTCGACGGCACCTCGGACAAGAGCGGTACCGGCAACCTGCCGGTGATGAACGACGGCACGCCCCGTGACGACTACAGCCGCGCCGGTGGCGCCGTGAAGGTACGCATCTCCAAGACCATGTTGAAGTGGGGCGAGATGCAGCCGACCGCTCCGGTCTTCGCCGCCGGCGGCAGCCGCCTGTTCCCGCAGACCGCGACCGGCTTCCAACTGCAGAGCAGCGAACTCGAAGGGCTCGATCTCGAAGCGGGCCACTTCACCGAAGGCAAGCAGGGCACCACCACCAAGTCGCGCGGCGAACTCTACGCAACCTATGCAGGCGAGACCGCCAAGAGCGCCGATTTCATTGGGGGCCGCTACGCAATCACCGATAACCTCAGCGCCTCCCTGTACGGTGCTGAACTCGAAGACATCTATCGTCAGTATTACCTGAACAGCAACTACACCATCCCACTGGCATCCGACCAATCGCTGGGCTTCGATTTCAACATCTACCGCACAAACGATGAAGGCAAGGCCAAGGCCGGCGACATCAGCAACACCACTTGGTCCCTGGCGGCAGCCTACACTCTGGATGCGCACACTTTCACCTTGGCCTACCAGAAGGTCCATGGCGATCAGCCGTTTGATTATATCGGCTTCGGCGAGAACGGTTCCGGCGGCGGCGGTGACTCGATTTTCCTCGCCAACTCCGTGCAGTACTCCGACTTCAACGGCCCCGGCGAGAAATCCTGGCAGGCCCGCTACGACCTGAACCTCGCCTCCTATGGCGTTCCCGGCCTGACTTTCATGGTCCGCTATATCAATGGCAAGGACATCGATGGCACCAAGATGTCTGACAACAACGTCGGCTATAAGAACTACGGCTACGGCGAGGACGGCAAGCACCACGAGACCAACCTGGAAGCCAAGTACGTGGTCCACGTCCGGTCCGGCCAAGGACCTGTCGTTCCGCATCCGCCAGGCCTGGCACCGCGCCAACGCCGACCAGGCCGAAGGCGACCAGAACGAGTTCCGCCTGATCGTCGACTATCCGCTGTCGATCCTGTAA",
-        # "midline": "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||| |||||||||||||| ||||| ||||||||||| |||||||||||||| || ||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||||| |||||||||||||||||||| ||||||||||||||||||||||||||||| ||||| || |||||||||||||| |||||| ||   ||||||  ||| ||||| ||||||||||| || ||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| || |||||||||||||||||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||   ||||| || ||||  || || ||||||||||||||||||||||| || ||||||||||||||||||||||| |||||||||||||||||||| ||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+        qseq = hsps["qseq"]
+        hseq = hsps["hseq"]
+        midline = hsps["midline"]
+        segments = []
+        start = None
+
+        for i in range(len(midline)):
+            if midline[i] == ' ' or qseq[i] != hseq[i]:
+                if start is None:
+                    start = i
+            else:
+                if start is not None:
+                    segments.append({
+                        'start': start,
+                        'end': i - 1,
+                        'difference': qseq[start:i] + " -> " + hseq[start:i]
+                    })
+                    start = None
+
+        if start is not None:
+            segments.append({
+                'start': start,
+                'end': len(midline) - 1,
+                'difference': qseq[start:] + " -> " + hseq[start:]
+            })
+        for segment in segments:
+
+            logger.info(f"Difference: {segment['difference']} Start: {segment['start']}, End: {segment['end']}")
+            start = segment['start']
+            if start >1:
+                start = start - 1
+            end = segment['end']
+            if end < len(midline) - 1:
+                end = end + 1
+            logger.info(f"Qseq: {qseq[start:end]}   ")
+            logger.info(f"Midl: {midline[start:end]}   ")
+            logger.info(f"Hseq: {hseq[start:end]}   ")
+        
+def print_differences_nucleotide(hsps):
         qseq = hsps["qseq"]
         hseq = hsps["hseq"]
         midline = hsps["midline"]
@@ -95,7 +131,7 @@ def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
                                 logger.info(output_str)
                                 output_str = f"*** From {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
                                 logger.info(output_str)
-                                print_differences_protein(hsps)
+                                print_differences_nucleotide(hsps)
 
             elif nucleotide_protein == "protein":
                 if query_len >=441 and query_len <= 443:
@@ -118,6 +154,7 @@ def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
                                 logger.info(output_str)
                                 output_str = f"*** from {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
                                 logger.info(output_str)
+                                print_differences_protein(hsps)
 
             else:
                 logger.info("type must be nucleotide or protein")
@@ -248,10 +285,10 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     logger.info("-----------------------------------------------")
                     print_metadata(output_file_nucleotide, name, "nucleotide")
 
-                    # logger.info("-----------------------------------------------")
-                    # logger.info("--- Protein analysis %s --------------", sample_name)
-                    # logger.info("-----------------------------------------------")
-                    # print_metadata(output_file_protein, name, "protein")
+                    logger.info("-----------------------------------------------")
+                    logger.info("--- Protein analysis %s --------------", sample_name)
+                    logger.info("-----------------------------------------------")
+                    print_metadata(output_file_protein, name, "protein")
                     
                 else:
                     if not normal_output and not only_output:
