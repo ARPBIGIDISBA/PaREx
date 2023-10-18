@@ -7,6 +7,7 @@
 
 '''
 import os
+import sys
 import argparse
 import logging
 import json
@@ -19,7 +20,49 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "oprD.json")
 
-def print_metadata(json_file):
+def print_differences_protein(hsps):
+        # "qseq": "ATGAAAGTGATGAAGTGGAGCGCCATTGCACTGGCGGTTTCCGCAGGTAGCACTCAGTTCGCCGTGGCCGACGCATTCGTCAGCGATCAGGCCGAAGCGAAGGGGTTCATCGAAGACAGCAGCCTCGACCTGCTGCTCCGCAACTACTATTTCAACCGTGACGGCAAGAGCGGCAGCGGGGACCGCGTCGACTGGACCCAAGGCTTCCTCACCACCTATGAATCCGGCTTCACCCAAGGCACTGTGGGCTTCGGCGTCGATGCCTTCGGCTACCTCGGCCTGAAGCTCGACGGTACCTCTGACAAGAGCGGCACCGGCAACCTGCCAGTAATGAACGACGGAACGCCCCGTGACGACTACAGCCGCGCCGGTGGCGCCGTGAAGGTACGCATCTCCAAGACCATGCTGAAGTGGGGCGAGATGCAGCCGACCGCTCCGGTCTTCGCCGCTGGGGGCAGCCGCCTGTTCCCCCAGACCGCGACCGGCTTCCAGCTGCAGAGCAGCGAACTCGAAGGGCTCGACCTCGAGGCAGGCCACTTCACCGAGGGCAAGGAGCCGACCACCGTCAAATCGCGTGGCGAACTCTATGCCACCTACGCAGGCGAGACCGCCAAGAGCGCCGATTTCATTGGGGGCCGCTACGCAATCACCGATAACCTCAGCGCCTCCCTGTACGGCGCCGAACTCGAAGACATCTATCGCCAGTATTACCTGAACAGCAACTACACCATCCCACTGGCATCCGACCAATCGCTGGGCTTCGATTTCAACATCTACCGCACAAACGATGAAGGCAAGGCCAAGGCCGGCGACATCAGCAACACCACTTGGTCCCTGGCGGCAGCCTACACTCTGGATGCGCACACTTTCACCTTGGCCTACCAGAAGGTCCATGGCGATCAGCCGTTTGATTATATCGGCTTCGGCCGCAACGGCTCTGGCGCAGGTGGCGACTCGATTTTCCTCGCCAACTCTGTCCAGTACTCCGACTTCAACGGCCCTGGCGAGAAATCCTGGCAGGCTCGCTACGACCTGAACCTAGCCTCCTATGGCGTTCCCGGCCTGACTTTCATGGTCCGCTATATCAATGGCAAGGACATCGATGGCACCAAGATGTCTGACAACAACGTCGGCTATAAGAACTACGGCTACGGCGAGGACGGCAAGCACCACGAGACCAACCTCGAAGCCAAGTACGTGGTCCA-GTCCGGTCCGGCCAAGGACCTGTCGTTCCGCATCCGCCAGGCCTGGCACCGTGCCAACGCCGACCAGGGCGAAGGCGACCAGAACGAGTTCCGCCTGATCGTCGACTATCCGCTGTCGATCCTGTAA",
+        # "hseq": "ATGAAAGTGATGAAGTGGAGCGCCATTGCACTGGCGGTTTCCGCAGGTAGCACTCAGTTCGCCGTGGCCGACGCATTCGTCAGCGATCAGGCCGAAGCGAAGGGGTTCATCGAAGACAGCAGCCTCGACCTGCTGCTCCGCAACTACTATTTCAACCGTGACGGCAAGAGCGGCAGCGGGGACCGCGTCGACTGGACCCAAGGCTTCCTCACCACCTATGAATCCGGCTTCACCCAAGGCACCGTGGGCTTCGGCGTCGATGCCTTCGGCTACCTCGGTCTGAAGCTCGACGGCACCTCGGACAAGAGCGGTACCGGCAACCTGCCGGTGATGAACGACGGCACGCCCCGTGACGACTACAGCCGCGCCGGTGGCGCCGTGAAGGTACGCATCTCCAAGACCATGTTGAAGTGGGGCGAGATGCAGCCGACCGCTCCGGTCTTCGCCGCCGGCGGCAGCCGCCTGTTCCCGCAGACCGCGACCGGCTTCCAACTGCAGAGCAGCGAACTCGAAGGGCTCGATCTCGAAGCGGGCCACTTCACCGAAGGCAAGCAGGGCACCACCACCAAGTCGCGCGGCGAACTCTACGCAACCTATGCAGGCGAGACCGCCAAGAGCGCCGATTTCATTGGGGGCCGCTACGCAATCACCGATAACCTCAGCGCCTCCCTGTACGGTGCTGAACTCGAAGACATCTATCGTCAGTATTACCTGAACAGCAACTACACCATCCCACTGGCATCCGACCAATCGCTGGGCTTCGATTTCAACATCTACCGCACAAACGATGAAGGCAAGGCCAAGGCCGGCGACATCAGCAACACCACTTGGTCCCTGGCGGCAGCCTACACTCTGGATGCGCACACTTTCACCTTGGCCTACCAGAAGGTCCATGGCGATCAGCCGTTTGATTATATCGGCTTCGGCGAGAACGGTTCCGGCGGCGGCGGTGACTCGATTTTCCTCGCCAACTCCGTGCAGTACTCCGACTTCAACGGCCCCGGCGAGAAATCCTGGCAGGCCCGCTACGACCTGAACCTCGCCTCCTATGGCGTTCCCGGCCTGACTTTCATGGTCCGCTATATCAATGGCAAGGACATCGATGGCACCAAGATGTCTGACAACAACGTCGGCTATAAGAACTACGGCTACGGCGAGGACGGCAAGCACCACGAGACCAACCTGGAAGCCAAGTACGTGGTCCACGTCCGGTCCGGCCAAGGACCTGTCGTTCCGCATCCGCCAGGCCTGGCACCGCGCCAACGCCGACCAGGCCGAAGGCGACCAGAACGAGTTCCGCCTGATCGTCGACTATCCGCTGTCGATCCTGTAA",
+        # "midline": "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||| |||||||||||||| ||||| ||||||||||| |||||||||||||| || ||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||| || ||||||||||||||||| |||||||||||||||||||| ||||||||||||||||||||||||||||| ||||| || |||||||||||||| |||||| ||   ||||||  ||| ||||| ||||||||||| || ||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| || |||||||||||||||||||| |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||   ||||| || ||||  || || ||||||||||||||||||||||| || ||||||||||||||||||||||| |||||||||||||||||||| ||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||| |||||||||||||||| ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+        qseq = hsps["qseq"]
+        hseq = hsps["hseq"]
+        midline = hsps["midline"]
+        segments = []
+        start = None
+
+        for i in range(len(midline)):
+            if midline[i] == ' ' or qseq[i] != hseq[i]:
+                if start is None:
+                    start = i
+            else:
+                if start is not None:
+                    segments.append({
+                        'start': start,
+                        'end': i - 1,
+                        'difference': qseq[start:i] + " -> " + hseq[start:i]
+                    })
+                    start = None
+
+        if start is not None:
+            segments.append({
+                'start': start,
+                'end': len(midline) - 1,
+                'difference': qseq[start:] + " -> " + hseq[start:]
+            })
+        for segment in segments:
+
+            logger.info(f"Difference: {segment['difference']} Start: {segment['start']}, End: {segment['end']}")
+            start = segment['start']
+            if start >1:
+                start = start - 1
+            end = segment['end']
+            if end < len(midline) - 1:
+                end = end + 2
+            logger.info(f"Qseq: {qseq[start:end]}   ")
+            logger.info(f"Midl: {midline[start:end]}   ")
+            logger.info(f"Hseq: {hseq[start:end]}   ")
+
+def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
     protein_data = json.load(open(json_file))['BlastOutput2'][0]['report']
     logger.info("Program: %s version %s",protein_data['program'], protein_data['version'])
     params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
@@ -32,10 +75,52 @@ def print_metadata(json_file):
             logger.info("Number of hits: %s", len(result["hits"]))
             stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
             logger.info("Stats: %s", stats_str)
-            for hit in result["hits"]:
-                logger.info("Hit: %s", hit["description"][0]["title"])
-                logger.info("Gaps %s", hit["hsps"][0]["gaps"])
+            query_len = result["query_len"]
+            
+            if nucleotide_protein == "nucleotide":
+                if query_len >=1296 and query_len <= 1352:
+                    for hit in result["hits"]:
+                        title = hit["description"][0]["title"]
+                        logger.info("%s Hit: %s", name, title)
+                        for hsps in hit["hsps"]:
+                            gaps = hsps["gaps"]
+                            
+                            if gaps == 0:
+                                logger.info("--- #%s", hsps['num'])
+                                output_str = f"---     bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
+                                logger.info(output_str)
+                            else:
+                                logger.info("*** %s #%s %s gaps Hit: %s with ", name, hsps['num'], gaps,  title)
+                                output_str = f"*** QS {hsps['query_strand']} HS {hsps['hit_strand']} Identity {hsps['identity']}"
+                                logger.info(output_str)
+                                output_str = f"*** From {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
+                                logger.info(output_str)
+                                print_differences_protein(hsps)
 
+            elif nucleotide_protein == "protein":
+                if query_len >=441 and query_len <= 443:
+                    for hit in result["hits"]:
+                        title = hit["description"][0]["title"]
+                        logger.info("--- %s Hit: %s", name, title)
+                        for hsps in hit["hsps"]:
+                            gaps = hsps["gaps"]
+                            
+                            if gaps == 0:
+
+                                logger.info("--- #%s", hsps['num'])
+                                output_str = f"--- bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
+                                logger.info(output_str)
+                            else:
+                                logger.info("*** %s #%s Hit: %s with %s gaps", name, hsps['num'], title, gaps)
+                                output_str = f"*** bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
+                                logger.info(output_str)
+                                output_str = f"*** Hit frame {hsps['hit_frame']} Positive {hsps['positive']} align_len {hsps['align_len']}"
+                                logger.info(output_str)
+                                output_str = f"*** from {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
+                                logger.info(output_str)
+
+            else:
+                logger.info("type must be nucleotide or protein")
 
 def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
     ''' 
@@ -91,9 +176,10 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
     for sample_name in samples:
         # Limpiar por si hay espacios en blanco
         if direct_file:
+            SPADES_FILE = sample_name
             sample_name = os.path.basename(sample_name)
             sample_name = sample_name[0:-len(".fasta")]
-            SPADES_FILE = direct_file
+            
         else:
             sample_name = sample_name.strip()
             logger.info("Processing sample %s", sample_name)
@@ -109,7 +195,8 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
         if execute:
             samples_tested = []
             for nucleotide_file in files_nucleotide:
-                name = nucleotide_file[0:-len("_nucleotide.fasta")]
+                suffix_name = nucleotide_file[0:-len("_nucleotide.fasta")]
+                name = suffix_name.replace("oprD_", "")
                 samples_tested.append(name)
                 logger.info("Processing sample %s", name)
 
@@ -124,7 +211,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide, "-outfmt", "15"] + BLAST_OPTIONS
                 
                 # Protein analysis
-                protein_file = os.path.join(PROTEIN_PATH, f"{name}_protein.fasta")
+                protein_file = os.path.join(PROTEIN_PATH, f"{suffix_name}_protein.fasta")
                 if os.path.exists(protein_file):
                     logger.info("Using protein file: %s", protein_file)
                     output_file_protein = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_protein.json")
@@ -141,9 +228,10 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     if os.path.exists(output_file_nucleotide) and os.path.exists(output_file_protein):
                         result = True
                     else:
-                        logger.error("You have to run first the oprD process")
                         logger.error("File not found: %s", output_file_nucleotide)
                         logger.error("File not found: %s", output_file_protein)
+                        logger.error("You have to run first the oprD process")
+                        result = False
                 else:
                     result_nuc = execute_command(command_nucleotide)
                     result_pro = execute_command(command_protein)
@@ -156,17 +244,18 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     logger.info("***********************************************")
                     
                     logger.info("-----------------------------------------------")
-                    logger.info("--- Nucleotide analysis %s ----------------", name)
+                    logger.info("--- Nucleotide analysis %s ----------------", sample_name)
                     logger.info("-----------------------------------------------")
-                    print_metadata(output_file_nucleotide)
+                    print_metadata(output_file_nucleotide, name, "nucleotide")
 
-                    logger.info("-----------------------------------------------")
-                    logger.info("--- Protein analysis %s --------------", name)
-                    logger.info("-----------------------------------------------")
-                    print_metadata(output_file_protein)
+                    # logger.info("-----------------------------------------------")
+                    # logger.info("--- Protein analysis %s --------------", sample_name)
+                    # logger.info("-----------------------------------------------")
+                    # print_metadata(output_file_protein, name, "protein")
                     
                 else:
-                    logger.error("oprD failed assembly failed on sample %s", sample_name)
+                    if not normal_output and not only_output:
+                        logger.error("oprD failed assembly failed on sample %s", sample_name)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
