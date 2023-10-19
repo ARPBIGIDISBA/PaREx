@@ -1,5 +1,5 @@
 {
-    "LOGS_PATH": "/home/mbonet/microbiologia/Logs",
+    "LOGS_PATH": "/wgs/microbiologia/Logs",
     "PROJECTS_PATH": "/wgs/microbiologia/Projects",
     "SPADES_PATH": "/wgs/microbiologia/Programs/SPAdes-3.15.5-Linux/bin/spades.py",
     "SPADES_OPTIONS": ["--careful"]

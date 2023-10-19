@@ -5,7 +5,7 @@ import subprocess
 import logging
 import json
 import os
-import traceback
+
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def execute_command(command):
 
     while True:
         output = process.stdout.readline()
-        if output and output !="":
+        if output and output != "":
             logger.info(output.strip())
         # Check for termination
         return_code = process.poll()
@@ -64,6 +64,7 @@ def execute_command(command):
             for output in process.stderr.readlines():
                 logger.info(output.strip())
             return (return_code == 0)
+
 
 def init_configs(script_directory, config_json):
     '''
@@ -84,8 +85,9 @@ def init_configs(script_directory, config_json):
     config["REFERENCE_PATH"] = config_general["REFERENCE_PATH"]
     return config
 
+
 def configure_logs(project_name, script_name, config, log_mode="w"):
-    
+
     LOG_MODE = log_mode  # "a" to append or "w" to overwrite
     LOG_PATH = os.path.join(config["LOGS_PATH"], project_name)
     os.makedirs(LOG_PATH, exist_ok=True)

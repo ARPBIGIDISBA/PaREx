@@ -18,6 +18,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "resfinder.json")
 
+
 def print_metadata(data):
     logger.info("**********************")
     logger.info("***** Metadata ******")
@@ -39,7 +40,7 @@ def filter_output(data, ignore_list):
         and generate csv output clean
     '''
     csv_full = "name; identity; start_pos; end_pos; coverage; ref_id;query_id;query_start_pos; query_end_pos;ref_acc;grade; phenotypes\n"
-    csv_posible= csv_full
+    csv_posible = csv_full
     posible = False
     full = False
     for seq_key, seq_info in data["seq_regions"].items():
@@ -66,7 +67,7 @@ def filter_output(data, ignore_list):
             else:
                 full = True
                 csv_full = csv_full + line
-    
+
     # To not generate the csv file if there is no result
     if not full:
         full = False
@@ -78,7 +79,8 @@ def filter_output(data, ignore_list):
         csv_posible = csv_posible.replace(".", ",")
     return csv_full, csv_posible
 
-def resfinder_run(project_name, config=config, only_output = False):
+
+def resfinder_run(project_name, config=config, only_output=False):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -104,10 +106,8 @@ def resfinder_run(project_name, config=config, only_output = False):
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
-    
-    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "resfinder_results")
+    OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "resfinder_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
-
 
     previous_dir = os.getcwd()
     os.chdir(RESFINDER_PROGRAM_PATH)
@@ -126,7 +126,6 @@ def resfinder_run(project_name, config=config, only_output = False):
 
             logger.error("You have to run first the trimmomatic process")
             logger.error("This file does not exist: %s", SPADES_FILE)
-        
         
         if execute:
             command = ["python3", "run_resfinder.py", "-o", OUTPUT_PATH, "-s", "OTHER", "-ifa", SPADES_FILE] + RESFINDER_OPTIONS
@@ -158,6 +157,7 @@ def resfinder_run(project_name, config=config, only_output = False):
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)
 
     os.chdir(previous_dir)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
