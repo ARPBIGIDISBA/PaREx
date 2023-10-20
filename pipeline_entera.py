@@ -15,8 +15,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('REFERENCE', type=str, help='Reference file for alignment')
-    
     args = parser.parse_args()
+
     PROJECT_NAME = args.PROJECT_NAME
     reference = args.REFERENCE
     

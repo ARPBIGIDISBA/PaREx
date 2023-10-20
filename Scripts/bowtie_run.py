@@ -47,7 +47,7 @@ def bowtie_run(project_name, reference, config=config):
     PROJECT_PATH = os.path.join(config["PROJECTS_PATH"], project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
-    base_ref = os.path.join(REFERENCE_PATH, reference)
+    base_ref = os.path.join(REFERENCE_PATH, "bowtie", reference)
     reference_file = os.path.join(base_ref, reference)
     
     if not os.path.exists(base_ref):

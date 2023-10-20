@@ -39,8 +39,8 @@ def filter_output(data, ignore_list):
         This function is used to filter the output of the resfinder program 
         and generate csv output clean
     '''
-    csv_full = "name; identity; start_pos; end_pos; coverage; ref_id;query_id;query_start_pos; query_end_pos;ref_acc;grade; phenotypes\n"
-    csv_posible = csv_full
+    csv_fullcoverage = "name; identity; ref_start_pos; ref_end_pos; ref_seq_lenght;coverage; ref_id;query_id;query_start_pos; query_end_pos;ref_acc;grade; phenotypes\n"
+    csv_partialcoverage = csv_fullcoverage
     posible = False
     full = False
     for seq_key, seq_info in data["seq_regions"].items():
@@ -51,33 +51,34 @@ def filter_output(data, ignore_list):
             identity = seq_info["identity"]
             start_pos = seq_info["ref_start_pos"]
             end_pos = seq_info["ref_end_pos"]
+            ref_query = seq_info["ref_seq_lenght"]
             coverage = seq_info["coverage"]
             phenotypes = ', '.join(seq_info['phenotypes'])
 
             logger.info("Gene: %s identity %2.f. (%s, %s)", name, identity, start_pos, end_pos)
-            line = f"{name};{identity};{start_pos};{end_pos};{coverage};{seq_info['ref_id']}"
-            line += f";{seq_info['query_start_pos']}{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
+            line = f"{name};{identity};{start_pos};{end_pos};{ref_query};{coverage};{seq_info['ref_id']};{seq_info['query_id']};"
+            line += f"{seq_info['query_start_pos']};{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
             if alignment != seq_length or coverage < 100:
                 if alignment != seq_length:
                     logger.info("   Distint lenght: %s %s", alignment, seq_length)
                 if coverage < 100:
                     logger.info("   Coverage minus 100%%: %s", coverage)
                 posible = True
-                csv_posible = csv_posible + line
+                csv_partialcoverage = csv_partialcoverage + line
             else:
                 full = True
-                csv_full = csv_full + line
+                csv_fullcoverage = csv_fullcoverage + line
 
     # To not generate the csv file if there is no result
     if not full:
         full = False
     else:
-        csv_full = csv_full.replace(".", ",")
+        csv_fullcoverage = csv_fullcoverage.replace(".", ",")
     if not posible:
         posible = False
     else:
-        csv_posible = csv_posible.replace(".", ",")
-    return csv_full, csv_posible
+        csv_partialcoverage = csv_partialcoverage.replace(".", ",")
+    return csv_fullcoverage, csv_partialcoverage
 
 
 def resfinder_run(project_name, config=config, only_output=False):
@@ -146,12 +147,12 @@ def resfinder_run(project_name, config=config, only_output=False):
                     data = json.load(json_file)
                     logger.info("Resfinder results for sample %s", sample_name)
                     print_metadata(data)
-                    csv_full, csv_posible = filter_output(data, config["IGNORED_GENES"])
+                    csv_full, csv_posible = filter_output(data, config["INTRINSIC_PAER_GENES"])
                     if csv_full:
-                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.full.csv"), "w") as file:
+                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.fullcoverage.csv"), "w") as file:
                             file.write(csv_full)
                     if csv_posible:
-                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.posible.csv"), "w") as file:
+                        with open(os.path.join(OUTPUT_PATH, f"{sample_name}.partialcoverage.csv"), "w") as file:
                             file.write(csv_posible)
             else:
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)

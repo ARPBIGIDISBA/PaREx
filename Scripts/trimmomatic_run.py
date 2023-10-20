@@ -67,8 +67,8 @@ def trimmomatic_run(project_name, config=config):
         output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
         
         # Ejecutar Trimmomatic
-        command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE", "-phred33",
-                input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
+        command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
+                   input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
         
         result = execute_command(command)
 
