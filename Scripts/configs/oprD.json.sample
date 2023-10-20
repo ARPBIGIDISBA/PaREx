@@ -1,6 +1,7 @@
 {
-    "OPRD_OPTIONS": [],
-    "PROTEIN_PATH":"/home/mbonet/microbiologia/REFERENCES4ALIGNMENT/protein",
-    "NUCLEOTIDE_PATH":"/home/mbonet/microbiologia/REFERENCES4ALIGNMENT/nucleotide"
+    "BLAST_OPTIONS": ["-evalue", "10"],
+    "BLASTN_OPTIONS": ["-evalue", "10", "-matrix", "BLOSUM62"],
+    "PROTEIN_PATH":"/wgs/microbiologia/REFERENCES4ALIGNMENT/protein",
+    "NUCLEOTIDE_PATH":"/wgs/microbiologia/REFERENCES4ALIGNMENT/nucleotide"
 }
 
