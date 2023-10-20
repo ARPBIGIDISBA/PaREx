@@ -19,6 +19,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "SPAdes.json")
 
+
 def SPAdes_run(project_name, config=config):
     ''' 
         this function is used to apply the SPAdes program to the fastq.gz files

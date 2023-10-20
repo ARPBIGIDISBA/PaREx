@@ -1,4 +1,4 @@
 {
-    "BOWTIE_PATH": "/home/mbonet/microbiologia/Programs/bowtie2-2.2.6/bowtie2",
+    "BOWTIE_PATH": "/wgs/microbiologia/Programs/bowtie2-2.2.6/bowtie2",
     "BOWTIE_OPTIONS": ["--phred33","-X", "1000"]
 }

@@ -1,5 +1,5 @@
 {
-    "LOGS_PATH": "/home/mbonet/microbiologia/Logs",
-    "PROJECTS_PATH": "/home/mbonet/microbiologia/Projects",
-    "REFERENCE_PATH": "/home/mbonet/microbiologia/Reference4alignment"
+    "LOGS_PATH": "/wgs/microbiologia/Logs",
+    "PROJECTS_PATH": "/wgs/microbiologia/Projects",
+    "REFERENCE_PATH": "/wgs/microbiologia/Reference4alignment"
 }
