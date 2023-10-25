@@ -85,12 +85,13 @@ def mlst_run(project_name, config=config, direct_file = None):
                         scheme = record["scheme"]
                         sequence_type = record["sequence_type"]
                         alleles = record["alleles"]
-                        output = f"{id_}\t{scheme}\t{sequence_type}\t"
-                        
+                        output = f"{id_} {scheme} {sequence_type} "
+                        logger.info("MLST output: %s", output)
                         # Sort alleles alphabetically by gene name
                         sorted_alleles = sorted(alleles.items(), key=lambda x: x[0])
-                        output += "\t".join([f"{gene}({allele})" for gene, allele in sorted_alleles])
-                        logger.info("MLST output: %s", output)
+                        output =" alleles "
+                        output += " ".join([f"{gene}({allele})" for gene, allele in sorted_alleles])
+                        logger.info(output)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')

@@ -98,19 +98,27 @@ def print_differences_nucleotide(hsps):
             logger.info(f"Midl: {midline[start:end]}   ")
             logger.info(f"Hseq: {hseq[start:end]}   ")
 
-def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
-    protein_data = json.load(open(json_file))['BlastOutput2'][0]['report']
-    logger.info("Program: %s version %s",protein_data['program'], protein_data['version'])
-    params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
-    logger.info("Params used: %s", params_str)
+def read_output(json_file):
+    data = json.load(open(json_file))['BlastOutput2'][0]['report']
+    return data
+
+def get_bit_score(json_file, name, nucleotide_protein = "nucleotide", debug = True):
+    protein_data = read_output(json_file)
+    
+    if debug:
+        logger.info("Program: %s version %s",protein_data['program'], protein_data['version'])
+        params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
+        logger.info("Params used: %s", params_str)
 
     for key, value in protein_data["results"].items():
         for result in value:
-            logger.info("Result of %s", result["query_title"])
-            logger.info("Result of %s", key)
-            logger.info("Number of hits: %s", len(result["hits"]))
-            stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
-            logger.info("Stats: %s", stats_str)
+            if debug:
+                logger.info("Result of %s key %s", result["query_title"], key)
+                if len(result["hits"]) > 1:
+                    logger.info("Number of hits: %s", len(result["hits"]))
+                stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
+                logger.info("Stats: %s", stats_str)
+                
             query_len = result["query_len"]
             
             if nucleotide_protein == "nucleotide":
@@ -118,21 +126,25 @@ def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
                     for hit in result["hits"]:
                         title = hit["description"][0]["title"]
                         logger.info("%s Hit: %s", name, title)
+                        bit_score = 0
                         for hsps in hit["hsps"]:
                             gaps = hsps["gaps"]
-                            
                             if gaps == 0:
-                                logger.info("--- #%s", hsps['num'])
-                                output_str = f"---     bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
-                                logger.info(output_str)
+                                if debug:
+                                    logger.info("--- #%s", hsps['num'])
+                                    output_str = f"---     Wild-Type(WT) bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
+                                    logger.info(output_str)
+                                return gaps, hsps['bit_score'] # We have a WT
                             else:
-                                logger.info("*** %s #%s %s gaps Hit: %s with ", name, hsps['num'], gaps,  title)
-                                output_str = f"*** QS {hsps['query_strand']} HS {hsps['hit_strand']} Identity {hsps['identity']}"
-                                logger.info(output_str)
-                                output_str = f"*** From {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
-                                logger.info(output_str)
-                                print_differences_nucleotide(hsps)
-
+                                if debug:
+                                    logger.info("*** %s #%s %s gaps Hit: %s with ", name, hsps['num'], gaps,  title)
+                                    output_str = f"*** QS {hsps['query_strand']} HS {hsps['hit_strand']} Identity {hsps['identity']}"
+                                    logger.info(output_str)
+                                    output_str = f"*** From {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
+                                    logger.info(output_str)
+                                if hsps["bit_score"] > bit_score:
+                                    bit_score = hsps["bit_score"]
+                    return gaps, bit_score
             elif nucleotide_protein == "protein":
                 if query_len >=441 and query_len <= 443:
                     for hit in result["hits"]:
@@ -140,9 +152,7 @@ def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
                         logger.info("--- %s Hit: %s", name, title)
                         for hsps in hit["hsps"]:
                             gaps = hsps["gaps"]
-                            
                             if gaps == 0:
-
                                 logger.info("--- #%s", hsps['num'])
                                 output_str = f"--- bit_score: {hsps['bit_score']}, evalue: {hsps['evalue']}, identity: {hsps['identity']}"
                                 logger.info(output_str)
@@ -154,8 +164,6 @@ def print_metadata(json_file, name, nucleotide_protein = "nucleotide"):
                                 logger.info(output_str)
                                 output_str = f"*** from {hsps['query_from']} to {hsps['query_to']} and from {hsps['hit_from']} to {hsps['hit_to']}"
                                 logger.info(output_str)
-                                print_differences_protein(hsps)
-
             else:
                 logger.info("type must be nucleotide or protein")
 
@@ -166,64 +174,48 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
         parameters:
             project_name (str): Name of the project
             config dict (dict): readed from Path  is resfinder.json
-
+            only_output (bool): Set the flag to not execute but only process json file
+            direct_file (str): path to the file instead of list in sample list
+            normal_output (bool): Set the flag to not execute but only process normal blast outputs
         results:
-            
 
     '''
 
-    # Read command line arguments, sample list and config file
+    # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
         samples = read_args(project_name, config)
     else:
         samples = [direct_file]
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
-    # list of coma separated options https://github.com/ablab/spades#sec3.2
-    
     BLAST_OPTIONS = config['BLAST_OPTIONS']
     BLASTN_OPTIONS = config['BLASTN_OPTIONS']
-    
     NUCLEOTIDE_PATH = config["NUCLEOTIDE_PATH"]
     PROTEIN_PATH = config["PROTEIN_PATH"]
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
     files_nucleotide = os.listdir(NUCLEOTIDE_PATH)
     
-    
-    # Create project directory in case it is not created
+
+    # Create project directory in case it is not created, read files and create output directory
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
-
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
-    
     OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "oprD_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 
-    # Create a CSV file and write the header
-    output_csv = os.path.join(OUTPUT_PATH, 'summary.csv')
-    logger.info("Generate generic CSV output file: %s", output_csv)
-    with open(output_csv, 'w', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file)
-        headers = ["Sample", "Gene", "Identity", "Coverage", "Start", "End", "Strand", "Evalue", "Accession", "Product"]
-        csv_writer.writerow(headers)
-
-    if direct_file:
-        samples = [direct_file]
-
     for sample_name in samples:
-        # Limpiar por si hay espacios en blanco
+        
         if direct_file:
             SPADES_FILE = sample_name
             sample_name = os.path.basename(sample_name)
             sample_name = sample_name[0:-len(".fasta")]
-            
         else:
             sample_name = sample_name.strip()
             logger.info("Processing sample %s", sample_name)
-            # Definir los ficheros de entrada 1 y 2 
             SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
         logger.info("Using SPAdes file: %s", SPADES_FILE)
         execute = True
         if not os.path.exists(SPADES_FILE):
@@ -232,11 +224,14 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
-            samples_tested = []
+            max_bitscore = {
+                "name": None,
+                "value": 0
+            }
+
             for nucleotide_file in files_nucleotide:
                 suffix_name = nucleotide_file[0:-len("_nucleotide.fasta")]
                 name = suffix_name.replace("oprD_", "")
-                samples_tested.append(name)
                 logger.info("Processing sample %s", name)
 
                 ## nucleotide analysis
@@ -244,35 +239,21 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 logger.info("Using nucleotide file: %s", nucleotide_file)
                 output_file_nucleotide = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_nucleotide.json")
                 logger.info("Output file %s", output_file_nucleotide)
-                if not normal_output:
-                    BLAST_OPTIONS = BLAST_OPTIONS + ["-outfmt", "15"]    
-                
-                command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide.replace(".json", "")] + BLAST_OPTIONS
-
-                # Protein analysis
-                protein_file = os.path.join(PROTEIN_PATH, f"{suffix_name}_protein.fasta")
-                if os.path.exists(protein_file):
-                    logger.info("Using protein file: %s", protein_file)
-                    output_file_protein = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_protein.json")
-                    logger.info("Output file %s", output_file_protein)
-                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
+                if normal_output:
+                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide.replace(".json", "")] + BLAST_OPTIONS
                 else:
-                    logger.error("File not found: %s", protein_file)
-                    logger.error("Every nucleotide file must have a protein file")
-                    result = False
+                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide, "-outfmt", "15"] + BLAST_OPTIONS
+                
                 if only_output and not normal_output:
-                    if os.path.exists(output_file_nucleotide) and os.path.exists(output_file_protein):
+                    if os.path.exists(output_file_nucleotide):
                         result = True
                     else:
                         logger.error("File not found: %s", output_file_nucleotide)
-                        logger.error("File not found: %s", output_file_protein)
                         logger.error("You have to run first the oprD process")
                         result = False
                 else:
                     result_nuc = execute_command(command_nucleotide)
-                    result_pro = execute_command(command_protein)
-                    result = result_nuc and result_pro
-
+                    result = result_nuc
                 if result and not normal_output:
                     # Read the json file and get the results
                     logger.info("***********************************************")
@@ -282,12 +263,61 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     logger.info("-----------------------------------------------")
                     logger.info("--- Nucleotide analysis %s ----------------", sample_name)
                     logger.info("-----------------------------------------------")
-                    print_metadata(output_file_nucleotide, name, "nucleotide")
+                    gaps, bit_score = get_bit_score(output_file_nucleotide, name, "nucleotide", debug = False)
 
-                    logger.info("-----------------------------------------------")
-                    logger.info("--- Protein analysis %s --------------", sample_name)
-                    logger.info("-----------------------------------------------")
-                    print_metadata(output_file_protein, name, "protein")
+                    logger.info("Gaps %s", gaps)
+                    logger.info("Bit score %s", bit_score)
+                    
+                    if bit_score > max_bitscore["value"]:
+                        logger.info("------------New max bit score %s", bit_score)
+                        max_bitscore["name"] = name
+                        max_bitscore["value"] = bit_score
+                        max_bitscore["gaps"] = gaps
+                    # logger.info("-----------------------------------------------")
+                    # logger.info("--- Protein analysis %s --------------", sample_name)
+                    # logger.info("-----------------------------------------------")
+                    # print_metadata(output_file_protein, name, "protein")
+                    
+                else:
+                    if not normal_output and not only_output:
+                        logger.error("oprD failed assembly failed on sample %s", sample_name)
+            
+            logger.info("***********************************************")
+            logger.info("Max bit score for %s value %s gaps %s", max_bitscore["name"], max_bitscore["value"], max_bitscore["gaps"])
+            if gaps == 0:
+                logger.info("This is a Wild Type (WT) sample. No gaps")
+            else:
+                logger.info("Analyse the differences in protein")
+                        
+            protein_file = os.path.join(PROTEIN_PATH, f"oprD_{ max_bitscore['name']}_protein.fasta")
+            logger.info("Use protein file %s", protein_file)
+            if os.path.exists(protein_file):
+                logger.info("Using protein file: %s", protein_file)
+                output_file_protein = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_protein.json")
+                logger.info("Output file %s", output_file_protein)
+                if normal_output:
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
+                else:
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTN_OPTIONS
+                
+                if only_output and not normal_output:
+                    if os.path.exists(output_file_protein):
+                        result = True
+                    else:
+                        logger.error("File not found: %s", output_file_protein)
+                        logger.error("You have to run first the oprD process")
+                        result = False
+                else:
+                    result_pro = execute_command(command_protein)
+                    result = result_pro
+
+                if result and not normal_output:
+                    # Read the json file and get the results
+                    logger.info("***********************************************")
+                    logger.info(" Protein Analysis sample %s againts %s", sample_name, name)
+                    logger.info("***********************************************")
+                    
+                    get_bit_score(output_file_protein, name, "protein", debug = True)
                     
                 else:
                     if not normal_output and not only_output:
