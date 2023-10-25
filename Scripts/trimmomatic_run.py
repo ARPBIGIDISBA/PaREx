@@ -99,8 +99,11 @@ if __name__ == "__main__":
     # Define the arguments that the program expects
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
+    if args.json_config:
+        config = init_configs(script_directory, args.json_config)   
 
     configure_logs(PROJECT_NAME, "trimmomatic", config)
     logger = logging.getLogger(__name__)

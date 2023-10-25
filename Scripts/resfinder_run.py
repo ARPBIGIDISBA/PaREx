@@ -147,13 +147,13 @@ def resfinder_run(project_name, config=config, only_output=False):
                     data = json.load(json_file)
                     logger.info("Resfinder results for sample %s", sample_name)
                     print_metadata(data)
-                    csv_full, csv_posible = filter_output(data, config["INTRINSIC_PAER_GENES"])
-                    if csv_full:
+                    csv_fullcoverage, csv_posiblecoverage = filter_output(data, config["INTRINSIC_PAER_GENES"])
+                    if csv_fullcoverage:
                         with open(os.path.join(OUTPUT_PATH, f"{sample_name}.fullcoverage.csv"), "w") as file:
-                            file.write(csv_full)
-                    if csv_posible:
+                            file.write(csv_fullcoverage)
+                    if csv_posiblecoverage:
                         with open(os.path.join(OUTPUT_PATH, f"{sample_name}.partialcoverage.csv"), "w") as file:
-                            file.write(csv_posible)
+                            file.write(csv_posiblecoverage)
             else:
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)
 
@@ -163,11 +163,15 @@ def resfinder_run(project_name, config=config, only_output=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')
-
+    
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
+    if args.json_config:
+        config = init_configs(script_directory, args.json_config)
+        
     # Start the python logging variable to generate a file
     configure_logs(project_name, "resfinder", config)
 

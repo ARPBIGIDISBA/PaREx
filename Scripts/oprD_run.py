@@ -175,6 +175,8 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
     # Read command line arguments, sample list and config file
     if not direct_file:
         samples = read_args(project_name, config)
+    else:
+        samples = [direct_file]
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
     # list of coma separated options https://github.com/ablab/spades#sec3.2
@@ -299,10 +301,14 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')   
     parser.add_argument('--file', type=str, help='Path to the file', default=None)
-    parser.add_argument('--normal-output', action='store_true', help='Produce only screen process normal blast outputs')   
+    parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--normal-output', action='store_true', help='Produce only screen process normal blast outputs') 
 
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
+
+    if args.json_config:
+        config = init_configs(script_directory, f"{args.json_config}.json")
 
     # Start the python logging variable to generate a file
     configure_logs(project_name, "oprD", config)

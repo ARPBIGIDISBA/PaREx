@@ -94,8 +94,13 @@ def SPAdes_run(project_name, config=config):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
+    parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
+
+    if args.json_config:
+        config = init_configs(script_directory, args.json_config)
 
     # Start the python logging variable to generate a file
     configure_logs(project_name, "SPAdes", config)

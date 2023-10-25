@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 def read_config(config_json):
     # Leer el archivo catde configuración
+    if not os.path.exists(config_json):
+        logger.error(f"Config file {config_json} not found")
+        exit(1)
     with open(config_json, 'r') as file:
         config = json.load(file)
         return config
@@ -81,7 +84,6 @@ def init_configs(script_directory, config_json):
     default_config_json = os.path.join(script_directory, os.path.join("configs", config_json))
     config = read_config(default_config_json)
     config["PROJECTS_PATH"] = config_general["PROJECTS_PATH"]
-    config["LOGS_PATH"] = config_general["LOGS_PATH"]
     config["REFERENCE_PATH"] = config_general["REFERENCE_PATH"]
     return config
 
@@ -89,7 +91,7 @@ def init_configs(script_directory, config_json):
 def configure_logs(project_name, script_name, config, log_mode="w"):
 
     LOG_MODE = log_mode  # "a" to append or "w" to overwrite
-    LOG_PATH = os.path.join(config["LOGS_PATH"], project_name)
+    LOG_PATH = os.path.join(config["PROJECTS_PATH"], project_name, "Logs")
     os.makedirs(LOG_PATH, exist_ok=True)
     LOG_NAME = os.path.join(LOG_PATH, f'{project_name}_{script_name}.log')                       
     LOG_FORMAT = '%(asctime)s-%(levelname)s- %(message)s - %(filename)s:%(lineno)d'
