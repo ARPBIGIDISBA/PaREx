@@ -47,9 +47,6 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
-
 .vscode
-
 *.json
-
 venv_huse/*

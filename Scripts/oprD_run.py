@@ -244,21 +244,18 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 logger.info("Using nucleotide file: %s", nucleotide_file)
                 output_file_nucleotide = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_nucleotide.json")
                 logger.info("Output file %s", output_file_nucleotide)
-                if normal_output:
-                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide.replace(".json", "")] + BLAST_OPTIONS
-                else:
-                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide, "-outfmt", "15"] + BLAST_OPTIONS
+                if not normal_output:
+                    BLAST_OPTIONS = BLAST_OPTIONS + ["-outfmt", "15"]    
                 
+                command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide.replace(".json", "")] + BLAST_OPTIONS
+
                 # Protein analysis
                 protein_file = os.path.join(PROTEIN_PATH, f"{suffix_name}_protein.fasta")
                 if os.path.exists(protein_file):
                     logger.info("Using protein file: %s", protein_file)
                     output_file_protein = os.path.join(OUTPUT_PATH, f"{sample_name}_{name}_protein.json")
                     logger.info("Output file %s", output_file_protein)
-                    if normal_output:
-                        command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
-                    else:
-                        command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTN_OPTIONS
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
                 else:
                     logger.error("File not found: %s", protein_file)
                     logger.error("Every nucleotide file must have a protein file")
