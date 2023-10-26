@@ -243,12 +243,12 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
             else:
                 logger.info("Analyse the differences in protein")
             logger.info("***********************************************")        
-            
+
             protein_file = os.path.join(PROTEIN_PATH, f"oprD_{ max_bitscore['name']}_protein.fasta")
             logger.info("Use protein file %s", protein_file)
             if os.path.exists(protein_file):
                 logger.info("Using protein file: %s", protein_file)
-                output_file_protein = os.path.join(OUTPUT_PATH, f"oprD_{ max_bitscore['name']}_protein.json")
+                output_file_protein = os.path.join(OUTPUT_PATH, f"{sample_name}_{ max_bitscore['name']}_protein.json")
                 logger.info("Output file %s", output_file_protein)
                 if normal_output:
                     command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
