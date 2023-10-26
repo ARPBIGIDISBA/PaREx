@@ -81,7 +81,7 @@ def filter_output(data, ignore_list):
     return csv_fullcoverage, csv_partialcoverage
 
 
-def resfinder_run(project_name, config=config, only_output=False):
+def resfinder_run(project_name, config=config, only_output=False, direct_file = None):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -95,7 +95,10 @@ def resfinder_run(project_name, config=config, only_output=False):
     '''
 
     # Read command line arguments, sample list and config file
-    samples = read_args(project_name, config)
+    if direct_file:
+        samples = [direct_file]
+    else:
+        samples = read_args(project_name, config)
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
     # list of coma separated options https://github.com/ablab/spades#sec3.2
@@ -112,15 +115,21 @@ def resfinder_run(project_name, config=config, only_output=False):
 
     previous_dir = os.getcwd()
     os.chdir(RESFINDER_PROGRAM_PATH)
+    
 
     for sample_name in samples:
         # Limpiar por si hay espacios en blanco
         sample_name = sample_name.strip()
         logger.info("Processing sample %s", sample_name)
+        if direct_file:
+            SPADES_FILE = sample_name
+            sample_name = os.path.basename(sample_name)
+            sample_name = sample_name[0:-len(".fasta")]
+        else:
+            sample_name = sample_name.strip()
+            logger.info("Processing sample %s", sample_name)
+            SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
 
-        # Definir los ficheros de entrada 1 y 2 
-        SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
-        logger.info("Using SPAdes file: %s", SPADES_FILE)
         execute = True
         if not os.path.exists(SPADES_FILE):
             execute = False
@@ -165,6 +174,7 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')
+    parser.add_argument('--file', type=str, help='Path to the file', default=None)
     
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
@@ -177,4 +187,4 @@ if __name__ == "__main__":
 
     logger = logging.getLogger(__name__)
 
-    resfinder_run(project_name, config, args.parse_output)
+    resfinder_run(project_name, config, args.parse_output, args.file)

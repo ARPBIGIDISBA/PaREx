@@ -88,14 +88,27 @@ def init_configs(script_directory, config_json):
     return config
 
 
-def configure_logs(project_name, script_name, config, log_mode="w"):
+def configure_logs(project_name, script_name, config, log_mode="w", log_level="INFO"):
 
     LOG_MODE = log_mode  # "a" to append or "w" to overwrite
     LOG_PATH = os.path.join(config["PROJECTS_PATH"], project_name, "Logs")
     os.makedirs(LOG_PATH, exist_ok=True)
     LOG_NAME = os.path.join(LOG_PATH, f'{project_name}_{script_name}.log')                       
     LOG_FORMAT = '%(asctime)s-%(levelname)s- %(message)s - %(filename)s:%(lineno)d'
-    logging.basicConfig(level=logging.DEBUG,
+    if log_level == "INFO":
+        log_level = logging.INFO
+    elif log_level == "DEBUG":
+        log_level = logging.DEBUG
+    elif log_level == "WARNING":
+        log_level = logging.WARNING
+    elif log_level == "ERROR":
+        log_level = logging.ERROR
+    elif log_level == "CRITICAL":
+        log_level = logging.CRITICAL
+    else:
+        log_level = logging.INFO
+
+    logging.basicConfig(level=log_level,
                         format=LOG_FORMAT,
                         datefmt='%H:%M:%S',
                         handlers=[
