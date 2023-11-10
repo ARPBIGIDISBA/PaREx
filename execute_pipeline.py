@@ -14,20 +14,20 @@ from programs_scripts.bowtie_run import bowtie_run
 from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
-from programs_scripts.generate_excell_run import generate_excell_run
+from programs_scripts.generate_excel_run import generate_excel_run
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
 
-    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excell", "trimmomatic",
+    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('operation', type=str, help=f'Existing operations {OPERATIONS_DEVELOPED}')
     parser.add_argument('--reference', type=str, help='Reference for alignment')
-    parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="DEBUG")
+    parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     args = parser.parse_args()
 
     PROJECT_NAME = args.PROJECT_NAME
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     check_project(project_path)
     
     logging.basicConfig(level=args.log_level,
-                    format='%(asctime)s - %(levelname)s - %(message)s -%(filename)s:%(lineno)d',
+                    format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     handlers=[
                         logging.FileHandler(
@@ -94,9 +94,9 @@ if __name__ == "__main__":
                     logger.debug(filename)
                     file.write(filename + '\n')
         
-        elif operation == "generate_excell":
+        elif operation == "generate_excel":
             logger.info(f"Running generate_excell for project {PROJECT_NAME}")
-            generate_excell_run(PROJECT_NAME)
+            generate_excel_run(PROJECT_NAME)
         elif operation == "trimmomatic":
             logger.info(f"Running trimmomatic for project {PROJECT_NAME}")
             trimmomatic_run(PROJECT_NAME)

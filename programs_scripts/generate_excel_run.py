@@ -20,7 +20,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory)
 
-def generate_excell_run(project_name, config=config):
+def generate_excel_run(project_name, config=config):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -33,8 +33,6 @@ def generate_excell_run(project_name, config=config):
         results:
 
     '''
-
-
     PROJECTS_PATH = config["PROJECTS_PATH"]
     OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}","")
 
@@ -42,7 +40,6 @@ def generate_excell_run(project_name, config=config):
     # Object with information about the samples key is STRAIN_ID and values from json files
     samples = {}
 
-    
 
     def read_csv_results(csv_path, sample_id_row ="sample_name"):
         samples = {}
@@ -78,14 +75,12 @@ def generate_excell_run(project_name, config=config):
         for name in samples:
             added_pheno=False
             phenotypes = samples[name].get("phenotypes","").split(",")
-            
-            logger.debug("Phenotypes %s name %s", phenotypes, name)
-            logger.info("name %s",samples[name].keys())
             for phenotype in phenotypes:
                 phenotype = phenotype.strip()
                 
-                if phenotype in ["tobramacyn", "gentamycin", "kanamycin", "amikacin", "streptomycin"]:
+                if phenotype in ["tobramycin", "gentamycin", "amikacin"]:
                     resfinder_samples[sample_name]["aminologlycoside"].append(name)
+                    added_pheno = True
                     break
             if not added_pheno:
                 if name.startswith("bla"):
@@ -112,7 +107,7 @@ def generate_excell_run(project_name, config=config):
         if oprD_sample:
             row["oprD"] = oprD_sample["oprD"]
             row["oprD_REFERENCE"] = oprD_sample["oprD_REFERENCE"]
-        
+
         results_data.append(row)
 
     filename = os.path.join(OUTPUT_PATH, f"{project_name}_summary.csv")
@@ -133,8 +128,9 @@ if __name__ == "__main__":
         config = init_configs(script_directory, f"{args.json_config}.json")
 
     # Start the python logging variable to generate a file
-    configure_logs(project_name, "generate_excell", config, log_level=args.log_level)
+    configure_logs(project_name, "generate_excel", config, log_level=args.log_level)
 
     logger = logging.getLogger(__name__)
 
-    generate_excell_run(project_name)
+    generate_excel_run(project_name)
+

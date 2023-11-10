@@ -58,7 +58,7 @@ def filter_output(data, ignore_list):
             logger.info("Gene: %s identity %2.f. (%s, %s)", name, identity, start_pos, end_pos)
             line = f"{name};{identity};{start_pos};{end_pos};{ref_query};{coverage};{seq_info['ref_id']};{seq_info['query_id']};"
             line += f"{seq_info['query_start_pos']};{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
-            if alignment != seq_length or coverage < 100:
+            if (alignment != seq_length or coverage < 100) or (name=="crpP" and identity < 100):
                 if alignment != seq_length:
                     logger.info("   Distint lenght: %s %s", alignment, seq_length)
                 if coverage < 100:

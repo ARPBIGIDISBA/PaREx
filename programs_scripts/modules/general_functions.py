@@ -66,7 +66,7 @@ def read_args(project_name, config):
 # Execute a command and log the output
 def execute_command(command):
     # Enseñar el comando que se va a ejecutar
-    logger.info(f"Executing command line: {' '.join(command)}")
+    logger.debug(f"Executing command line: {' '.join(command)}")
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     # Capturar las salidas del comando y añadirlas al fichero de salida
@@ -75,14 +75,14 @@ def execute_command(command):
     while True:
         output = process.stdout.readline()
         if output and output != "":
-            logger.info(output.strip())
+            logger.debug(output.strip())
         # Check for termination
         return_code = process.poll()
         if return_code is not None:
             for output in process.stdout.readlines():
-                logger.info(output.strip())
+                logger.debug(output.strip())
             for output in process.stderr.readlines():
-                logger.info(output.strip())
+                logger.debug(output.strip())
             return (return_code == 0)
 
 
