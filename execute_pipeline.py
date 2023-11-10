@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
 
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all"]
+                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_secuence"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         logger.info("Executing operation %s", operation)
         if operation not in OPERATIONS_DEVELOPED:
             logger.warning(f"Operation not found {operation}")
-            logger.info("Operations available: {OPERATIONS_DEVELOPED}")
+            logger.info(f"Operations available: {OPERATIONS_DEVELOPED}")
             sys.exit()
         if operation == "create_project":
             # comand line question if you are sure to continue
@@ -116,14 +116,15 @@ if __name__ == "__main__":
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
             mlst_run(PROJECT_NAME)
-        elif operation == "all":
+        elif operation == "all_secuence":
             logger.info(f"Running all for project {PROJECT_NAME}")
             trimmomatic_run(PROJECT_NAME)
             SPAdes_run(PROJECT_NAME)
             reference = args.reference
-            bowtie_run(PROJECT_NAME, reference)
             resfinder_run(PROJECT_NAME)
             oprD_run(PROJECT_NAME)
+            mlst_run(PROJECT_NAME)
+            generate_excel_run(PROJECT_NAME)
         else:
             logger.warning("Operation not found %s", operation)
             logger.info("Operations available: create_project")
