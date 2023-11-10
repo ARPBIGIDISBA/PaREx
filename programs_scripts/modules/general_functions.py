@@ -86,7 +86,7 @@ def execute_command(command):
             return (return_code == 0)
 
 
-def init_configs(script_directory, config_json):
+def init_configs(script_directory, config_json=None):
     '''
         This function is used to initialize the config files
         parameters:
@@ -98,8 +98,11 @@ def init_configs(script_directory, config_json):
     '''
     general_config = os.path.join(script_directory, os.path.join("configs","general.json"))
     config_general = read_config(general_config)
-    default_config_json = os.path.join(script_directory, os.path.join("configs", config_json))
-    config = read_config(default_config_json)
+    if config_json:
+        default_config_json = os.path.join(script_directory, os.path.join("configs", config_json))
+        config = read_config(default_config_json)
+    else:
+        config = {}
     config["PROJECTS_PATH"] = config_general["PROJECTS_PATH"]
     config["REFERENCE_PATH"] = config_general["REFERENCE_PATH"]
     return config

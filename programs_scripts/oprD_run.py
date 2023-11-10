@@ -292,7 +292,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                             logger.error("oprD failed assembly failed on sample %s", sample_name)
     
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
-    filename = os.path.join(OUTPUT_PATH, f"oprd_results.csv")
+    filename = os.path.join(OUTPUT_PATH, f"{project_name}_oprD_results.csv")
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)

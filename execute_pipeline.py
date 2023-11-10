@@ -13,21 +13,25 @@ from programs_scripts.SPAdes_run import SPAdes_run
 from programs_scripts.bowtie_run import bowtie_run
 from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
-
-
+from programs_scripts.mlst_run import mlst_run
+from programs_scripts.generate_excell_run import generate_excell_run
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
 
+    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excell", "trimmomatic",
+                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
-    parser.add_argument('operation', type=str, help='Different operations')
+    parser.add_argument('operation', type=str, help=f'Existing operations {OPERATIONS_DEVELOPED}')
+    parser.add_argument('--reference', type=str, help='Reference for alignment')
+    parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="DEBUG")
     args = parser.parse_args()
 
     PROJECT_NAME = args.PROJECT_NAME
-    OPERATION = args.operation
+    OPERATIONS = args.operation.split(",")
     
     general_config = os.path.join("configs","general.json")
     config_general = read_config(general_config)
@@ -36,8 +40,8 @@ if __name__ == "__main__":
     
     check_project(project_path)
     
-    logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s - %(name)s - %(pathname)s:%(lineno)d',
+    logging.basicConfig(level=args.log_level,
+                    format='%(asctime)s - %(levelname)s - %(message)s -%(filename)s:%(lineno)d',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     handlers=[
                         logging.FileHandler(
@@ -47,44 +51,82 @@ if __name__ == "__main__":
                     ])
 
     
-    if OPERATION == "create_project":
-        # comand line question if you are sure to continue
-        logger.info(f"Creating project {PROJECT_NAME} estructure")
-        project_path = os.path.join(PROJECTS_PATH, PROJECT_NAME)
-        os.makedirs(project_path, exist_ok=True)
-        os.makedirs(os.path.join(project_path, f"FASTQ_{PROJECT_NAME}"), exist_ok=True)
-        os.makedirs(os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}"), exist_ok=True)
-        with open(os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}"), 'w') as file:
-            pass 
-    if OPERATION == "create_sample_list":
-        file_name = f"SAMPLES_LIST_{PROJECT_NAME}"
-        path = os.path.join(project_path, file_name)
-        logger.info(f"Creating {file_name} file")
-        logger.debug(f"File path: {path}")
-        with open(path, 'w') as file:
-            path_fasta = os.path.join(project_path, f"FASTQ_{PROJECT_NAME}")
-            fastaq_files = glob.glob(f'{path_fasta}/*.fastq')
-            fastaq_gz_files = glob.glob(f'{path_fasta}/*.fastq.gz')
-            fastaq_files = fastaq_files + fastaq_gz_files
-            if len(fastaq_files) == 0:
-                logger.warning(f"No files found in {path_fasta} Using denovo SPAdes path now")
-                path_fasta = os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
-                logger.debug(f'{path_fasta}/*.fasta')
-                fastaq_files = glob.glob(f'{path_fasta}/*.fasta')
-                fastaq_files = [os.path.basename(f).replace(".SPAdes.denovoassembly.fasta", "") for f in fastaq_files]
+    logger.info("executing operations: %s", OPERATIONS)
+    for operation in OPERATIONS:
+        logger.info("Executing operation %s", operation)
+        if operation not in OPERATIONS_DEVELOPED:
+            logger.warning(f"Operation not found {operation}")
+            logger.info("Operations available: {OPERATIONS_DEVELOPED}")
+            sys.exit()
+        if operation == "create_project":
+            # comand line question if you are sure to continue
+            logger.info(f"Creating project {PROJECT_NAME} estructure")
+            project_path = os.path.join(PROJECTS_PATH, PROJECT_NAME)
+            os.makedirs(project_path, exist_ok=True)
+            os.makedirs(os.path.join(project_path, f"FASTQ_{PROJECT_NAME}"), exist_ok=True)
+            os.makedirs(os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}"), exist_ok=True)
+            with open(os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}"), 'w') as file:
+                pass 
+        elif operation == "create_sample_list":
+            file_name = f"SAMPLES_LIST_{PROJECT_NAME}"
+            path = os.path.join(project_path, file_name)
+            logger.info(f"Creating {file_name} file")
+            logger.debug(f"File path: {path}")
+            with open(path, 'w') as file:
+                path_fasta = os.path.join(project_path, f"FASTQ_{PROJECT_NAME}")
+                fastaq_files = glob.glob(f'{path_fasta}/*.fastq')
+                fastaq_gz_files = glob.glob(f'{path_fasta}/*.fastq.gz')
+                fastaq_files = fastaq_files + fastaq_gz_files
+                if len(fastaq_files) == 0:
+                    logger.warning(f"No files found in {path_fasta} Using denovo SPAdes path now")
+                    path_fasta = os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}", "denovo_assemblies_SPAdes")
+                    logger.debug(f'{path_fasta}/*.fasta')
+                    fastaq_files = glob.glob(f'{path_fasta}/*.fasta')
+                    fastaq_files = [os.path.basename(f).replace(".SPAdes.denovoassembly.fasta", "") for f in fastaq_files]
 
-            else:
-                fastaq_files = [os.path.basename(f) for f in fastaq_files]
-                fastaq_files = [f.split("_R1")[0] for f in fastaq_files]
-                fastaq_files = [f.split("_R2")[0] for f in fastaq_files]
-                fastaq_files = list(set(fastaq_files))
-            # Print out all filenames
-            for filename in fastaq_files:
-                print(filename)
-                file.write(filename + '\n')
-    else:
-        logger.warning("Operation not found %s", OPERATION)
-        logger.info("Operations available: create_project")
+                else:
+                    fastaq_files = [os.path.basename(f) for f in fastaq_files]
+                    fastaq_files = [f.split("_R1")[0] for f in fastaq_files]
+                    fastaq_files = [f.split("_R2")[0] for f in fastaq_files]
+                    fastaq_files = list(set(fastaq_files))
+                # Print out all filenames
+                for filename in fastaq_files:
+                    logger.debug(filename)
+                    file.write(filename + '\n')
+        
+        elif operation == "generate_excell":
+            logger.info(f"Running generate_excell for project {PROJECT_NAME}")
+            generate_excell_run(PROJECT_NAME)
+        elif operation == "trimmomatic":
+            logger.info(f"Running trimmomatic for project {PROJECT_NAME}")
+            trimmomatic_run(PROJECT_NAME)
+        elif operation == "SPAdes":
+            logger.info(f"Running SPAdes for project {PROJECT_NAME}")
+            SPAdes_run(PROJECT_NAME)
+        elif operation == "bowtie":
+            logger.info(f"Running bowtie for project {PROJECT_NAME}")
+            reference = args.reference
+            bowtie_run(PROJECT_NAME, reference)
+        elif operation == "resfinder":
+            logger.info(f"Running resfinder fo=r project {PROJECT_NAME}")
+            resfinder_run(PROJECT_NAME)
+        elif operation == "oprD":
+            logger.info(f"Running oprD for project {PROJECT_NAME}")
+            oprD_run(PROJECT_NAME)
+        elif operation == "mlst":
+            logger.info(f"Running mlst for project {PROJECT_NAME}")
+            mlst_run(PROJECT_NAME)
+        elif operation == "all":
+            logger.info(f"Running all for project {PROJECT_NAME}")
+            trimmomatic_run(PROJECT_NAME)
+            SPAdes_run(PROJECT_NAME)
+            reference = args.reference
+            bowtie_run(PROJECT_NAME, reference)
+            resfinder_run(PROJECT_NAME)
+            oprD_run(PROJECT_NAME)
+        else:
+            logger.warning("Operation not found %s", operation)
+            logger.info("Operations available: create_project")
     
     
     

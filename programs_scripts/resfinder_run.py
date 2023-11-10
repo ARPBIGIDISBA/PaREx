@@ -39,7 +39,7 @@ def filter_output(data, ignore_list):
         This function is used to filter the output of the resfinder program 
         and generate csv output clean
     '''
-    csv_fullcoverage = "name; identity; ref_start_pos; ref_end_pos; ref_seq_lenght;coverage; ref_id;query_id;query_start_pos; query_end_pos;ref_acc;grade; phenotypes\n"
+    csv_fullcoverage = "name;identity;ref_start_pos;ref_end_pos;ref_seq_lenght;coverage;ref_id;query_id;query_start_pos;query_end_pos;ref_acc;grade;phenotypes\n"
     csv_partialcoverage = csv_fullcoverage
     posible = False
     full = False
@@ -93,7 +93,6 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
             
 
     '''
-
     # Read command line arguments, sample list and config file
     if direct_file:
         samples = [direct_file]
@@ -187,7 +186,5 @@ if __name__ == "__main__":
         
     # Start the python logging variable to generate a file
     configure_logs(project_name, "resfinder", config)
-
-    logger = logging.getLogger(__name__)
 
     resfinder_run(project_name, config, args.parse_output, args.file)

@@ -94,11 +94,12 @@ def mlst_run(project_name, config=config, direct_file = None):
                         # Sort alleles alphabetically by gene name
                         sorted_alleles = sorted(alleles.items(), key=lambda x: x[0])
                         output += " ".join([f"{gene}({allele})" for gene, allele in sorted_alleles])
-                        results_data.append([sample_name, scheme, sequence_type, output])
+                        alleles = " ".join([f"{gene}({allele})" for gene, allele in sorted_alleles])
+                        results_data.append([sample_name, scheme, sequence_type, alleles])
                         logger.info(output)
 
     # Crear y escribir en el archivo CSV usando punto y coma como delimitadorç
-    filename = os.path.join(OUTPUT_PATH, f"mlst_results.csv")
+    filename = os.path.join(OUTPUT_PATH, f"{project_name}_mlst_results.csv")
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)
