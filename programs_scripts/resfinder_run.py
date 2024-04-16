@@ -115,20 +115,20 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
 
     previous_dir = os.getcwd()
     os.chdir(RESFINDER_PROGRAM_PATH)
-    
 
     for sample_name in samples:
         # Limpiar por si hay espacios en blanco
         sample_name = sample_name.strip()
-        logger.info("Processing sample %s", sample_name)
+        
         if direct_file:
             SPADES_FILE = sample_name
             sample_name = os.path.basename(sample_name)
             sample_name = sample_name[0:-len(".fasta")]
         else:
             sample_name = sample_name.strip()
-            logger.info("Processing sample %s", sample_name)
             SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
+        logger.info("Processing sample %s", sample_name)
 
         execute = True
         if not os.path.exists(SPADES_FILE):
@@ -138,8 +138,8 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
-            command = ["python3", "run_resfinder.py", "-o", OUTPUT_PATH_SCRIPT, "-s", "OTHER", "-ifa", SPADES_FILE] + RESFINDER_OPTIONS
-
+            command = ["python3", os.path.join(RESFINDER_PROGRAM_PATH, "run_resfinder.py"), "-o", OUTPUT_PATH_SCRIPT, "-s", "OTHER", "-ifa", SPADES_FILE] + RESFINDER_OPTIONS
+            print(" ".join(command))
             output_json = os.path.join(OUTPUT_PATH_SCRIPT, f"{sample_name}.json")
             
             if only_output:
@@ -160,10 +160,10 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
                     csv_fullcoverage, csv_posiblecoverage = filter_output(data, config["INTRINSIC_PAER_GENES"])
                     os.makedirs(os.path.join(OUTPUT_PATH,"csv_samples"), exist_ok=True)
                     if csv_fullcoverage:
-                        with open(os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.fullcoverage.csv"), "w") as file:
+                        with open(os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.processed.csv"), "w") as file:
                             file.write(csv_fullcoverage)
                     if csv_posiblecoverage:
-                        with open(os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.partialcoverage.csv"), "w") as file:
+                        with open(os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.filtered.csv"), "w") as file:
                             file.write(csv_posiblecoverage)
             else:
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)

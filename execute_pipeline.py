@@ -14,6 +14,7 @@ from programs_scripts.bowtie_run import bowtie_run
 from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
+from programs_scripts.snippy_run import snippy_run
 from programs_scripts.generate_excel_run import generate_excel_run
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
 
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_secuence"]
+                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_sequence", "snippy"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -108,7 +109,7 @@ if __name__ == "__main__":
             reference = args.reference
             bowtie_run(PROJECT_NAME, reference)
         elif operation == "resfinder":
-            logger.info(f"Running resfinder fo=r project {PROJECT_NAME}")
+            logger.info(f"Running resfinder for project {PROJECT_NAME}")
             resfinder_run(PROJECT_NAME)
         elif operation == "oprD":
             logger.info(f"Running oprD for project {PROJECT_NAME}")
@@ -116,7 +117,10 @@ if __name__ == "__main__":
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
             mlst_run(PROJECT_NAME)
-        elif operation == "all_secuence":
+        elif operation == "snippy":
+            logger.info(f"Running snippy for project {PROJECT_NAME}")
+            snippy_run(PROJECT_NAME)
+        elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
             trimmomatic_run(PROJECT_NAME)
             SPAdes_run(PROJECT_NAME)

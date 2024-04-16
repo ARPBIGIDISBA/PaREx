@@ -101,7 +101,7 @@ def generate_excel_run(project_name, config=config):
             row["SEQUENCE TYPE"] = mlst_samples[sample_id]["sequence_type"]
         
         row["ACQUIRED BETA-LACTAMASESE"] = ",".join(resfinder_samples[sample_id]["beta"])
-        row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(resfinder_samples[sample_id]["aminologlycoside"])
+        row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(resfinder_samples[sample_id]["faminologlycoside"])
         row["OTHER ACQUIRED RESISTANCE DETERMINANTS"] =  ",".join(resfinder_samples[sample_id]["other"])
         oprD_sample = oprD_samples.get(sample_id, None)
         if oprD_sample:
