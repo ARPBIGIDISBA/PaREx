@@ -11,6 +11,7 @@ from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 import pysam
 import csv
+import re
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -18,6 +19,28 @@ script_directory = os.path.dirname(script_path)
 
 config = init_configs(script_directory, "snippy.json")
 
+amino_acids = {
+    'Ala': 'A', 'Gly': 'G', 'Met': 'M', 'Ser': 'S',
+    'Cys': 'C', 'His': 'H', 'Asn': 'N', 'Thr': 'T',
+    'Asp': 'D', 'Ile': 'I', 'Pro': 'P', 'Val': 'V',
+    'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
+    'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y'
+}
+
+def translate_amino_acid(value):
+    # Remove p. select three letters before number and after number translate "p.Asp104Glu"
+    match = re.findall(r"p\.([A-Za-z]{3})(\d+)([A-Za-z]{3})", value)
+    if match:
+        before_number, number, after_number = match[0]
+        before_number = amino_acids.get(before_number.capitalize(), None)
+        number = number
+        after_number = amino_acids.get(after_number.capitalize(), None)
+        return f"p.{before_number}{number}{after_number}"
+    else:
+        print("No match found", value)
+        return value
+    
+    
 def process_output(vcf_path, sample_name, output_path):
     output_dir = os.path.join(output_path, "processed")
     os.makedirs(output_dir, exist_ok=True)
@@ -26,7 +49,7 @@ def process_output(vcf_path, sample_name, output_path):
         csv_writer = csv.writer(csv_file)
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
-        csv_writer.writerow(['Chromosome', 'Position', 'Ref', 'Alt', 'Annotation'])
+        csv_writer.writerow(['Titulo 1', 'Titulo 2', 'Titulo 3'])
 
         # Iterar sobre cada registro en el archivo VCF
         for record in vcf_file:
@@ -36,15 +59,21 @@ def process_output(vcf_path, sample_name, output_path):
                 for annotation in annotations:
                     fields = annotation.split('|')
                     # Check if the impact field matches 'MODERATE'
-                    print(fields)
+                    
                     if len(fields) > 1 and fields[1] == 'missense_variant' and fields[2]!='LOW' and fields[2]!='MODIFIER':
-                        csv_writer.writerow([record.chrom, record.pos, record.ref, ','.join(record.alts), annotation])
+                        if fields[3] in config["CEPAS"]:
+                            
+                            field = translate_amino_acid(fields[10])
+                            row = [fields[3], fields[9], field]
+                            print(row)
+                            csv_writer.writerow(row)
+                        
 def snippy_run(project_name, only_output=False,  config=config):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
         parameters:
-            project_name (str): Name of the project
+            project_name (str): Name of the project<<3
             config_json (str): Path to the config file by default is trimmomatic_config.json
 
         results:

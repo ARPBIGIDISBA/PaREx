@@ -62,10 +62,10 @@ def generate_excel_run(project_name, config=config):
     mlst_samples = read_csv_results(mlst_csv)
     
     resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results","csv_samples")
-    files = glob.glob(os.path.join(resfinder_path, "*fullcoverage.csv"))
+    files = glob.glob(os.path.join(resfinder_path, "*processed.csv"))
     resfinder_samples = {}
     for file in files:  
-        sample_name = os.path.basename(file).replace(".fullcoverage.csv", "")
+        sample_name = os.path.basename(file).replace(".processed.csv", "")
         samples = read_csv_results(file, sample_id_row ="name")
         resfinder_samples[sample_name] = {
             "beta":[],
@@ -82,6 +82,10 @@ def generate_excel_run(project_name, config=config):
                     resfinder_samples[sample_name]["aminologlycoside"].append(name)
                     added_pheno = True
                     break
+                if phenotype in ["fluoroquinolones", "ciprofloxacin"]: # "cephalosporins", "penicillins" propuestos IA
+                    resfinder_samples[sample_name]["fluoroquinolones"].append(name)
+                    added_pheno = True
+                    break
             if not added_pheno:
                 if name.startswith("bla"):
                     resfinder_samples[sample_name]["beta"].append(name)
@@ -89,7 +93,7 @@ def generate_excel_run(project_name, config=config):
                     resfinder_samples[sample_name]["other"].append(name)      
             
     results_data_names = ["STRAIN ID","SEQUENCE TYPE", "ACQUIRED BETA-LACTAMASESE", "ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES", 
-         "OTHER ACQUIRED RESISTANCE DETERMINANTS", "oprD", "oprD_REFERENCE"]
+                          "FLUOROQUINOLONES RESISTANCE DETERMINANTS","OTHER ACQUIRED RESISTANCE DETERMINANTS", "oprD", "oprD_REFERENCE"]
 
     results_data = [] 
     for sample_id in mlst_samples:
@@ -101,7 +105,8 @@ def generate_excel_run(project_name, config=config):
             row["SEQUENCE TYPE"] = mlst_samples[sample_id]["sequence_type"]
         
         row["ACQUIRED BETA-LACTAMASESE"] = ",".join(resfinder_samples[sample_id]["beta"])
-        row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(resfinder_samples[sample_id]["faminologlycoside"])
+        row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(resfinder_samples[sample_id]["aminologlycoside"])
+        row["FLUOROQUINOLONES RESISTANCE DETERMINANTS"] =  ",".join(resfinder_samples[sample_id]["fluoroquinolones"])
         row["OTHER ACQUIRED RESISTANCE DETERMINANTS"] =  ",".join(resfinder_samples[sample_id]["other"])
         oprD_sample = oprD_samples.get(sample_id, None)
         if oprD_sample:
