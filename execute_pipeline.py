@@ -29,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('operation', type=str, help=f'Existing operations {OPERATIONS_DEVELOPED}')
     parser.add_argument('--reference', type=str, help='Reference for alignment')
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     args = parser.parse_args()
 
     PROJECT_NAME = args.PROJECT_NAME

@@ -1,0 +1,10 @@
+{
+    "BLASTN_OPTIONS": [
+        "-evalue",
+        "10",
+        "-matrix",
+        "BLOSUM62"
+    ],
+    "BLASTP_OPTIONS": [],
+    "PROTEIN_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/protein"
+}

@@ -75,21 +75,25 @@ def SPAdes_run(project_name, config=config):
             logger.error("This file does not exist: %s", input_r2_path)
         
         if execute:
-            command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+            old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+            new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+            result = False
 
-            result = execute_command(command)
+            if not os.path.exists(new_file_path):
+                command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+                result = execute_command(command)
 
-            if result:
-                logger.info("SPAdes assembly finished")
-                # Renombrar los archivos de salida
-                old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
-                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+                if result:
+                    logger.info("SPAdes assembly finished")
+                    # Renombrar los archivos de salida
+                    new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
 
-                shutil.move(old_file_path, new_file_path)
-                logger.info(f"Rename files for other analysis {new_file_path}")
+                    shutil.move(old_file_path, new_file_path)
+                    logger.info(f"Rename files for other analysis {new_file_path}")
+                else:
+                    logger.error("SPAdes assembly failed")
             else:
-                logger.error("SPAdes assembly failed")
-
+                logger.warning(f"File {new_file_path} already exists, skipping")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')

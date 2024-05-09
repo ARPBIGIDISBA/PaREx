@@ -29,27 +29,57 @@ amino_acids = {
 
 def translate_amino_acid(value):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
-    match = re.findall(r"p\.([A-Za-z]{3})(\d+)([A-Za-z]{3})", value)
-    if match:
-        before_number, number, after_number = match[0]
-        before_number = amino_acids.get(before_number.capitalize(), None)
-        number = number
-        after_number = amino_acids.get(after_number.capitalize(), None)
-        return f"p.{before_number}{number}{after_number}"
+    parts = re.findall(r'(\d+)|([A-Za-z]{3})', value)
+    if parts:
+        previous = []
+        after = []
+        number = None
+        for index, part in enumerate(parts):
+            if part[0]:
+                number = int(part[0])
+            if part[1]:
+                if number is None:
+                    previous.append(amino_acids.get(part[1].capitalize(), None))
+                else:
+                    after.append(amino_acids.get(part[1].capitalize(), None))
+
+        result = []
+        for index,part in enumerate(previous):
+            result.append(f"{previous[index]}{number}{after[index]}")
+            number+=1
+        return result
     else:
         print("No match found", value)
         return value
-    
+
+def read_data_from_file(filename):
+    data = {}
+    with open(filename, 'r') as file:
+        next(file)  # Skip the header line
+        for line in file:
+            parts = line.strip().split('\t')  # Split the line into parts using tab as the delimiter
+            if len(parts) == 3:
+                locus, gene, polymorphisms = parts
+                # Clean up and remove the counts in parentheses if needed
+                polymorphisms = polymorphisms.rstrip('.').split(', ')
+                cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
+                data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
+    return data
     
 def process_output(vcf_path, sample_name, output_path):
     output_dir = os.path.join(output_path, "processed")
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
+    if os.path.exists(csv_path):
+        os.remove(csv_path)
+    path = os.path.join(script_directory,"configs","snippy_polymorphisms.txt")
+    filter = read_data_from_file(path)
+    
     with open(csv_path, mode='w', newline='') as csv_file:
-        csv_writer = csv.writer(csv_file)
+        csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
-        csv_writer.writerow(['Titulo 1', 'Titulo 2', 'Titulo 3'])
+        csv_writer.writerow(['sample_name','gene', 'C.', 'mutations'])
 
         # Iterar sobre cada registro en el archivo VCF
         for record in vcf_file:
@@ -59,15 +89,22 @@ def process_output(vcf_path, sample_name, output_path):
                 for annotation in annotations:
                     fields = annotation.split('|')
                     # Check if the impact field matches 'MODERATE'
-                    
                     if len(fields) > 1 and fields[1] == 'missense_variant' and fields[2]!='LOW' and fields[2]!='MODIFIER':
-                        if fields[3] in config["CEPAS"]:
-                            
-                            field = translate_amino_acid(fields[10])
-                            row = [fields[3], fields[9], field]
-                            print(row)
+                        locus = fields[3]
+                        if locus in config["CEPAS"]:
+                            mutations = translate_amino_acid(fields[10])
+                            if locus in filter.keys():                            
+                                gene = filter[locus]['gene']
+                                result_mutation = [m for m in mutations if m not in filter[locus]['polymorphisms']]
+                                if len(mutations)>2:
+                                    print("***", mutations, result_mutation,  "---", filter[locus]['polymorphisms'] )
+                            else:
+                                result_mutation = mutations
+                                gene = ""
+                            row = [fields[3],gene,fields[9].replace("c.",""), ",".join(result_mutation)]
                             csv_writer.writerow(row)
-                        
+    
+    
 def snippy_run(project_name, only_output=False,  config=config):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
@@ -116,7 +153,6 @@ def snippy_run(project_name, only_output=False,  config=config):
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
         if only_output:
-            
             if os.path.exists(VCF_FILE):
                 result = True
             else:
@@ -127,7 +163,6 @@ def snippy_run(project_name, only_output=False,  config=config):
             # Ejecutar Trimmomatic
             command = [SNIPPY_PATH, "--outdir", OUTPUT_RESULTS, "--ref", SNIPPY_REFERENCE, "--R1", input_r1_path, "--R2", input_r2_path] + SNIPPY_OPTIONS
             result = execute_command(command)
-        
         if result:
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)

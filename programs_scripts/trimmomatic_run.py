@@ -65,34 +65,36 @@ def trimmomatic_run(project_name, config=config):
 
         # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
         output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
-        
-        # Ejecutar Trimmomatic
-        command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
-                   input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
-        
-        result = execute_command(command)
-
-        if result:
-            # Renombrar los ficheros de salida de 1P y 2P a R1_001 y R2_001
-            for suffix, new_suffix in [("1P", "R1"), ("2P", "R2")]:
-                old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
-                shutil.move(old_file_path, new_file_path)
-                logger.info(f"Renaming file {new_file_path}")
-                os.system(f"gunzip -f {new_file_path}")
-                logger.info(f"Unzip file {new_file_path}")
-
-            # Mover los unpairs para futura calidad un directorio
-            UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
-            os.makedirs(UNPAIRED_PATH, exist_ok=True)
-            for suffix in ["1U", "2U"]:
-                old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                shutil.move(old_file_path, new_file_path)
-                logger.info(f"Storing unpaired file {new_file_path}")
-
+        if all([os.path.exists(file) for file in output_files]):
+            logger.info(f"Files for {sample_name} already exist, skipping")
         else:
-            logger.error("There is an error in Trimmomatic execution, check the log files")
+            # Ejecutar Trimmomatic
+            command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
+                    input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
+            
+            result = execute_command(command)
+
+            if result:
+                # Renombrar los ficheros de salida de 1P y 2P a R1_001 y R2_001
+                for suffix, new_suffix in [("1P", "R1"), ("2P", "R2")]:
+                    old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
+                    shutil.move(old_file_path, new_file_path)
+                    logger.info(f"Renaming file {new_file_path}")
+                    os.system(f"gunzip -f {new_file_path}")
+                    logger.info(f"Unzip file {new_file_path}")
+
+                # Mover los unpairs para futura calidad un directorio
+                UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
+                os.makedirs(UNPAIRED_PATH, exist_ok=True)
+                for suffix in ["1U", "2U"]:
+                    old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    shutil.move(old_file_path, new_file_path)
+                    logger.info(f"Storing unpaired file {new_file_path}")
+
+            else:
+                logger.error("There is an error in Trimmomatic execution, check the log files")
 
 
 if __name__ == "__main__":
@@ -100,11 +102,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
         config = init_configs(script_directory, args.json_config)   
-
+    
+    config["force"] = args.force
+    
     configure_logs(PROJECT_NAME, "trimmomatic", config)
     logger = logging.getLogger(__name__)
+    logger.info(config)
     trimmomatic_run(PROJECT_NAME, config)
