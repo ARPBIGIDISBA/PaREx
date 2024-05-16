@@ -298,8 +298,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                             logger.error("You have to run first the oprD process")
                             result = False
                     else:
-                        result_pro = execute_command(command_protein)
-                        result = result_pro
+                        result = execute_command(command_protein)
 
                     if result and not normal_output:
                         # Read the json file and get the results

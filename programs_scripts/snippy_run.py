@@ -12,6 +12,7 @@ from modules.general_functions import configure_logs, init_configs
 import pysam
 import csv
 import re
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -24,46 +25,91 @@ amino_acids = {
     'Cys': 'C', 'His': 'H', 'Asn': 'N', 'Thr': 'T',
     'Asp': 'D', 'Ile': 'I', 'Pro': 'P', 'Val': 'V',
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
-    'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y'
+    'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
+    'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup'
 }
 
 def translate_amino_acid(value):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
-    parts = re.findall(r'(\d+)|([A-Za-z]{3})', value)
-    if parts:
-        previous = []
-        after = []
-        number = None
-        for index, part in enumerate(parts):
-            if part[0]:
-                number = int(part[0])
-            if part[1]:
-                if number is None:
-                    previous.append(amino_acids.get(part[1].capitalize(), None))
-                else:
-                    after.append(amino_acids.get(part[1].capitalize(), None))
+   
+    try:
+        if value.find("_") > 0:
+            value.replace("p.","")
+            # Check if it is a deletion
+            if value.find("del")>0:
+                deletion = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)del', value)
+                if deletion:
+                    deletion = deletion[0]
+                    value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}_{amino_acids.get(deletion[2].capitalize(), None)}{deletion[3]}del"
+                    return [value]
+                
+            if value.find("ins")>0:
+                ins = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)insPro', value)
+                if ins:
+                    ins = ins[0]
+                    value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins"
+                    return [value]
+            return [value]
+        elif value.find("fs")>0:
+            value = value.replace("p.","")
+            fs = re.findall(r'([A-Za-z]{3})(\d+)fs', value)
+            if fs:
+                fs = fs[0]
+                value = f"{amino_acids.get(fs[0].capitalize(), None)}{fs[1]}fs"
+                return [value]
+            return value
+        elif value.find("*")>0:
+            value = value.replace("p.","").replace("*","Stop")
+            letter = amino_acids.get(value[0:3].capitalize(), None)
+            value = f"{letter}{value[3:]}"
+            return [value]
+        else:
+            parts = re.findall(r'(\d+)|([A-Za-z]{3})', value)
+            if parts:
+                previous = []
+                after = []
+                number = None
+                for index, part in enumerate(parts):
+                    if part[0]:
+                        number = int(part[0])
+                    if part[1]:
+                        if number is None:
+                            previous.append(amino_acids.get(part[1].capitalize(), None))
+                        else:
+                            after.append(amino_acids.get(part[1].capitalize(), None))
 
-        result = []
-        for index,part in enumerate(previous):
-            result.append(f"{previous[index]}{number}{after[index]}")
-            number+=1
-        return result
-    else:
-        print("No match found", value)
+                result = []
+                for index,part in enumerate(previous):
+                    result.append(f"{previous[index]}{number}{after[index]}")
+                    number+=1
+                    
+                return result
+            else:
+                print("No match found", value)
+                return value
+    except Exception as e:
+        print(e)
+        print(value)
         return value
-
+    
 def read_data_from_file(filename):
+    hoja1_df = pd.read_excel(filename, sheet_name='Data').fillna('')
     data = {}
-    with open(filename, 'r') as file:
-        next(file)  # Skip the header line
-        for line in file:
-            parts = line.strip().split('\t')  # Split the line into parts using tab as the delimiter
-            if len(parts) == 3:
-                locus, gene, polymorphisms = parts
-                # Clean up and remove the counts in parentheses if needed
-                polymorphisms = polymorphisms.rstrip('.').split(', ')
-                cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
-                data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
+    for index, row in hoja1_df.iterrows():
+        locus_gene, polymorphisms = row
+        if locus_gene.find("_")>0:
+            locus, gene = locus_gene.split('_')
+        else:
+            locus = locus_gene
+            gene = ""
+            
+        if gene == "-":
+            gene = ""
+
+        polymorphisms = polymorphisms.rstrip('.').split(', ')
+        cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
+        data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
+        
     return data
     
 def process_output(vcf_path, sample_name, output_path):
@@ -72,14 +118,14 @@ def process_output(vcf_path, sample_name, output_path):
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
     if os.path.exists(csv_path):
         os.remove(csv_path)
-    path = os.path.join(script_directory,"configs","snippy_polymorphisms.txt")
+    path = config.get("MUTATION_REFERENCE_FILE")
     filter = read_data_from_file(path)
     
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
-        csv_writer.writerow(['sample_name','gene', 'C.', 'mutations'])
+        csv_writer.writerow(['sample_name','gene','snippy_mutations', 'mutations', 'mutations filtered', 'C.'])
 
         # Iterar sobre cada registro en el archivo VCF
         for record in vcf_file:
@@ -89,19 +135,18 @@ def process_output(vcf_path, sample_name, output_path):
                 for annotation in annotations:
                     fields = annotation.split('|')
                     # Check if the impact field matches 'MODERATE'
-                    if len(fields) > 1 and fields[1] == 'missense_variant' and fields[2]!='LOW' and fields[2]!='MODIFIER':
+                    if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
-                        if locus in config["CEPAS"]:
+                        if locus in config["GENES"]:
                             mutations = translate_amino_acid(fields[10])
-                            if locus in filter.keys():                            
+                            
+                            if locus in filter.keys():  
                                 gene = filter[locus]['gene']
                                 result_mutation = [m for m in mutations if m not in filter[locus]['polymorphisms']]
-                                if len(mutations)>2:
-                                    print("***", mutations, result_mutation,  "---", filter[locus]['polymorphisms'] )
                             else:
                                 result_mutation = mutations
                                 gene = ""
-                            row = [fields[3],gene,fields[9].replace("c.",""), ",".join(result_mutation)]
+                            row = [fields[3],gene,fields[10],",".join(mutations), ",".join(result_mutation),fields[9].replace("c.","")]
                             csv_writer.writerow(row)
     
     
@@ -152,7 +197,7 @@ def snippy_run(project_name, only_output=False,  config=config):
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
-        if only_output:
+        if only_output or os.path.exists(VCF_FILE):
             if os.path.exists(VCF_FILE):
                 result = True
             else:

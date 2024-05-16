@@ -59,7 +59,7 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
                 else:
                     hstate = False
 
-        logger.info("Differences %s %s",name,",".join(differences))
+        logger.debug("Differences %s %s",name,",".join(differences))
         return differences
 
 def read_output(json_file):
@@ -129,8 +129,8 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
-                    return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
-                            "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
+                    return {"name": name, "differences": ["error"], "bit_score": 0, 
+                            "gaps": 100, "identity": 0}
                 
             else:
                 logger.error("type must be nucleotide or protein")
@@ -157,7 +157,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
         samples = [direct_file]
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
-    BLASTN_OPTIONS = config['BLASTN_OPTIONS']
+    TBLASTN_OPTIONS = config['TBLASTN_OPTIONS']
     BLASTP_OPTIONS = config['BLASTP_OPTIONS']
     PROTEIN_PATH = config["PROTEIN_PATH"]
 
@@ -196,8 +196,19 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
-           
-            for protein_file in files_protein:
+            max_bitscore = {
+                "name": "deleted",
+                "value": -1,
+                "gaps":-1,
+                "identity": -1,
+                "hsps": -1,
+                "differences": "",
+                "path": ""
+            }
+            
+            for index, protein_file in enumerate(files_protein):
+                if protein_file.find(".fasta") == -1:
+                    continue
                 name = protein_file[0:-len(".fasta")]
                 logger.debug("Processing sample %s", name)
                 protein_file = os.path.join(PROTEIN_PATH, protein_file)
@@ -208,9 +219,9 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 logger.debug("Output file %s", output_file_protein)
                 
                 if normal_output:
-                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + TBLASTN_OPTIONS
                 else:
-                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTN_OPTIONS
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + TBLASTN_OPTIONS
                 
                 if only_output and not normal_output:
                     if os.path.exists(output_file_protein):
@@ -226,21 +237,80 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 if result and not normal_output:
                     # Read the json file and get the results
                     logger.debug("***********************************************")
-                    logger.info("Protein Analysis sample %s againts %s", sample_name, name)
+                    logger.info("(%s/%s)) sample %s againts %s",index, len(files_protein), sample_name, name)
                     logger.debug("***********************************************")
                     
                     results = analize_sample(output_file_protein, name, "protein")
-                    if results["gaps"] == 0 and results["identity"] == 100:
-                        logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll!!!")
-                        results_data.append([sample_name, "WT", results["name"],  results["bit_score"], results["gaps"], results["identity"]])
-                    else:
-                        result = [sample_name, ",".join(results["differences"]), name, results["bit_score"], results["gaps"], results["identity"]]
-                        results_data.append(result)
+                    gaps = results["gaps"]
+                    bit_score = results["bit_score"]
+                    identity = results["identity"]
+
+                    logger.debug("Gaps %s", gaps)
+                    logger.debug("Bit score %s", bit_score)
+                    
+                    if bit_score > max_bitscore["value"]:
+                        logger.debug("------------New max bit score %s", bit_score)
+                        max_bitscore["name"] = name
+                        max_bitscore["path"] = protein_file
+                        max_bitscore["value"] = bit_score
+                        max_bitscore["gaps"] = gaps
+                        max_bitscore["identity"] = identity
+                        max_bitscore["differences"] = results["differences"]
+                    
                 else:
                     if not normal_output and not only_output:
-                        logger.error("oprD failed assembly failed on sample %s", sample_name)
+                        logger.error("PDC failed assembly failed on sample %s", sample_name)
 
+            if max_bitscore["gaps"] == -1:
+                logger.warning("oprD failed assembly failed on sample %s", sample_name)
+                logger.warning(results)
+                results_data.append([sample_name, results["differences"], max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
+            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll!!!")
+                logger.info("***********************************************")  
+                results_data.append([sample_name, "WT", max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
+                logger.info("Analyse the differences in protein %s", max_bitscore['name'])
+                logger.debug("***********************************************") 
+                protein_file = max_bitscore["path"]
+                if os.path.exists(protein_file):
+                    logger.debug("Using protein file: %s", protein_file)
+                    output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{ max_bitscore['name']}_protein.json")
+                    os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
                 
+                    logger.debug("Output file %s", output_file_protein)
+                    if normal_output:
+                        command_protein = ["blastp", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTP_OPTIONS
+                    else:
+                        command_protein = ["blastp", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTP_OPTIONS
+                    
+                    if only_output and not normal_output:
+                        if os.path.exists(output_file_protein):
+                            result = True
+                        else:
+                            logger.error("File not found: %s", output_file_protein)
+                            logger.error("You have to run first the oprD process")
+                            result = False
+                    else:
+                        result = execute_command(command_protein)
+
+                    if result and not normal_output:
+                        # Read the json file and get the results
+                        logger.debug("***********************************************")
+                        logger.info("Protein Analysis sample %s againts %s", sample_name, max_bitscore['name'])
+                        logger.debug("***********************************************")
+                        
+                        results = analize_sample(output_file_protein, max_bitscore['name'], "protein")
+                        if results["gaps"] == 0 and results["identity"] == 100:
+                            logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll!!!")
+                            results_data.append([sample_name, "WT", results["name"],  results["bit_score"], results["gaps"], results["identity"]])
+                        else:
+                            result = [sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]]
+                            results_data.append(result)
+                    else:
+                        if not normal_output and not only_output:
+                            logger.error("PDC failed assembly failed on sample %s", sample_name)
+
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
     filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
