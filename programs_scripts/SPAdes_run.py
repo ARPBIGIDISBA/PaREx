@@ -60,39 +60,48 @@ def SPAdes_run(project_name, config=config):
         sample_name = sample_name.strip()
         logger.info("Processing %s", sample_name)
 
-        # If spades already runned in sample then don't repeat if process stop in the middle for example.
-        new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
-        if not os.path.exists(new_file_path):
-            # Definir los ficheros de entrada 1 y 2 
-            input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
-            input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
-            execute = True
-            if not os.path.exists(input_r1_path):
-                execute = False
-                logger.error("You have to run first the trimmomatic process")
-                logger.error("This file does not exist: %s", input_r1_path)
-            
-            if not os.path.exists(input_r2_path):
-                execute = False
-                logger.error("You have to run first the trimmomatic process")
-                logger.error("This file does not exist: %s", input_r2_path)
-            
-            if execute:
-                command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
+        # Definir los ficheros de entrada 1 y 2 
+        input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+        input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+        execute = True
+        if not os.path.exists(input_r1_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r1_path)
+        
+        if not os.path.exists(input_r2_path):
+            execute = False
+            logger.error("You have to run first the trimmomatic process")
+            logger.error("This file does not exist: %s", input_r2_path)
+        
+        if execute:
+            old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+            new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+            result = False
 
+            if not os.path.exists(new_file_path):
+                command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
                 result = execute_command(command)
 
                 if result:
                     logger.info("SPAdes assembly finished")
                     # Renombrar los archivos de salida
+<<<<<<< HEAD
                     old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
+=======
+>>>>>>> c1e40a62bc10d3a705aad5ff96bbed3286469bfb
                     new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
 
                     shutil.move(old_file_path, new_file_path)
                     logger.info(f"Rename files for other analysis {new_file_path}")
                 else:
                     logger.error("SPAdes assembly failed")
+<<<<<<< HEAD
 
+=======
+            else:
+                logger.warning(f"File {new_file_path} already exists, skipping")
+>>>>>>> c1e40a62bc10d3a705aad5ff96bbed3286469bfb
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')

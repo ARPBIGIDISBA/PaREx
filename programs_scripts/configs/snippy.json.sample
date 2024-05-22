@@ -1,0 +1,7 @@
+{
+    "SNIPPY_PATH": "/home/mbonet/microbiologia/Programs/snippy/bin/snippy",
+    "REFERENCE": "/home/mbonet/microbiologia/Reference4alignment/snippy/Pseudomonas_aeruginosa_PAO1_107.gbk",
+    "SNIPPY_OPTIONS": [
+        "--force"
+    ]
+}

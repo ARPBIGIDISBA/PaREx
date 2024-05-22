@@ -18,7 +18,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "oprD.json")
+config = init_configs(script_directory, "PDC.json")
 
 def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
         if hsps == -1:
@@ -59,7 +59,7 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
                 else:
                     hstate = False
 
-        logger.info("Differences %s %s",name,",".join(differences))
+        logger.debug("Differences %s %s",name,",".join(differences))
         return differences
 
 def read_output(json_file):
@@ -129,16 +129,16 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
-                    return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
-                            "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
+                    return {"name": name, "differences": ["error"], "bit_score": 0, 
+                            "gaps": 100, "identity": 0}
                 
             else:
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
 
-def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
+def PDC_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
     ''' 
-        this function is used to apply the resfinder program to the denovo files output of SPAdes
+        This function is the main function to run the PDC anylisis
 
         parameters:
             project_name (str): Name of the project
@@ -157,25 +157,24 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
         samples = [direct_file]
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
-    BLAST_OPTIONS = config['BLAST_OPTIONS']
-    BLASTN_OPTIONS = config['BLASTN_OPTIONS']
-    NUCLEOTIDE_PATH = config["NUCLEOTIDE_PATH"]
+    TBLASTN_OPTIONS = config['TBLASTN_OPTIONS']
+    BLASTP_OPTIONS = config['BLASTP_OPTIONS']
     PROTEIN_PATH = config["PROTEIN_PATH"]
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
-    files_nucleotide = os.listdir(NUCLEOTIDE_PATH)
+    files_protein = os.listdir(PROTEIN_PATH)
     
 
     # Create project directory in case it is not created, read files and create output directory
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
-    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "oprD_results")
+    OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "PDC_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
 
     results_data = [
-        ["sample_name","oprD", "oprD_REFERENCE", "bit_score", "gaps", "identity"]
+        ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
     ]
 
     for sample_name in samples:
@@ -203,46 +202,45 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 "gaps":-1,
                 "identity": -1,
                 "hsps": -1,
-                "differences": ""
+                "differences": "",
+                "path": ""
             }
-
-            for nucleotide_file in files_nucleotide:
-                suffix_name = nucleotide_file[0:-len("_nucleotide.fasta")]
-                name = suffix_name.replace("oprD_", "")
+            
+            for index, protein_file in enumerate(files_protein):
+                if protein_file.find(".fasta") == -1:
+                    continue
+                name = protein_file[0:-len(".fasta")]
                 logger.debug("Processing sample %s", name)
-
-                ## nucleotide analysis
-                nucleotide_file = os.path.join(NUCLEOTIDE_PATH, nucleotide_file)
-                logger.debug("Using nucleotide file: %s", nucleotide_file)
-                output_file_nucleotide = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}_nucleotide.json")
+                protein_file = os.path.join(PROTEIN_PATH, protein_file)
+                logger.debug("Using protein file: %s", protein_file)
+                output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}_protein.json")
                 os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
 
-                logger.debug("Output file %s", output_file_nucleotide)
+                logger.debug("Output file %s", output_file_protein)
+                
                 if normal_output:
-                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide.replace(".json", "")] + BLAST_OPTIONS
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + TBLASTN_OPTIONS
                 else:
-                    command_nucleotide = ["blastn", "-query", nucleotide_file, "-subject", SPADES_FILE, "-out", output_file_nucleotide, "-outfmt", "15"] + BLAST_OPTIONS
+                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + TBLASTN_OPTIONS
                 
                 if only_output and not normal_output:
-                    if os.path.exists(output_file_nucleotide):
+                    if os.path.exists(output_file_protein):
                         result = True
                     else:
-                        logger.error("File not found: %s", output_file_nucleotide)
+                        logger.error("File not found: %s", output_file_protein)
                         logger.error("You have to run first the oprD process")
                         result = False
                 else:
-                    result_nuc = execute_command(command_nucleotide)
-                    result = result_nuc
+                    result_pro = execute_command(command_protein)
+                    result = result_pro
+
                 if result and not normal_output:
                     # Read the json file and get the results
                     logger.debug("***********************************************")
-                    logger.debug("oprD Analysis sample %s againts %s", sample_name, name)
+                    logger.info("(%s/%s)) sample %s againts %s",index, len(files_protein), sample_name, name)
                     logger.debug("***********************************************")
                     
-                    logger.debug("-----------------------------------------------")
-                    logger.debug("--- Nucleotide analysis %s ----------------", sample_name)
-                    logger.debug("-----------------------------------------------")
-                    results = analize_sample(output_file_nucleotide, name, "nucleotide")
+                    results = analize_sample(output_file_protein, name, "protein")
                     gaps = results["gaps"]
                     bit_score = results["bit_score"]
                     identity = results["identity"]
@@ -253,18 +251,16 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                     if bit_score > max_bitscore["value"]:
                         logger.debug("------------New max bit score %s", bit_score)
                         max_bitscore["name"] = name
+                        max_bitscore["path"] = protein_file
                         max_bitscore["value"] = bit_score
                         max_bitscore["gaps"] = gaps
                         max_bitscore["identity"] = identity
-                        max_bitscore["hsps"] = results["hsps"]
                         max_bitscore["differences"] = results["differences"]
                     
                 else:
                     if not normal_output and not only_output:
-                        logger.error("oprD failed assembly failed on sample %s", sample_name)
-            
-            logger.info("Max bit score for %s value %s gaps %s Identity %s", max_bitscore["name"], max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"])
-            
+                        logger.error("PDC failed assembly failed on sample %s", sample_name)
+
             if max_bitscore["gaps"] == -1:
                 logger.warning("oprD failed assembly failed on sample %s", sample_name)
                 logger.warning(results)
@@ -274,11 +270,9 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 logger.info("***********************************************")  
                 results_data.append([sample_name, "WT", max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
-                logger.info("Analyse the differences in protein")
-                logger.debug("***********************************************")        
-            
-                protein_file = os.path.join(PROTEIN_PATH, f"oprD_{ max_bitscore['name']}_protein.fasta")
-                logger.debug("Use protein file %s", protein_file)
+                logger.info("Analyse the differences in protein %s", max_bitscore['name'])
+                logger.debug("***********************************************") 
+                protein_file = max_bitscore["path"]
                 if os.path.exists(protein_file):
                     logger.debug("Using protein file: %s", protein_file)
                     output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{ max_bitscore['name']}_protein.json")
@@ -286,9 +280,9 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 
                     logger.debug("Output file %s", output_file_protein)
                     if normal_output:
-                        command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTN_OPTIONS
+                        command_protein = ["blastp", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + BLASTP_OPTIONS
                     else:
-                        command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTN_OPTIONS
+                        command_protein = ["blastp", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + BLASTP_OPTIONS
                     
                     if only_output and not normal_output:
                         if os.path.exists(output_file_protein):
@@ -315,13 +309,10 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                             results_data.append(result)
                     else:
                         if not normal_output and not only_output:
-                            logger.error("oprD failed assembly failed on sample %s", sample_name)
-            else:
-                differences = get_differences(max_bitscore["hsps"],  max_bitscore["name"], max_bitscore["gaps"], "nucleotide")
-                results_data.append([sample_name, ",".join(differences), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])    
-                
+                            logger.error("PDC failed assembly failed on sample %s", sample_name)
+
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
-    filename = os.path.join(OUTPUT_PATH, f"{project_name}_oprD_results.csv")
+    filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)
@@ -341,8 +332,8 @@ if __name__ == "__main__":
         config = init_configs(script_directory, f"{args.json_config}.json")
 
     # Start the python logging variable to generate a file
-    configure_logs(project_name, "oprD", config, log_level=args.log_level)
+    configure_logs(project_name, "PDC", config, log_level=args.log_level)
 
     logger = logging.getLogger(__name__)
 
-    oprD_run(project_name, config, args.parse_output, args.file, args.normal_output)
+    PDC_run(project_name, config, args.parse_output, args.file, args.normal_output)

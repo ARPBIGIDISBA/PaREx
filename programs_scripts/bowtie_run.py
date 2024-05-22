@@ -115,3 +115,4 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     bowtie_run(args.PROJECT_NAME, args.REFERENCE, config)
+
