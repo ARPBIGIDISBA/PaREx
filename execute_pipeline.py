@@ -15,14 +15,16 @@ from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
 from programs_scripts.snippy_run import snippy_run
+from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run
+
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
 
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_sequence", "snippy"]
+                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_sequence", "snippy", "PDC"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -121,6 +123,9 @@ if __name__ == "__main__":
         elif operation == "snippy":
             logger.info(f"Running snippy for project {PROJECT_NAME}")
             snippy_run(PROJECT_NAME)
+        elif operation == "PDC":
+            logger.info(f"Running PDC for project {PROJECT_NAME}")
+            PDC_run(PROJECT_NAME)
         elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
             trimmomatic_run(PROJECT_NAME)
