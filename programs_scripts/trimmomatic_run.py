@@ -54,45 +54,50 @@ def trimmomatic_run(project_name, config=config):
         # Limpiar por si hay espacios en blanco
         sample_name = sample_name.strip()
         logger.info("Processing %s", sample_name)
-        
-        # Crear los paths de entrada y salida
-        input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
-        input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
-        if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-            logger.error(f"The fastq.gz file for {sample_name} don't exist")
-            logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
+
+        # Check if already done then go to next sample if we stop in the middle or already done manually 
+        R1_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_R1.fastq")
+        R2_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_R2.fastq")
+        if not os.path.exists(R1_file_path) or not os.path.exists(R2_file_path): 
+            
+            # Crear los paths de entrada y salida
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+            if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
+                logger.error(f"The fastq.gz file for {sample_name} don't exist")
+                logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
 
 
-        # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
-        output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
-        
-        # Ejecutar Trimmomatic
-        command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
-                   input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
-        
-        result = execute_command(command)
+            # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
+            output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
+            
+            # Ejecutar Trimmomatic
+            command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
+                    input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS
+            
+            result = execute_command(command)
 
-        if result:
-            # Renombrar los ficheros de salida de 1P y 2P a R1_001 y R2_001
-            for suffix, new_suffix in [("1P", "R1"), ("2P", "R2")]:
-                old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
-                shutil.move(old_file_path, new_file_path)
-                logger.info(f"Renaming file {new_file_path}")
-                os.system(f"gunzip -f {new_file_path}")
-                logger.info(f"Unzip file {new_file_path}")
+            if result:
+                # Renombrar los ficheros de salida de 1P y 2P a R1_001 y R2_001
+                for suffix, new_suffix in [("1P", "R1"), ("2P", "R2")]:
+                    old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{new_suffix}.fastq.gz")
+                    shutil.move(old_file_path, new_file_path)
+                    logger.info(f"Renaming file {new_file_path}")
+                    os.system(f"gunzip -f {new_file_path}")
+                    logger.info(f"Unzip file {new_file_path}")
 
-            # Mover los unpairs para futura calidad un directorio
-            UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
-            os.makedirs(UNPAIRED_PATH, exist_ok=True)
-            for suffix in ["1U", "2U"]:
-                old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                shutil.move(old_file_path, new_file_path)
-                logger.info(f"Storing unpaired file {new_file_path}")
+                # Mover los unpairs para futura calidad un directorio
+                UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
+                os.makedirs(UNPAIRED_PATH, exist_ok=True)
+                for suffix in ["1U", "2U"]:
+                    old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    shutil.move(old_file_path, new_file_path)
+                    logger.info(f"Storing unpaired file {new_file_path}")
 
-        else:
-            logger.error("There is an error in Trimmomatic execution, check the log files")
+            else:
+                logger.error("There is an error in Trimmomatic execution, check the log files")
 
 
 if __name__ == "__main__":
