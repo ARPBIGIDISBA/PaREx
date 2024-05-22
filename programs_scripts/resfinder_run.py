@@ -139,7 +139,6 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
         
         if execute:
             command = ["python3", os.path.join(RESFINDER_PROGRAM_PATH, "run_resfinder.py"), "-o", OUTPUT_PATH_SCRIPT, "-s", "OTHER", "-ifa", SPADES_FILE] + RESFINDER_OPTIONS
-            print(" ".join(command))
             output_json = os.path.join(OUTPUT_PATH_SCRIPT, f"{sample_name}.json")
             
             if only_output:

@@ -58,6 +58,9 @@ def generate_excel_run(project_name, config=config):
     oprD_csv = os.path.join(OUTPUT_PATH, "oprD_results",f"{project_name}_oprD_results.csv")
     oprD_samples = read_csv_results(oprD_csv)
     
+    PDC_csv = os.path.join(OUTPUT_PATH, "PDC_results",f"{project_name}_PDC_results.csv")
+    PDC_samples = read_csv_results(PDC_csv)
+
     mlst_csv = os.path.join(OUTPUT_PATH, "mlst_results",f"{project_name}_mlst_results.csv")
     mlst_samples = read_csv_results(mlst_csv)
     
@@ -122,23 +125,30 @@ def generate_excel_run(project_name, config=config):
             if "MLST" not in header_added:
                 results_data_names.append("SEQUENCE TYPE") 
                 header_added["MLST"] = True
-
-            if mlst_samples[sample_id]["sequence_type"] == "-":
-                row["SEQUENCE TYPE"] = mlst_samples[sample_id]["alleles"]
+            
+            data = mlst_samples.get(sample_id, None)
+            if data:
+                if data["sequence_type"] == "-":
+                    row["SEQUENCE TYPE"] = data["alleles"]
+                else:
+                    row["SEQUENCE TYPE"] = data["sequence_type"]
             else:
-                row["SEQUENCE TYPE"] = mlst_samples[sample_id]["sequence_type"]
-        
+                row["SEQUENCE TYPE"] = "-"
+                row["SEQUENCE TYPE"] = "-"
+
         if resfinder_samples:
             if "RESFINDER" not in header_added:
                 results_data_names +=["ACQUIRED BETA-LACTAMASESE", "ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES", 
                           "FLUOROQUINOLONES RESISTANCE DETERMINANTS","OTHER ACQUIRED RESISTANCE DETERMINANTS"]
                 header_added["RESFINDER"] = True
-        
-            row["ACQUIRED BETA-LACTAMASESE"] = ",".join(resfinder_samples[sample_id]["beta"])
-            row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(resfinder_samples[sample_id]["aminologlycoside"])
-            row["FLUOROQUINOLONES RESISTANCE DETERMINANTS"] =  ",".join(resfinder_samples[sample_id]["fluoroquinolones"])
-            row["OTHER ACQUIRED RESISTANCE DETERMINANTS"] =  ",".join(resfinder_samples[sample_id]["other"])
-        
+
+            data = resfinder_samples.get(sample_id, None)
+            if data:
+                row["ACQUIRED BETA-LACTAMASESE"] = ",".join(data["beta"])
+                row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(data["aminologlycoside"])
+                row["FLUOROQUINOLONES RESISTANCE DETERMINANTS"] =  ",".join(data["fluoroquinolones"])
+                row["OTHER ACQUIRED RESISTANCE DETERMINANTS"] =  ",".join(data["other"])
+                
         if oprD_samples:
             if "OprD" not in header_added:
                 results_data_names.append("oprD")

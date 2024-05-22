@@ -34,6 +34,7 @@ def translate_amino_acid(value):
    
     try:
         if value.find("_") > 0:
+            print(value)
             value.replace("p.","")
             # Check if it is a deletion
             if value.find("del")>0:
@@ -41,13 +42,15 @@ def translate_amino_acid(value):
                 if deletion:
                     deletion = deletion[0]
                     value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}_{amino_acids.get(deletion[2].capitalize(), None)}{deletion[3]}del"
+                    print(value)
                     return [value]
                 
             if value.find("ins")>0:
-                ins = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)insPro', value)
+                ins = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)ins([A-Za-z]{3})', value)
                 if ins:
                     ins = ins[0]
-                    value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins"
+                    value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins{amino_acids.get(ins[4].capitalize(), None)}"
+                    print(value)
                     return [value]
             return [value]
         elif value.find("fs")>0:
