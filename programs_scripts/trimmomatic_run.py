@@ -54,25 +54,6 @@ def trimmomatic_run(project_name, config=config):
         # Limpiar por si hay espacios en blanco
         sample_name = sample_name.strip()
         logger.info("Processing %s", sample_name)
-<<<<<<< HEAD
-
-        # Check if already done then go to next sample if we stop in the middle or already done manually 
-        R1_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_R1.fastq")
-        R2_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_R2.fastq")
-        if not os.path.exists(R1_file_path) or not os.path.exists(R2_file_path): 
-            
-            # Crear los paths de entrada y salida
-            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
-            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
-            if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-                logger.error(f"The fastq.gz file for {sample_name} don't exist")
-                logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
-
-
-            # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
-            output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
-            
-=======
         
         # Crear los paths de entrada y salida
         input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
@@ -87,7 +68,6 @@ def trimmomatic_run(project_name, config=config):
         if all([os.path.exists(file) for file in output_files]):
             logger.info(f"Files for {sample_name} already exist, skipping")
         else:
->>>>>>> c1e40a62bc10d3a705aad5ff96bbed3286469bfb
             # Ejecutar Trimmomatic
             command = ["java", "-jar", TRIMMOMATIC_JAR_PATH, "PE",
                     input_r1_path, input_r2_path] + output_files + TRIMMOMATIC_OPTIONS

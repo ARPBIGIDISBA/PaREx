@@ -86,22 +86,14 @@ def SPAdes_run(project_name, config=config):
                 if result:
                     logger.info("SPAdes assembly finished")
                     # Renombrar los archivos de salida
-<<<<<<< HEAD
-                    old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
-=======
->>>>>>> c1e40a62bc10d3a705aad5ff96bbed3286469bfb
                     new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
 
                     shutil.move(old_file_path, new_file_path)
                     logger.info(f"Rename files for other analysis {new_file_path}")
                 else:
                     logger.error("SPAdes assembly failed")
-<<<<<<< HEAD
-
-=======
             else:
                 logger.warning(f"File {new_file_path} already exists, skipping")
->>>>>>> c1e40a62bc10d3a705aad5ff96bbed3286469bfb
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
