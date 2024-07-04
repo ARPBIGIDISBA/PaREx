@@ -155,7 +155,6 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
                 with open(output_json) as json_file:
                     data = json.load(json_file)
                     logger.info("Resfinder results for sample %s", sample_name)
-                    print_metadata(data)
                     csv_fullcoverage, csv_posiblecoverage = filter_output(data, config["INTRINSIC_PAER_GENES"])
                     os.makedirs(os.path.join(OUTPUT_PATH,"csv_samples"), exist_ok=True)
                     if csv_fullcoverage:
