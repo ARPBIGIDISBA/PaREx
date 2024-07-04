@@ -158,7 +158,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
     TBLASTN_OPTIONS = config['TBLASTN_OPTIONS']
-    BLASTP_OPTIONS = config['BLASTP_OPTIONS']
     PROTEIN_PATH = config["PROTEIN_PATH"]
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
@@ -279,7 +278,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
             
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                logger.info("Perfect match Rock and Roll!!!")
                 logger.info("***********************************************")  
                 results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:

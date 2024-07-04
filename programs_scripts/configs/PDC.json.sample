@@ -1,10 +1,10 @@
 {
-    "BLASTN_OPTIONS": [
+    "TBLASTN_OPTIONS": [
         "-evalue",
         "10",
         "-matrix",
         "BLOSUM62"
     ],
-    "BLASTP_OPTIONS": [],
-    "PROTEIN_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/protein"
+    "PROTEIN_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/protein",
+    "PDC1_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/PDC1.fasta"
 }

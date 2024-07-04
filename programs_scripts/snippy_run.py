@@ -29,12 +29,11 @@ amino_acids = {
     'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup'
 }
 
-def translate_amino_acid(value):
+def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
-   
+    
     try:
         if value.find("_") > 0:
-            print(value)
             value.replace("p.","")
             # Check if it is a deletion
             if value.find("del")>0:
@@ -42,7 +41,6 @@ def translate_amino_acid(value):
                 if deletion:
                     deletion = deletion[0]
                     value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}_{amino_acids.get(deletion[2].capitalize(), None)}{deletion[3]}del"
-                    print(value)
                     return [value]
                 
             if value.find("ins")>0:
@@ -50,16 +48,15 @@ def translate_amino_acid(value):
                 if ins:
                     ins = ins[0]
                     value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins{amino_acids.get(ins[4].capitalize(), None)}"
-                    print(value)
                     return [value]
             return [value]
         elif value.find("fs")>0:
-            value = value.replace("p.","")
-            fs = re.findall(r'([A-Za-z]{3})(\d+)fs', value)
-            if fs:
-                fs = fs[0]
-                value = f"{amino_acids.get(fs[0].capitalize(), None)}{fs[1]}fs"
-                return [value]
+            value = value_c.replace("c.","")
+            if value.find("del")>0:
+                # 240_247delGCCGGCCA add nt at the begining and remove letters after del nt240_247del
+                value = f"nt{value[:value.find('del')]}del"
+            elif value.find("ins")>0:
+                value = f"nt{value}"
             return value
         elif value.find("*")>0:
             value = value.replace("p.","").replace("*","Stop")
@@ -85,6 +82,8 @@ def translate_amino_acid(value):
                 for index,part in enumerate(previous):
                     result.append(f"{previous[index]}{number}{after[index]}")
                     number+=1
+                if len(result)>2:
+                    result = [result[0], result[-1]]
                     
                 return result
             else:
@@ -141,7 +140,7 @@ def process_output(vcf_path, sample_name, output_path):
                     if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
                         if locus in config["GENES"]:
-                            mutations = translate_amino_acid(fields[10])
+                            mutations = translate_amino_acid(fields[10], fields[9])
                             
                             if locus in filter.keys():  
                                 gene = filter[locus]['gene']

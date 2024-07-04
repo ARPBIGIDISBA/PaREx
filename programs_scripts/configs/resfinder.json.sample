@@ -1,5 +1,5 @@
 {
     "RESFINDER_PATH": "/wgs/microbiologia/Programs/resfinder/src/resfinder",
     "RESFINDER_OPTIONS": ["--acquired", "--point"],
-     "INTRINSIC_PAER_GENES": ["blaPAO", "blaOXA-50", "blaOXA-488", "blaOXA-395", "blaOXA-396", "aph(3')-IIb","tmexD2", "catB7", "fosA"]
+    "INTRINSIC_PAER_GENES": ["blaPAO", "blaOXA-50", "blaOXA-488", "blaOXA-395", "blaOXA-396", "aph(3')-IIb","tmexD2", "catB7", "fosA"]
 }
