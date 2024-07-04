@@ -1,5 +1,4 @@
 {
-    "MLST": ["-scheme", "paeruginosa"],
-    "MLST_PATh":"/wgs/microbiologia/Programs/mlst/bin/mlst"
+    "MLST_OPTIONS": ["-scheme", "paeruginosa"],
+    "MLST_PATH":"/wgs/microbiologia/Programs/mlst/bin/mlst"
 }
-
