@@ -52,7 +52,7 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
                 
             # solo miramos para protein
             if nucleotide_protein == "protein":
-                if m ==" ":
+                if m ==" " or m =="+":
                     if not mstate:
                         hstate = True
                         differences.append(f"{q}{i+1}X")
