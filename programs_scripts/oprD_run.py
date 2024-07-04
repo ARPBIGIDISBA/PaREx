@@ -270,7 +270,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 logger.warning(results)
                 results_data.append([sample_name, results["differences"], max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll!!!")
+                logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll en nucleatido!!!")
                 logger.info("***********************************************")  
                 results_data.append([sample_name, "WT", max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
@@ -308,7 +308,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                         
                         results = analize_sample(output_file_protein, max_bitscore['name'], "protein")
                         if results["gaps"] == 0 and results["identity"] == 100:
-                            logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll!!!")
+                            logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll en proteina!!!")
                             results_data.append([sample_name, "WT", results["name"],  results["bit_score"], results["gaps"], results["identity"]])
                         else:
                             result = [sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]]
