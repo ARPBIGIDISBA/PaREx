@@ -271,7 +271,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                     if not normal_output and not only_output:
                         logger.error("PDC failed assembly failed on sample %s", sample_name)
 
-            print(max_bitscore)
             if max_bitscore["gaps"] == -1:
                 logger.warning("PDC failed assembly failed on sample %s", sample_name)
                 logger.warning(results)
