@@ -66,13 +66,23 @@ def SPAdes_run(project_name, config=config):
         execute = True
         if not os.path.exists(input_r1_path):
             execute = False
-            logger.error("You have to run first the trimmomatic process")
-            logger.error("This file does not exist: %s", input_r1_path)
+            logger.warning("You have to run first the trimmomatic process")
+            logger.warning("This file does not exist: %s", input_r1_path)
         
         if not os.path.exists(input_r2_path):
             execute = False
-            logger.error("You have to run first the trimmomatic process")
-            logger.error("This file does not exist: %s", input_r2_path)
+            logger.warning("You have to run first the trimmomatic process")
+            logger.warning("This file does not exist: %s", input_r2_path)
+        
+        if not execute:
+            logger.info("ussing the untrimmed files")
+            # Crear los paths de entrada y salida
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+            if os.path.exist(input_r1_path) and os.path.exist(input_r2_path)
+                execute = True      
+            else:
+                logger.error("The original FASTQ files does not exist either")
         
         if execute:
             old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
