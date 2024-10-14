@@ -111,7 +111,7 @@ def read_data_from_file(filename):
         polymorphisms = polymorphisms.rstrip('.').split(', ')
         cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
         data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
-        
+
     return data
     
 def process_output(vcf_path, sample_name, output_path):
@@ -128,7 +128,7 @@ def process_output(vcf_path, sample_name, output_path):
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
         csv_writer.writerow(['sample_name','gene','snippy_mutations', 'mutations', 'mutations filtered', 'C.'])
-
+    
         # Iterar sobre cada registro en el archivo VCF
         for record in vcf_file:
             if 'ANN' in record.info:
