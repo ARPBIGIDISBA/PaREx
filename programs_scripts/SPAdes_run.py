@@ -79,7 +79,7 @@ def SPAdes_run(project_name, config=config):
             # Crear los paths de entrada y salida
             input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
             input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
-            if os.path.exist(input_r1_path) and os.path.exist(input_r2_path)
+            if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
                 execute = True      
             else:
                 logger.error("The original FASTQ files does not exist either")
