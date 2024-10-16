@@ -33,32 +33,33 @@ def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
     
     try:
-        if value.find("_") > 0:
-            value.replace("p.","")
+        if value.find("del") > 0 or value.find("ins") > 0:
+            value = value.replace("p.", "")
             # Check if it is a deletion
-            if value.find("del")>0:
-                deletion = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)del', value)
-                if deletion:
-                    deletion = deletion[0]
-                    value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}_{amino_acids.get(deletion[2].capitalize(), None)}{deletion[3]}del"
-                    return [value]
-                
-            if value.find("ins")>0:
-                ins = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)ins([A-Za-z]{3})', value)
-                if ins:
-                    ins = ins[0]
-                    value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins{amino_acids.get(ins[4].capitalize(), None)}"
-                    return [value]
-            return [value]
-        elif value.find("fs")>0:
+            if value.find("del") > 0:
+                replace = "del"
+            if value.find("ins") > 0:
+                replace = value[value.find("ins"):]
+            
+            value = value.replace(replace, "")
+            values = value.split("_")
+            result = []
+            for value in values:
+                deletion = re.findall(r'([A-Za-z]{3})(\d+)', value)
+                deletion = deletion[0]
+                value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}"
+                result.append(value)
+            return ["_".join(result)+replace]
+
+        elif value.find("fs") > 0:
             value = value_c.replace("c.","")
-            if value.find("del")>0:
+            if value.find("del") > 0:
                 # 240_247delGCCGGCCA add nt at the begining and remove letters after del nt240_247del
-                value = f"nt{value[:value.find('del')]}del"
-            elif value.find("ins")>0:
-                value = f"nt{value}"
+                value = [f"nt{value[:value.find('del')]}del"]
+            elif value.find("ins") > 0:
+                value = [f"nt{value}"]
             return value
-        elif value.find("*")>0:
+        elif value.find("*") > 0:
             value = value.replace("p.","").replace("*","Stop")
             letter = amino_acids.get(value[0:3].capitalize(), None)
             value = f"{letter}{value[3:]}"
@@ -95,7 +96,7 @@ def translate_amino_acid(value, value_c=""):
         return value
     
 def read_data_from_file(filename):
-    hoja1_df = pd.read_excel(filename, sheet_name='Data').fillna('')
+    hoja1_df = pd.read_excel(filename, sheet_name='All').fillna('')
     data = {}
     for index, row in hoja1_df.iterrows():
         locus_gene, polymorphisms = row
@@ -108,8 +109,8 @@ def read_data_from_file(filename):
         if gene == "-":
             gene = ""
 
-        polymorphisms = polymorphisms.rstrip('.').split(', ')
-        cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
+        polymorphisms = polymorphisms.rstrip('.').split(',')
+        cleaned_polymorphisms = [p.split('(')[0].strip() for p in polymorphisms]
         data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
 
     return data
@@ -122,7 +123,7 @@ def process_output(vcf_path, sample_name, output_path):
         os.remove(csv_path)
     path = config.get("MUTATION_REFERENCE_FILE")
     filter = read_data_from_file(path)
-    
+
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
@@ -139,7 +140,7 @@ def process_output(vcf_path, sample_name, output_path):
                     # Check if the impact field matches 'MODERATE'
                     if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
-                        if locus in config["GENES"]:
+                        if locus in filter.keys(): #config["LOCUS"]:
                             mutations = translate_amino_acid(fields[10], fields[9])
                             
                             if locus in filter.keys():  
@@ -148,7 +149,7 @@ def process_output(vcf_path, sample_name, output_path):
                             else:
                                 result_mutation = mutations
                                 gene = ""
-                            row = [fields[3],gene,fields[10],",".join(mutations), ",".join(result_mutation),fields[9].replace("c.","")]
+                            row = [fields[3], gene,fields[10],",".join(mutations), ",".join(result_mutation),fields[9].replace("c.","")]
                             csv_writer.writerow(row)
     
     

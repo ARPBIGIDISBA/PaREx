@@ -20,7 +20,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "PDC.json")
 
-def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
+def get_differences(hsps, name, gaps = 0):
         if hsps == -1:
             return []
         qseq = hsps["qseq"]
@@ -34,30 +34,26 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
             if q =="-":
                 if not qstate:
                     qstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}ins{gaps}")
-                    else:
-                        differences.append(f"X{i+1}{h}")
+                    differences.append(f"X{i+1}{h}")
             else:
                 qstate = False
-            if h =="-":
+            if h == "-":
                 if not hstate:
                     hstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}del{gaps}")
-                    else:
-                        differences.append(f"{q}{i+1}X")
+                    differences.append(f"{q}{i+1}X")
             else:
                 hstate = False
                 
-            # solo miramos para protein
-            if nucleotide_protein == "protein":
-                if m ==" ":
-                    if not mstate:
-                        hstate = True
-                        differences.append(f"{q}{i+1}X")
-                else:
-                    hstate = False
+            if m ==" ":
+                if not mstate:
+                    hstate = True
+                    differences.append(f"{q}{i+1}{h}")
+            elif m =="+":
+                if not mstate:
+                    hstate = True
+                    differences.append(f"{q}{i+1}{h}")
+            else:
+                hstate = False
 
         logger.debug("Differences %s %s",name,",".join(differences))
         return differences
@@ -125,7 +121,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                                 best_match["bit_score"] = bit_score
                                 best_match["hsps"] = hsps
                                 best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
-                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "protein")
+                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"])
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
