@@ -191,7 +191,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
         execute = True
         if not os.path.exists(SPADES_FILE):
             execute = False
-            logger.error("You have to run first the trimmomatic process")
+            logger.error("You have to run first the spades process")
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
@@ -214,7 +214,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 logger.debug("Processing sample %s", name)
                 protein_file = os.path.join(PROTEIN_PATH, protein_file)
                 logger.debug("Using protein file: %s", protein_file)
-                output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}_protein.json")
+                output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
                 os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
 
                 logger.debug("Output file %s", output_file_protein)

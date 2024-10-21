@@ -1,7 +1,7 @@
 import os
 
 base_path = '/home/mbonet/microbiologia/Reference4alignment/PDC/protein/'
-file = 'PDCXX.fasta'
+file = '/home/mbonet/microbiologia/Reference4alignment/PDC/PDCXX.fasta'
 def split_fasta_file(file_path):
     try:
         with open(file_path, 'r') as file:
@@ -10,8 +10,9 @@ def split_fasta_file(file_path):
                 if line.startswith('>'):  # Nueva secuencia encontrada
                     if current_file:
                         current_file.close()  # Cerrar el archivo actual antes de abrir uno nuevo
-                    line = line.split("[")[0]  
-                    identifier = line[1:].split(" ") # Extraer el identificador (eliminando '>')        
+                    
+                    name = line.split("[")[0]  
+                    identifier = name[1:].split(" ") # Extraer el identificador (eliminando '>')        
                     file_name = "_".join(identifier[:-1])  # Asignar el nombre del archivo basado en el identificador
                     file_name = file_name.replace(",", "")  # Reemplazar '/' por '_' en el nombre del archivo
                     current_file = open(os.path.join(base_path,f"{file_name}.fasta"), 'w')  # Abrir nuevo archivo para escritura
@@ -25,4 +26,4 @@ def split_fasta_file(file_path):
         print(f"Error al abrir o leer el archivo: {e}")
 
 # Llamar a la función con la ruta del archivo
-split_fasta_file(os.path.join(base_path, file))
+split_fasta_file(file)

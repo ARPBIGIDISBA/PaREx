@@ -13,6 +13,7 @@ import pysam
 import csv
 import re
 import pandas as pd
+import traceback
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -26,7 +27,8 @@ amino_acids = {
     'Asp': 'D', 'Ile': 'I', 'Pro': 'P', 'Val': 'V',
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
     'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
-    'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup'
+    'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup',
+    "?": "?"
 }
 
 def translate_amino_acid(value, value_c=""):
@@ -34,7 +36,7 @@ def translate_amino_acid(value, value_c=""):
     
     try:
         if value.find("_") > 0:
-            value.replace("p.","")
+            value = value.replace("p.","")
             # Check if it is a deletion
             if value.find("del")>0:
                 deletion = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)del', value)
@@ -49,6 +51,14 @@ def translate_amino_acid(value, value_c=""):
                     ins = ins[0]
                     value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins{amino_acids.get(ins[4].capitalize(), None)}"
                     return [value]
+            
+            if value.find("dup")>0:
+                dup = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)dup([A-Za-z]{3})', value)
+                if dup:
+                    dup = dup[0]
+                    value = f"{amino_acids.get(dup[0].capitalize(), None)}{dup[1]}_{amino_acids.get(dup[2].capitalize(), None)}{dup[3]}dup{amino_acids.get(dup[4].capitalize(), None)}"
+                    return [value]
+                
             return [value]
         elif value.find("fs")>0:
             value = value_c.replace("c.","")
@@ -57,15 +67,20 @@ def translate_amino_acid(value, value_c=""):
                 value = f"nt{value[:value.find('del')]}del"
             elif value.find("ins")>0:
                 value = f"nt{value}"
-            return value
+            return [value]
         elif value.find("*")>0:
             value = value.replace("p.","").replace("*","Stop")
             letter = amino_acids.get(value[0:3].capitalize(), None)
             value = f"{letter}{value[3:]}"
             return [value]
+        elif value.find("?")>0:
+            # Review with carla
+            value = value.replace("p.","")
+            return [value]
         else:
-            parts = re.findall(r'(\d+)|([A-Za-z]{3})', value)
+            parts = re.findall(r'(\d+)|([A-Za-z]{3}|\?)', value)
             if parts:
+
                 previous = []
                 after = []
                 number = None
@@ -90,29 +105,41 @@ def translate_amino_acid(value, value_c=""):
                 print("No match found", value)
                 return value
     except Exception as e:
-        print(e)
-        print(value)
+        traceback.print_exc()
+        import sys 
+        sys.exit(1)
         return value
     
 def read_data_from_file(filename):
-    hoja1_df = pd.read_excel(filename, sheet_name='Data').fillna('')
+
+    # Read All tab no matter if upper or lower case
+    all_df = pd.read_excel(filename, sheet_name='All').fillna('')
+    basic_df = pd.read_excel(filename, sheet_name='Basic').fillna('')
+
+    
     data = {}
-    for index, row in hoja1_df.iterrows():
-        locus_gene, polymorphisms = row
-        if locus_gene.find("_")>0:
-            locus, gene = locus_gene.split('_')
-        else:
-            locus = locus_gene
-            gene = ""
+    files = [all_df, basic_df]
+    keys = ['All', 'Basic']
+    output = {}
+
+    for key, df in enumerate(files):
+        for index, row in df.iterrows():
+            locus_gene, polymorphisms = row
+            if locus_gene.find("_")>0:
+                locus, gene = locus_gene.split('_')
+            else:
+                locus = locus_gene
+                gene = ""
+                
+            if gene == "-":
+                gene = ""
+
+            polymorphisms = polymorphisms.rstrip('.').split(', ')
+            cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
+            data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
             
-        if gene == "-":
-            gene = ""
-
-        polymorphisms = polymorphisms.rstrip('.').split(', ')
-        cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
-        data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
-
-    return data
+        output[keys[key]] = data
+    return output
     
 def process_output(vcf_path, sample_name, output_path):
     output_dir = os.path.join(output_path, "processed")
@@ -120,16 +147,15 @@ def process_output(vcf_path, sample_name, output_path):
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
     if os.path.exists(csv_path):
         os.remove(csv_path)
-    path = config.get("MUTATION_REFERENCE_FILE")
-    filter = read_data_from_file(path)
     
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
-        csv_writer.writerow(['sample_name','gene','snippy_mutations', 'mutations', 'mutations filtered', 'C.'])
+        csv_writer.writerow(['locus','P.', 'changes', 'C.'])
     
         # Iterar sobre cada registro en el archivo VCF
+        results = []
         for record in vcf_file:
             if 'ANN' in record.info:
                 annotations = record.info['ANN']
@@ -139,19 +165,36 @@ def process_output(vcf_path, sample_name, output_path):
                     # Check if the impact field matches 'MODERATE'
                     if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
-                        if locus in config["GENES"]:
-                            mutations = translate_amino_acid(fields[10], fields[9])
-                            
-                            if locus in filter.keys():  
-                                gene = filter[locus]['gene']
-                                result_mutation = [m for m in mutations if m not in filter[locus]['polymorphisms']]
-                            else:
-                                result_mutation = mutations
-                                gene = ""
-                            row = [fields[3],gene,fields[10],",".join(mutations), ",".join(result_mutation),fields[9].replace("c.","")]
-                            csv_writer.writerow(row)
+                        p = fields[10]
+                        c = fields[9]
+
+                        changes = translate_amino_acid(p, c)
+                        row = [locus, p.replace("p.",""),  ",".join(changes), c.replace("c.","")]
+                        results.append(row)
+                        csv_writer.writerow(row)
+        
+def combined_excel_files(samples, output_path):
+    output_dir = os.path.join(output_path, "processed")
     
-    
+    path = config.get("POLYMORPHISMS")
+    filter = read_data_from_file(path)
+    filter_all = filter['All']
+    filter_basic = filter['Basic']
+    csv_output = os.path.join(output_path, "combined_snippy.xlsx")
+    all_locus = None
+    for sample_name in samples:
+        csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
+        #read the csv file
+        df = pd.read_csv(csv_path, delimiter=";")
+        # Get all the distint locus and add to all_locus the new ones
+        if all_locus is None:
+            all_locus = df['locus'].unique()
+        else:
+            all_locus = list(set(all_locus) | set(df['locus'].unique()))
+        
+    print(len(all_locus))
+
+
 def snippy_run(project_name, only_output=False,  config=config):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
@@ -214,6 +257,7 @@ def snippy_run(project_name, only_output=False,  config=config):
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)
 
+    combined_excel_files(samples, OUTPUT_PATH)
 
 if __name__ == "__main__":
     
