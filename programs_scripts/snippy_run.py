@@ -111,12 +111,12 @@ def read_data_from_file(filename):
     basic_df = pd.read_excel(filename, sheet_name='Basic').fillna('')
 
 
-    data = {}
     files = [all_df, basic_df]
     keys = ['All', 'Basic']
     output = {}
 
     for key, df in enumerate(files):
+        data = {}
         for index, row in df.iterrows():
             locus_gene, polymorphisms = row
             if locus_gene.find("_")>0:
@@ -201,7 +201,6 @@ def combined_excel_files(samples, output_path):
     df_basic.set_index('sample_name', inplace=True)
     df_basic_clean.set_index('sample_name', inplace=True)
 
-
     for sample_name in samples:
         csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
         #read the csv file
@@ -216,11 +215,11 @@ def combined_excel_files(samples, output_path):
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
             # add sample name in pandas if not exists
-            if sample_name not in df_all.index:
-                df_all.loc[sample_name,"sample_name"] = sample_name
-                df_all_clean.loc[sample_name,"sample_name"] = sample_name
-                df_basic.loc[sample_name,"sample_name"] = sample_name
-                df_basic_clean.loc[sample_name,"sample_name"] = sample_name
+            # if sample_name not in df_all.index:
+            #     df_all.loc[sample_name,"sample_name"] = sample_name
+            #     df_all_clean.loc[sample_name,"sample_name"] = sample_name
+            #     df_basic.loc[sample_name,"sample_name"] = sample_name
+            #     df_basic_clean.loc[sample_name,"sample_name"] = sample_name
 
             if locus in filter_all.keys():
                 name = f"{locus}_{gene}"
@@ -236,28 +235,18 @@ def combined_excel_files(samples, output_path):
     if os.path.exists(csv_output):
         os.remove(csv_output)
 
-    # Función para agregar hojas a un archivo Excel existente
-    def add_sheet_to_excel(file_path, df, sheet_name):
-        workbook = openpyxl.Workbook()
-        workbook.save(file_path)
-        # Cargar el archivo existente sin sobrescribir
-        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            # read previous content
-            df.to_excel(writer, sheet_name=sheet_name, index=True)
-
     # workbook = openpyxl.Workbook()
     # workbook.save(csv_output)
-
-    # add_sheet_to_excel(csv_output, df_all, 'All')
-    # add_sheet_to_excel(csv_output, df_all_clean, 'All_clean')
-    # add_sheet_to_excel(csv_output, df_basic, 'Basic')
-    # add_sheet_to_excel(csv_output, df_basic_clean, 'Basic_clean')
-
-    add_sheet_to_excel(csv_output.replace(".xlsx", "_All.xlsx"), df_all, 'All')
-    add_sheet_to_excel(csv_output.replace(".xlsx", "_All_clean.xlsx"), df_all_clean, 'All_clean')
-    add_sheet_to_excel(csv_output.replace(".xlsx", "_Basic.xlsx"), df_basic, 'Basic')
-    add_sheet_to_excel(csv_output.replace(".xlsx", "_Basic_clean.xlsx"), df_basic_clean, 'Basic_clean')
-
+    workbook = openpyxl.Workbook()
+    workbook.save(csv_output)
+            
+    # Cargar el archivo existente sin sobrescribir
+    with pd.ExcelWriter(csv_output, engine='openpyxl') as writer:
+        df_all.to_excel(writer, sheet_name='All', index=True)
+        df_all_clean.to_excel(writer, sheet_name='All_clean', index=True)
+        df_basic.to_excel(writer, sheet_name='Basic', index=True)
+        df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
+        
 
 def snippy_run(project_name, only_output=False,  config=config):
     '''
