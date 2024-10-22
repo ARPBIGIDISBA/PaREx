@@ -47,10 +47,6 @@ def SPAdes_run(project_name, config=config):
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
     TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "FASTQ_Trimmomatic")
-    if not os.path.exists(TRIMMOMATIC_FILES_PATH):
-        logger.error("You have to run first the trimmomatic process")
-        logger.error("This forlder does not exist:%s", TRIMMOMATIC_FILES_PATH)
-        sys.exit(1)
 
     OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
@@ -64,15 +60,26 @@ def SPAdes_run(project_name, config=config):
         input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
         input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
         execute = True
-        if not os.path.exists(input_r1_path):
-            execute = False
-            logger.error("You have to run first the trimmomatic process")
-            logger.error("This file does not exist: %s", input_r1_path)
+        if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
+            logger.warning("You have to run first the trimmomatic process")
+            if not os.path.exists(input_r1_path):
+                execute = False
+                logger.warning("This file does not exist: %s", input_r1_path)
+            
+            if not os.path.exists(input_r2_path):
+                execute = False
+                logger.warning("This file does not exist: %s", input_r2_path)
         
-        if not os.path.exists(input_r2_path):
-            execute = False
-            logger.error("You have to run first the trimmomatic process")
-            logger.error("This file does not exist: %s", input_r2_path)
+        if not execute:
+            logger.warning("ussing the untrimmed files")
+            # Crear los paths de entrada y salida
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+            logger.warning("Files used: %s %s", input_r1_path, input_r2_path)
+            if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                execute = True      
+            else:
+                logger.error("The original FASTQ files does not exist either")
         
         if execute:
             old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")

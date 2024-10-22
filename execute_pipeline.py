@@ -55,7 +55,7 @@ if __name__ == "__main__":
                     ])
 
     
-    logger.info("executing operations: %s", OPERATIONS)
+    logger.info("executing operations: '%s'", " ".join(OPERATIONS))
     for operation in OPERATIONS:
         logger.info("Executing operation %s", operation)
         if operation not in OPERATIONS_DEVELOPED:

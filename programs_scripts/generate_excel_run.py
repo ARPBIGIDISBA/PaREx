@@ -79,7 +79,7 @@ def generate_excel_run(project_name, config=config):
         
     resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results","csv_samples")
     files = glob.glob(os.path.join(resfinder_path, "*processed.csv"))
-    resfinder_samples = None
+    resfinder_samples = None 
     if len(files)>0:
         resfinder_samples = {}
         for file in files:  

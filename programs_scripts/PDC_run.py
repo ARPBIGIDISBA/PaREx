@@ -12,6 +12,7 @@ import argparse
 import logging
 import json
 import csv
+import re
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 
@@ -20,7 +21,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "PDC.json")
 
-def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
+def get_differences(hsps, name, gaps = 0):
         if hsps == -1:
             return []
         qseq = hsps["qseq"]
@@ -34,30 +35,26 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
             if q =="-":
                 if not qstate:
                     qstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}ins{gaps}")
-                    else:
-                        differences.append(f"X{i+1}{h}")
+                    differences.append(f"X{i+1}{h}")
             else:
                 qstate = False
-            if h =="-":
+            if h == "-":
                 if not hstate:
                     hstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}del{gaps}")
-                    else:
-                        differences.append(f"{q}{i+1}X")
+                    differences.append(f"{q}{i+1}X")
             else:
                 hstate = False
                 
-            # solo miramos para protein
-            if nucleotide_protein == "protein":
-                if m ==" ":
-                    if not mstate:
-                        hstate = True
-                        differences.append(f"{q}{i+1}X")
-                else:
-                    hstate = False
+            if m ==" ":
+                if not mstate:
+                    hstate = True
+                    differences.append(f"{q}{i+1}{h}")
+            elif m =="+":
+                if not mstate:
+                    hstate = True
+                    differences.append(f"{q}{i+1}{h}")
+            else:
+                hstate = False
 
         logger.debug("Differences %s %s",name,",".join(differences))
         return differences
@@ -125,7 +122,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                                 best_match["bit_score"] = bit_score
                                 best_match["hsps"] = hsps
                                 best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
-                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "protein")
+                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"])
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
@@ -177,16 +174,17 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
     ]
 
     for sample_name in samples:
-        logger.info("***********************************************")
+        
         if direct_file:
-            SPADES_FILE = sample_name
+            SPADES_FILE = sample_name.strip()
             sample_name = os.path.basename(sample_name)
             sample_name = sample_name[0:-len(".fasta")]
         else:
             sample_name = sample_name.strip()
             logger.debug("Processing sample %s", sample_name)
             SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
-
+            
+        logger.info("********* %s ***********************", sample_name)   
         logger.debug("Using SPAdes file: %s", SPADES_FILE)
         execute = True
         if not os.path.exists(SPADES_FILE):
@@ -206,8 +204,19 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 "path": ""
             }
             
-            for index, protein_file in enumerate(files_protein):
-               
+            pattern = r"(PDC-\d+)"
+            # Usar re.search para encontrar el patrón
+            files = []    
+            for name in files_protein:
+                match = re.search(pattern, name)                        
+                pdc_name = match.group(0) if match else None
+                files.append([name, pdc_name])
+                
+            # sort files by pdc_name
+            files = sorted(files, key=lambda x: x[1])
+            
+            for index, protein_file in enumerate(files):
+                protein_file, name = files[index]
                 if protein_file.find(".fasta") == -1:
                     continue
                 name = protein_file[0:-len(".fasta")]
@@ -238,11 +247,12 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
             
                 if result and not normal_output:
                     # Read the json file and get the results
+                    results = analize_sample(output_file_protein, name, "protein")
+                    
                     logger.debug("***********************************************")
-                    logger.info("(%s/%s)) sample %s againts %s",index, len(files_protein), sample_name, name)
+                    logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], pdc_name, sample_name)
                     logger.debug("***********************************************")
                     
-                    results = analize_sample(output_file_protein, name, "protein")
                     gaps = results["gaps"]
                     bit_score = results["bit_score"]
                     identity = results["identity"]
@@ -267,20 +277,25 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         max_bitscore["identity"] = identity
                         max_bitscore["differences"] = results["differences"]
                     
+                    if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                        logger.info("***********************************************")
+                        logger.info("PDC found '%s' on sample %s", pdc_name, sample_name)
+                        logger.info("***********************************************")
+                        break
                 else:
                     if not normal_output and not only_output:
                         logger.error("PDC failed assembly failed on sample %s", sample_name)
 
-            if max_bitscore["gaps"] == -1:
-                logger.warning("PDC failed assembly failed on sample %s", sample_name)
-                logger.warning(results)
-                results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
-            
-            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                logger.info("***********************************************")  
-                results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
-                results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                if max_bitscore["gaps"] == -1:
+                    logger.warning("PDC failed assembly failed on sample %s", sample_name)
+                    logger.warning(results)
+                    results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
+                
+                elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                    logger.info("***********************************************")  
+                    results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
+                    results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
     filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
     with open(filename, mode='w', newline='', encoding='utf-8') as file:

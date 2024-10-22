@@ -3,3 +3,4 @@ pandas
 openpyxl
 cgelib
 resfinder
+xlsxwriter

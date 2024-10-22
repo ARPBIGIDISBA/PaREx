@@ -11,7 +11,7 @@ def split_fasta_file(file_path):
                     if current_file:
                         current_file.close()  # Cerrar el archivo actual antes de abrir uno nuevo
                     
-                    name = line.split("[")[0]  
+                    name = line.split("[")[0]
                     identifier = name[1:].split(" ") # Extraer el identificador (eliminando '>')        
                     file_name = "_".join(identifier[:-1])  # Asignar el nombre del archivo basado en el identificador
                     file_name = file_name.replace(",", "")  # Reemplazar '/' por '_' en el nombre del archivo

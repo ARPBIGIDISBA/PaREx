@@ -14,6 +14,7 @@ import csv
 import re
 import pandas as pd
 import traceback
+import openpyxl
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -33,42 +34,35 @@ amino_acids = {
 
 def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
-    
+
     try:
-        if value.find("_") > 0:
-            value = value.replace("p.","")
+        if value.find("del") > 0 or value.find("ins") > 0:
+            value = value.replace("p.", "")
             # Check if it is a deletion
-            if value.find("del")>0:
-                deletion = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)del', value)
-                if deletion:
-                    deletion = deletion[0]
-                    value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}_{amino_acids.get(deletion[2].capitalize(), None)}{deletion[3]}del"
-                    return [value]
-                
-            if value.find("ins")>0:
-                ins = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)ins([A-Za-z]{3})', value)
-                if ins:
-                    ins = ins[0]
-                    value = f"{amino_acids.get(ins[0].capitalize(), None)}{ins[1]}_{amino_acids.get(ins[2].capitalize(), None)}{ins[3]}ins{amino_acids.get(ins[4].capitalize(), None)}"
-                    return [value]
-            
-            if value.find("dup")>0:
-                dup = re.findall(r'([A-Za-z]{3})(\d+)_([A-Za-z]{3})(\d+)dup([A-Za-z]{3})', value)
-                if dup:
-                    dup = dup[0]
-                    value = f"{amino_acids.get(dup[0].capitalize(), None)}{dup[1]}_{amino_acids.get(dup[2].capitalize(), None)}{dup[3]}dup{amino_acids.get(dup[4].capitalize(), None)}"
-                    return [value]
-                
-            return [value]
-        elif value.find("fs")>0:
+            if value.find("del") > 0:
+                replace = "del"
+            if value.find("ins") > 0:
+                replace = value[value.find("ins"):]
+
+            value = value.replace(replace, "")
+            values = value.split("_")
+            result = []
+            for value in values:
+                deletion = re.findall(r'([A-Za-z]{3})(\d+)', value)
+                deletion = deletion[0]
+                value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}"
+                result.append(value)
+            return ["_".join(result)+replace]
+
+        elif value.find("fs") > 0:
             value = value_c.replace("c.","")
-            if value.find("del")>0:
+            if value.find("del") > 0:
                 # 240_247delGCCGGCCA add nt at the begining and remove letters after del nt240_247del
-                value = f"nt{value[:value.find('del')]}del"
-            elif value.find("ins")>0:
-                value = f"nt{value}"
-            return [value]
-        elif value.find("*")>0:
+                value = [f"nt{value[:value.find('del')]}del"]
+            elif value.find("ins") > 0:
+                value = [f"nt{value}"]
+            return value
+        elif value.find("*") > 0:
             value = value.replace("p.","").replace("*","Stop")
             letter = amino_acids.get(value[0:3].capitalize(), None)
             value = f"{letter}{value[3:]}"
@@ -99,24 +93,24 @@ def translate_amino_acid(value, value_c=""):
                     number+=1
                 if len(result)>2:
                     result = [result[0], result[-1]]
-                    
+
                 return result
             else:
                 print("No match found", value)
                 return value
     except Exception as e:
         traceback.print_exc()
-        import sys 
+        import sys
         sys.exit(1)
         return value
-    
+
 def read_data_from_file(filename):
 
     # Read All tab no matter if upper or lower case
     all_df = pd.read_excel(filename, sheet_name='All').fillna('')
     basic_df = pd.read_excel(filename, sheet_name='Basic').fillna('')
 
-    
+
     data = {}
     files = [all_df, basic_df]
     keys = ['All', 'Basic']
@@ -130,31 +124,36 @@ def read_data_from_file(filename):
             else:
                 locus = locus_gene
                 gene = ""
-                
+
             if gene == "-":
                 gene = ""
 
             polymorphisms = polymorphisms.rstrip('.').split(', ')
             cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
             data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
-            
+
         output[keys[key]] = data
     return output
-    
+
 def process_output(vcf_path, sample_name, output_path):
     output_dir = os.path.join(output_path, "processed")
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
     if os.path.exists(csv_path):
         os.remove(csv_path)
-    
+
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
         vcf_file = pysam.VariantFile(vcf_path)
-        csv_writer.writerow(['locus','P.', 'changes', 'C.'])
-    
+        csv_writer.writerow(['locus', 'genes', 'P.', 'changes', 'filtered_mutations', 'C.'])
+
         # Iterar sobre cada registro en el archivo VCF
+        path = config.get("POLYMORPHISMS")
+        filter = read_data_from_file(path)
+        filter_all = filter['All']
+
+
         results = []
         for record in vcf_file:
             if 'ANN' in record.info:
@@ -165,38 +164,103 @@ def process_output(vcf_path, sample_name, output_path):
                     # Check if the impact field matches 'MODERATE'
                     if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
-                        p = fields[10]
-                        c = fields[9]
+                        if locus in filter_all.keys() :
+                            p = fields[10]
+                            c = fields[9]
+                            changes = translate_amino_acid(p, c)
+                            filter_mutations = [m for m in changes if m not in filter_all[locus]['polymorphisms']]
+                            row = [locus, filter_all[locus]['gene'],p.replace("p.",""),  ",".join(changes), ",".join(filter_mutations), c.replace("c.","")]
+                            results.append(row)
+                            csv_writer.writerow(row)
 
-                        changes = translate_amino_acid(p, c)
-                        row = [locus, p.replace("p.",""),  ",".join(changes), c.replace("c.","")]
-                        results.append(row)
-                        csv_writer.writerow(row)
-        
 def combined_excel_files(samples, output_path):
     output_dir = os.path.join(output_path, "processed")
-    
+
     path = config.get("POLYMORPHISMS")
     filter = read_data_from_file(path)
     filter_all = filter['All']
     filter_basic = filter['Basic']
     csv_output = os.path.join(output_path, "combined_snippy.xlsx")
-    all_locus = None
+
+    columns_all = ["sample_name"]
+    for locus in filter_all:
+        name = f"{locus}_{filter_all[locus]['gene']}"
+        columns_all.append(name)
+    columns_basic = ["sample_name"]
+    for locus in filter_basic:
+        name = f"{locus}_{filter_basic[locus]['gene']}"
+        columns_basic.append(name)
+    df_all = pd.DataFrame(columns=columns_all)
+    df_all_clean = pd.DataFrame(columns=columns_all)
+    df_basic = pd.DataFrame(columns=columns_basic)
+    df_basic_clean = pd.DataFrame(columns=columns_basic)
+
+    # sample_name column is an index
+    df_all.set_index('sample_name', inplace=True)
+    df_all_clean.set_index('sample_name', inplace=True)
+    df_basic.set_index('sample_name', inplace=True)
+    df_basic_clean.set_index('sample_name', inplace=True)
+
+
     for sample_name in samples:
         csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
         #read the csv file
         df = pd.read_csv(csv_path, delimiter=";")
-        # Get all the distint locus and add to all_locus the new ones
-        if all_locus is None:
-            all_locus = df['locus'].unique()
-        else:
-            all_locus = list(set(all_locus) | set(df['locus'].unique()))
-        
-    print(len(all_locus))
+        # select the columns to be added to the final file
+        df = df[['locus', 'genes', 'changes', 'filtered_mutations']]
+        # create a pandas with rows with different locus as columns
+        # find column to insert value in df_all
+        for index, row in df.iterrows():
+            locus = row['locus']
+            gene = row['genes']
+            changes = row['changes']
+            filtered_mutations = row['filtered_mutations']
+            # add sample name in pandas if not exists
+            if sample_name not in df_all.index:
+                df_all.loc[sample_name,"sample_name"] = sample_name
+                df_all_clean.loc[sample_name,"sample_name"] = sample_name
+                df_basic.loc[sample_name,"sample_name"] = sample_name
+                df_basic_clean.loc[sample_name,"sample_name"] = sample_name
+
+            if locus in filter_all.keys():
+                name = f"{locus}_{gene}"
+                if name in df_all.columns:
+                    df_all.loc[sample_name, name] = changes
+                    df_all_clean.loc[sample_name, name] = filtered_mutations
+            if locus in filter_basic.keys():
+                name = f"{locus}_{gene}"
+                if name in df_basic.columns:
+                    df_basic.loc[sample_name, name] = changes
+                    df_basic_clean.loc[sample_name, name] = filtered_mutations
+
+    if os.path.exists(csv_output):
+        os.remove(csv_output)
+
+    # Función para agregar hojas a un archivo Excel existente
+    def add_sheet_to_excel(file_path, df, sheet_name):
+        workbook = openpyxl.Workbook()
+        workbook.save(file_path)
+        # Cargar el archivo existente sin sobrescribir
+        with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+            # read previous content
+            df.to_excel(writer, sheet_name=sheet_name, index=True)
+
+    # workbook = openpyxl.Workbook()
+    # workbook.save(csv_output)
+
+    # add_sheet_to_excel(csv_output, df_all, 'All')
+    # add_sheet_to_excel(csv_output, df_all_clean, 'All_clean')
+    # add_sheet_to_excel(csv_output, df_basic, 'Basic')
+    # add_sheet_to_excel(csv_output, df_basic_clean, 'Basic_clean')
+
+    add_sheet_to_excel(csv_output.replace(".xlsx", "_All.xlsx"), df_all, 'All')
+    add_sheet_to_excel(csv_output.replace(".xlsx", "_All_clean.xlsx"), df_all_clean, 'All_clean')
+    add_sheet_to_excel(csv_output.replace(".xlsx", "_Basic.xlsx"), df_basic, 'Basic')
+    add_sheet_to_excel(csv_output.replace(".xlsx", "_Basic_clean.xlsx"), df_basic_clean, 'Basic_clean')
 
 
 def snippy_run(project_name, only_output=False,  config=config):
-    ''' 
+    '''
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
         parameters:
@@ -204,7 +268,7 @@ def snippy_run(project_name, only_output=False,  config=config):
             config_json (str): Path to the config file by default is trimmomatic_config.json
 
         results:
-            Two files R1_001.fastq.gz and R2_001.fastq.gz written in 
+            Two files R1_001.fastq.gz and R2_001.fastq.gz written in
             PROJECTS_PATH/project_name/ANALYSIS_{project_name}/FASTQ_Trimmomatic
             filename format will be  sample_name_trim_R1.fastq.gz and sample_name_trim_R2.fastq.gz
     '''
@@ -231,14 +295,14 @@ def snippy_run(project_name, only_output=False,  config=config):
         # Limpiar por si hay espacios en blanco
         sample_name = sample_name.strip()
         logger.info("Processing %s", sample_name)
-        
+
         # Crear los paths de entrada y salida
         input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
         input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
             logger.error(f"The fastq.gz file for {sample_name} don't exist")
             logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
-        
+
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
@@ -260,7 +324,7 @@ def snippy_run(project_name, only_output=False,  config=config):
     combined_excel_files(samples, OUTPUT_PATH)
 
 if __name__ == "__main__":
-    
+
     # Define the arguments that the program expects
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -269,7 +333,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)   
+        config = init_configs(script_directory, args.json_config)
 
     configure_logs(PROJECT_NAME, "snippy", config)
     logger = logging.getLogger(__name__)
