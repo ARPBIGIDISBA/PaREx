@@ -250,7 +250,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                     results = analize_sample(output_file_protein, name, "protein")
                     
                     logger.debug("***********************************************")
-                    logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], pdc_name, sample_name)
+                    logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
                     logger.debug("***********************************************")
                     
                     gaps = results["gaps"]
