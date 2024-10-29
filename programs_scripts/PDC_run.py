@@ -219,7 +219,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 protein_file, name = files[index]
                 if protein_file.find(".fasta") == -1:
                     continue
-                name = protein_file[0:-len(".fasta")]
+                
                 logger.debug("Processing sample %s", name)
                 protein_file = os.path.join(PROTEIN_PATH, protein_file)
                 logger.debug("Using protein file: %s", protein_file)
