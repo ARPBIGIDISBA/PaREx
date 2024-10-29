@@ -62,7 +62,6 @@ def trimmomatic_run(project_name, config=config):
             logger.error(f"The fastq.gz file for {sample_name} don't exist")
             logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
 
-
         # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
         output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
         if all([os.path.exists(file) for file in output_files]):

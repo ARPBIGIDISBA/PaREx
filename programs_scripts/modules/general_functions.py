@@ -57,7 +57,7 @@ def read_args(project_name, config):
 
         return samples
     else:
-        logger.error("Problem readingh the sample list file ")
+        logger.error("Problem reading the sample list file ")
         logger.error(f"Not found {sample_file}")
         logger.error("Check the correct spelling of the project name")
         exit(1)

@@ -17,6 +17,7 @@ from programs_scripts.mlst_run import mlst_run
 from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run
+from programs_scripts.novasec_run import novasec_run
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
 
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", "all_sequence", "snippy", "PDC"]
+                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
+                             "all_sequence", "snippy", "PDC", "novasec"]
     
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -135,6 +137,9 @@ if __name__ == "__main__":
             oprD_run(PROJECT_NAME)
             mlst_run(PROJECT_NAME)
             generate_excel_run(PROJECT_NAME)
+        elif operation == "novasec":
+            logger.info(f"Running novasec for project {PROJECT_NAME}")
+            novasec_run(PROJECT_NAME)
         else:
             logger.warning("Operation not found %s", operation)
             logger.info("Operations available: create_project")

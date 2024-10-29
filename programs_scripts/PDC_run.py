@@ -278,6 +278,12 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         max_bitscore["differences"] = results["differences"]
                     
                     if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                        max_bitscore["name"] = name
+                        max_bitscore["path"] = protein_file
+                        max_bitscore["value"] = bit_score
+                        max_bitscore["gaps"] = gaps
+                        max_bitscore["identity"] = identity
+                        max_bitscore["differences"] = results["differences"]
                         logger.info("***********************************************")
                         logger.info("PDC found '%s' on sample %s", pdc_name, sample_name)
                         logger.info("***********************************************")
