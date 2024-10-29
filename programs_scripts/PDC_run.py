@@ -213,10 +213,11 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 files.append([name, pdc_name])
                 
             # sort files by pdc_name
-            files = sorted(files, key=lambda x: x[1])
+            files = sorted(files, key=lambda x: int(x[1].split("-")[1]))
             
             for index, protein_file in enumerate(files):
                 protein_file, name = files[index]
+
                 if protein_file.find(".fasta") == -1:
                     continue
                 
@@ -261,7 +262,8 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                     logger.debug("Bit score %s", bit_score)
                     logger.debug("Identity %s", identity)
                     
-                    if name.find("PDC-1."):
+                    if name == "PDC-1":
+                        logger.debug("PDC-1 found")
                         PDC1["path"] = protein_file
                         PDC1["value"] = bit_score
                         PDC1["gaps"] = gaps
@@ -278,35 +280,30 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         max_bitscore["differences"] = results["differences"]
                     
                     if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                        max_bitscore["name"] = name
-                        max_bitscore["path"] = protein_file
-                        max_bitscore["value"] = bit_score
-                        max_bitscore["gaps"] = gaps
-                        max_bitscore["identity"] = identity
-                        max_bitscore["differences"] = results["differences"]
                         logger.info("***********************************************")
-                        logger.info("PDC found '%s' on sample %s", pdc_name, sample_name)
+                        logger.info("PDC found '%s' on sample %s", name, sample_name)
                         logger.info("***********************************************")
                         break
                 else:
                     if not normal_output and not only_output:
                         logger.error("PDC failed assembly failed on sample %s", sample_name)
 
-                if max_bitscore["gaps"] == -1:
-                    logger.warning("PDC failed assembly failed on sample %s", sample_name)
-                    logger.warning(results)
-                    results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
-                
-                elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                    logger.info("***********************************************")  
-                    results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-                elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
-                    results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-    # Crear y escribir en el archivo CSV usando punto y coma como delimitador
-    filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file, delimiter=';')
-        writer.writerows(results_data)
+            if max_bitscore["gaps"] == -1:
+                logger.warning("PDC failed assembly failed on sample %s", sample_name)
+                logger.warning(results)
+                results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
+            
+            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                logger.info("***********************************************")  
+                results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
+                results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+            
+            # Crear y escribir en el archivo CSV usando punto y coma como delimitador
+            filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
+            with open(filename, mode='w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file, delimiter=';')
+                writer.writerows(results_data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
