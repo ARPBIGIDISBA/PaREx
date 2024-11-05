@@ -6,20 +6,38 @@ import logging
 import json
 import os
 import sys
+import shutil
 
 logger = logging.getLogger(__name__)
 
 
-def read_config(config_json):
-    # Leer el archivo catde configuración
+def validate_config(config, required_keys):
+    missing_keys = [key for key in required_keys if key not in config]
+    if missing_keys:
+        logger.error(f"Missing required config keys: {', '.join(missing_keys)}")
+        sys.exit(1)
+    return True
+
+def read_config(config_json, required_keys = ["PROJECTS_PATH", "REFERENCE_PATH"]):
+    # Check if the .json config file exists
     if not os.path.exists(config_json):
-        config_json = os.path.join("programs_scripts", config_json)
-        if not os.path.exists(config_json):
-            logger.error(f"Config file {config_json} not found")
-            exit(1)
+        # If not, look for the .json.sample file
+        sample_path = f"{config_json}.sample"
+        
+        if os.path.exists(sample_path):
+            logger.warning(f"Config file '{config_json}' not found. Creating it from '{sample_path}'")
+            try:
+                shutil.copyfile(sample_path, config_json)
+            except IOError as e:
+                logger.error(f"Error creating config file from sample: {e}")
+                sys.exit(1)
+        else:
+            logger.error(f"Neither config file '{config_json}' nor sample '{sample_path}' found.")
+            sys.exit(1)
             
     with open(config_json, 'r') as file:
         config = json.load(file)
+        validate_config(config, required_keys)
         return config
 
 def check_project(project_path):
@@ -65,25 +83,28 @@ def read_args(project_name, config):
 
 # Execute a command and log the output
 def execute_command(command):
-    # Enseñar el comando que se va a ejecutar
-    logger.debug(f"Executing command line: {' '.join(command)}")
+    try:
+        logger.debug(f"Executing command line: {' '.join(command)}")
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        
+        # Leer salida en tiempo real
+        while True:
+            output = process.stdout.readline()
+            if output:
+                logger.debug(output.strip())
+            return_code = process.poll()
+            if return_code is not None:
+                break
 
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    # Capturar las salidas del comando y añadirlas al fichero de salida
-    # stdout, stderr = process.communicate()
-
-    while True:
-        output = process.stdout.readline()
-        if output and output != "":
+        for output in process.stdout.readlines():
             logger.debug(output.strip())
-        # Check for termination
-        return_code = process.poll()
-        if return_code is not None:
-            for output in process.stdout.readlines():
-                logger.debug(output.strip())
-            for output in process.stderr.readlines():
-                logger.debug(output.strip())
-            return (return_code == 0)
+        for output in process.stderr.readlines():
+            logger.error(output.strip())  # Log errors separately
+
+        return process.returncode == 0
+    except Exception as e:
+        logger.error(f"Error executing command: {e}")
+        return False
 
 
 def init_configs(script_directory, config_json=None):
@@ -109,30 +130,25 @@ def init_configs(script_directory, config_json=None):
 
 
 def configure_logs(project_name, script_name, config, log_mode="w", log_level="INFO"):
+    log_levels = {
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL
+    }
+    level = log_levels.get(log_level.upper(), logging.INFO)
+    log_path = os.path.join(config["PROJECTS_PATH"], project_name, "Logs")
+    os.makedirs(log_path, exist_ok=True)
+    log_file = os.path.join(log_path, f'{project_name}_{script_name}.log')
 
-    LOG_MODE = log_mode  # "a" to append or "w" to overwrite
-    LOG_PATH = os.path.join(config["PROJECTS_PATH"], project_name, "Logs")
-    os.makedirs(LOG_PATH, exist_ok=True)
-    LOG_NAME = os.path.join(LOG_PATH, f'{project_name}_{script_name}.log')                       
-    LOG_FORMAT = '%(asctime)s-%(levelname)s- %(message)s - %(filename)s:%(lineno)d'
-    if log_level == "INFO":
-        log_level = logging.INFO
-    elif log_level == "DEBUG":
-        log_level = logging.DEBUG
-    elif log_level == "WARNING":
-        log_level = logging.WARNING
-    elif log_level == "ERROR":
-        log_level = logging.ERROR
-    elif log_level == "CRITICAL":
-        log_level = logging.CRITICAL
-    else:
-        log_level = logging.INFO
-
-    logging.basicConfig(level=log_level,
-                        format=LOG_FORMAT,
-                        datefmt='%H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(LOG_NAME, mode=LOG_MODE),
-                            logging.StreamHandler()
-                        ])
-    logging.info("Log file: %s", LOG_NAME)
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s-%(levelname)s- %(message)s - %(filename)s:%(lineno)d',
+        datefmt='%H:%M:%S',
+        handlers=[
+            logging.FileHandler(log_file, mode=log_mode),
+            logging.StreamHandler()
+        ]
+    )
+    logger.info(f"Log file created: {log_file}")
