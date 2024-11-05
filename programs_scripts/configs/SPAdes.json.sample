@@ -1,0 +1,4 @@
+{
+    "SPADES_PATH": "/wgs/microbiologia/Programs/SPAdes-3.15.5-Linux/bin/spades.py",
+    "SPADES_OPTIONS": ["--careful"]
+}
