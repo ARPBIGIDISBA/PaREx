@@ -5,7 +5,7 @@ Este proyecto es un pipeline en Python diseñado para realizar análisis genómi
 ## Estructura del Proyecto
 
 - **programs_scripts/**: Contiene scripts específicos para cada paso del pipeline.
-- **configs/**: Archivos de configuración en formato `.json` necesarios para la ejecución de los scripts. También incluye archivos de ejemplo `.json.sample`.
+- **programs_scripts/configs/**: Archivos de configuración en formato `.json` necesarios para la ejecución de los scripts. También incluye archivos de ejemplo `.json.sample`.
 - **logs/**: Carpeta donde se almacenan los logs generados durante la ejecución.
 
 ## Requisitos
