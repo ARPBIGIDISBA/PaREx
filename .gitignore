@@ -212,3 +212,4 @@ Thumbs.db
 .vscode
 *.json
 venv_huse/*
+activate_local.sh

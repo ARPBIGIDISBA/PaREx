@@ -18,9 +18,9 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "mlst.json")
+config = init_configs(script_directory, "mlst.json", required_keys=["MLST_PATH", "MLST_OPTIONS"])
 
-def mlst_run(project_name, config=config, direct_file = None):
+def mlst_run(project_name, config=config, direct_file = None, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -104,21 +104,30 @@ def mlst_run(project_name, config=config, direct_file = None):
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)
 
+    logger.info("MLST results written in %s", filename)
+    if not extra_config["keep_output"]:
+        path = os.path.join(OUTPUT_PATH, "outputs")
+        logger.info("Removing outputs directory")
+        os.system("rm -rf " + path)
+
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--file', type=str, help='Path to the file', default=None)
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
 
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
     if args.json_config:
-        config = init_configs(script_directory, f"{args.json_config}.json")
+        config = init_configs(script_directory, f"{args.json_config}.json", required_keys=["MLST_PATH", "MLST_OPTIONS"])
 
     # Start the python logging variable to generate a file
     configure_logs(project_name, "oprD", config)
 
     logger = logging.getLogger(__name__)
 
-    mlst_run(project_name, config, args.file)
+    mlst_run(project_name, config, args.file, extra_config={"force": args.force, "keep_output": args.keep_output})

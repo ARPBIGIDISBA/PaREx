@@ -19,7 +19,7 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "bowtie.json")
 
 
-def bowtie_run(project_name, reference, config=config):
+def bowtie_run(project_name, reference, config=config, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the bowtie program to the fastq.gz files
         with a reference file
@@ -104,15 +104,18 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('REFERENCE', type=str, help='Reference for alignment')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution')
+    parser.add_argument('--keep-output', action='store_true', help='Keep the output files')
+
 
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     REFERENCE = args.REFERENCE
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)
+        config = init_configs(script_directory, args.json_config, required_keys=["BOWTIE_PATH", "BOWTIE_OPTIONS"])
         
     configure_logs(PROJECT_NAME, f"bowtie_{REFERENCE}", config)
     logger = logging.getLogger(__name__)
 
-    bowtie_run(args.PROJECT_NAME, args.REFERENCE, config)
+    bowtie_run(args.PROJECT_NAME, args.REFERENCE, config, extra_config={"force": args.force, "keep_output": args.keep_output})
 

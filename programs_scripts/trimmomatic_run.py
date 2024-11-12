@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 
-config = init_configs(script_directory, "trimmomatic.json")
+config = init_configs(script_directory, "trimmomatic.json", required_keys=["TRIMMOMATIC_JAR_PATH", "TRIMMOMATIC_OPTIONS"])
 
 
-def trimmomatic_run(project_name, config=config):
+def trimmomatic_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
@@ -60,11 +60,11 @@ def trimmomatic_run(project_name, config=config):
         input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
             logger.error(f"The fastq.gz file for {sample_name} don't exist")
-            logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
-
-        # Example of output_files = /home/micro/Analysis/Trimmomatic/lineage/sample/{line}.trimmed.1P.fastq.gz
-        output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
-        if all([os.path.exists(file) for file in output_files]):
+            logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path} \n ")
+            continue
+        
+        output_files = [os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{file}.fastq.gz") for file in ["1P", "1U", "2P", "2U"]]
+        if all([os.path.exists(file) for file in output_files]) and not extra_config["force"]:
             logger.info(f"Files for {sample_name} already exist, skipping")
         else:
             # Ejecutar Trimmomatic
@@ -82,15 +82,19 @@ def trimmomatic_run(project_name, config=config):
                     logger.info(f"Renaming file {new_file_path}")
                     os.system(f"gunzip -f {new_file_path}")
                     logger.info(f"Unzip file {new_file_path}")
+                    if os.path.exists(old_file_path) and not extra_config["keep_output"]:
+                        os.remove(old_file_path)      
 
                 # Mover los unpairs para futura calidad un directorio
                 UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
                 os.makedirs(UNPAIRED_PATH, exist_ok=True)
                 for suffix in ["1U", "2U"]:
                     old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
-                    new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}.trimmed.{suffix}.fastq.gz")
+                    new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}_trim_{suffix}.fastq.gz")
                     shutil.move(old_file_path, new_file_path)
                     logger.info(f"Storing unpaired file {new_file_path}")
+                    if os.path.exists(old_file_path) and not extra_config["keep_output"]:
+                        os.remove(old_file_path)      
 
             else:
                 logger.error("There is an error in Trimmomatic execution, check the log files")
@@ -101,15 +105,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
+
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)   
+        config = init_configs(script_directory, args.json_config, required_keys=["TRIMMOMATIC_JAR_PATH", "TRIMMOMATIC_OPTIONS"])   
     
-    config["force"] = args.force
     
-    configure_logs(PROJECT_NAME, "trimmomatic", config)
+    configure_logs(PROJECT_NAME, "trimmomatic", config, extra_config={"force": args.force, "keep_output": args.keep_output})
     logger = logging.getLogger(__name__)
     logger.info(config)
-    trimmomatic_run(PROJECT_NAME, config)
+    trimmomatic_run(PROJECT_NAME, config, extra_config={"force": args.force, "keep_output": args.keep_output})

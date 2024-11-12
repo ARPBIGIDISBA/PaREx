@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 
-config = init_configs(script_directory, "snippy.json")
+config = init_configs(script_directory, "snippy.json", required_keys=["SNIPPY_PATH", "SNIPPY_OPTIONS", "REFERENCE", "POLYMORPHISMS"])
 
 amino_acids = {
     'Ala': 'A', 'Gly': 'G', 'Met': 'M', 'Ser': 'S',
@@ -203,6 +203,9 @@ def combined_excel_files(samples, output_path):
 
     for sample_name in samples:
         csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
+        if not os.path.exists(csv_path):
+            logger.warning("The file %s does not exist", csv_path)
+            continue
         #read the csv file
         df = pd.read_csv(csv_path, delimiter=";")
         # select the columns to be added to the final file
@@ -248,7 +251,7 @@ def combined_excel_files(samples, output_path):
         df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
         
 
-def snippy_run(project_name, only_output=False,  config=config):
+def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": False}):
     '''
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
@@ -272,6 +275,10 @@ def snippy_run(project_name, only_output=False,  config=config):
     # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
     SNIPPY_OPTIONS = config['SNIPPY_OPTIONS']
     SNIPPY_REFERENCE = config['REFERENCE']
+    if not os.path.exists(SNIPPY_REFERENCE):
+        logger.error("The reference file does not exist check snippy.json file")
+        logger.error(f"This file does not exist:{SNIPPY_REFERENCE}")
+        return False
 
     # Create project directory in case it is not created
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
@@ -295,7 +302,7 @@ def snippy_run(project_name, only_output=False,  config=config):
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
-        if only_output or os.path.exists(VCF_FILE):
+        if only_output or (os.path.exists(VCF_FILE) and not extra_config["force"]):
             if os.path.exists(VCF_FILE):
                 result = True
             else:
@@ -309,8 +316,12 @@ def snippy_run(project_name, only_output=False,  config=config):
         if result:
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)
-
+    
+    
     combined_excel_files(samples, OUTPUT_PATH)
+
+    if not extra_config["keep_output"]:
+        os.system(f"rm -r {OUTPUT_PATH}/output")
 
 if __name__ == "__main__":
 
@@ -319,11 +330,13 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process output files')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)
+        config = init_configs(script_directory, args.json_config, required_keys=["SNIPPY_PATH", "SNIPPY_OPTIONS", "REFERENCE", "POLYMORPHISMS"])
 
     configure_logs(PROJECT_NAME, "snippy", config)
     logger = logging.getLogger(__name__)
-    snippy_run(PROJECT_NAME, args.parse_output, config)
+    snippy_run(PROJECT_NAME, args.parse_output, config, extra_config={"force": args.force, "keep_output": args.keep_output})

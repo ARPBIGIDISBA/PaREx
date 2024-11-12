@@ -19,7 +19,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "PDC.json")
+config = init_configs(script_directory, "PDC.json", required_keys=["TBLASTN_OPTIONS", "PROTEIN_PATH"])
 
 def get_differences(hsps, name, gaps = 0):
         if hsps == -1:
@@ -133,7 +133,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
 
-def PDC_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
+def PDC_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False, extra_config={"force": False, "keep_output": False}):
     ''' 
         This function is the main function to run the PDC anylisis
 
@@ -159,8 +159,9 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
     files_protein = os.listdir(PROTEIN_PATH)
+    # Get only files with extension .fasta
+    files_protein = [file for file in files_protein if file.endswith(".fasta")]
     
-
     # Create project directory in case it is not created, read files and create output directory
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
@@ -239,7 +240,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         result = True
                     else:
                         logger.error("File not found: %s", output_file_protein)
-                        logger.error("You have to run first the oprD process")
+                        logger.error("You have to run first the PDC process")
                         result = False
                 else:
                     result_pro = execute_command(command_protein)
@@ -304,6 +305,10 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
             with open(filename, mode='w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file, delimiter=';')
                 writer.writerows(results_data)
+    
+    logger.info("PDC analysis finished")
+    if not extra_config["keep_output"]:
+        os.system(f"rm -r {os.path.join(OUTPUT_PATH, 'output')}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
@@ -313,15 +318,18 @@ if __name__ == "__main__":
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--normal-output', action='store_true', help='Produce only screen process normal blast outputs') 
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output')
+                        
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
     if args.json_config:
-        config = init_configs(script_directory, f"{args.json_config}.json")
+        config = init_configs(script_directory, f"{args.json_config}.json", required_keys=["TBLASTN_OPTIONS", "PROTEIN_PATH"])
 
     # Start the python logging variable to generate a file
     configure_logs(project_name, "PDC", config, log_level=args.log_level)
 
     logger = logging.getLogger(__name__)
 
-    PDC_run(project_name, config, args.parse_output, args.file, args.normal_output)
+    PDC_run(project_name, config, args.parse_output, args.file, args.normal_output, extra_config={"force": args.force, "keep_output": args.keep_output})    

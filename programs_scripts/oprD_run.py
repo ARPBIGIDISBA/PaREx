@@ -18,7 +18,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "oprD.json")
+config = init_configs(script_directory, "oprD.json", required_keys=["BLAST_OPTIONS", "BLASTN_OPTIONS", "NUCLEOTIDE_PATH", "PROTEIN_PATH"])
 
 def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
         if hsps == -1:
@@ -63,7 +63,12 @@ def get_differences(hsps, name, gaps = 0, nucleotide_protein = "nucleotide"):
         return differences
 
 def read_output(json_file):
-    data = json.load(open(json_file))['BlastOutput2'][0]['report']
+    try:
+        data = json.load(open(json_file))['BlastOutput2'][0]['report']
+    except Exception as e:
+        logger.error("Error reading json file %s", json_file)
+        logger.error(e)
+        data = None
     return data
 
 def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
@@ -136,7 +141,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
 
-def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False):
+def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False, extra_config= {"force": False, "keep-output": False}):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -163,7 +168,9 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
     PROTEIN_PATH = config["PROTEIN_PATH"]
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
-    files_nucleotide = os.listdir(NUCLEOTIDE_PATH)
+    # Filter only files finishing in .fasta
+    files_nucleotide = [f for f in os.listdir(NUCLEOTIDE_PATH) if f.endswith(".fasta")]
+
     
 
     # Create project directory in case it is not created, read files and create output directory
@@ -193,7 +200,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
         execute = True
         if not os.path.exists(SPADES_FILE):
             execute = False
-            logger.error("You have to run first the trimmomatic process")
+            logger.error("You have to run first the SPades process or use a difect file --file path_to_file")
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
@@ -334,6 +341,10 @@ if __name__ == "__main__":
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--normal-output', action='store_true', help='Produce only screen process normal blast outputs') 
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default=None)
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep-output', action='store_true', help='Force the execution of the program')
+
+    
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
@@ -345,4 +356,4 @@ if __name__ == "__main__":
 
     logger = logging.getLogger(__name__)
 
-    oprD_run(project_name, config, args.parse_output, args.file, args.normal_output)
+    oprD_run(project_name, config, args.parse_output, args.file, args.normal_output, extra_config= {"force": args.force, "keep-output": args.keep_output})

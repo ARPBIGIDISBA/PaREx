@@ -30,17 +30,25 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
-    parser.add_argument('operation', type=str, help=f'Existing operations {OPERATIONS_DEVELOPED}')
-    parser.add_argument('--reference', type=str, help='Reference for alignment')
+    parser.add_argument('operation', type=str, help=f"Existing operations: {' | '.join(OPERATIONS_DEVELOPED)}")
+    parser.add_argument('--reference', type=str, help='Direct file path without using sample list')
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
     args = parser.parse_args()
+
+
+    extra_config = {
+        "force": args.force,
+        "keep_output": args.keep_output,
+        "log_level": args.log_level
+    }
 
     PROJECT_NAME = args.PROJECT_NAME
     OPERATIONS = args.operation.split(",")
     
-    general_config = os.path.join("configs","general.json")
-    config_general = read_config(general_config)
+    general_config = os.path.join("programs_scripts", "configs", "general.json")
+    config_general = read_config(general_config, ["PROJECTS_PATH"])
     PROJECTS_PATH = config_general["PROJECTS_PATH"]
     project_path = os.path.join(PROJECTS_PATH, PROJECT_NAME)
     
@@ -96,50 +104,51 @@ if __name__ == "__main__":
                     fastaq_files = [f.split("_R2")[0] for f in fastaq_files]
                     fastaq_files = list(set(fastaq_files))
                 # Print out all filenames
+                logger.debug("Files found:")
                 for filename in fastaq_files:
                     logger.debug(filename)
                     file.write(filename + '\n')
         
         elif operation == "generate_excel":
             logger.info(f"Running generate_excell for project {PROJECT_NAME}")
-            generate_excel_run(PROJECT_NAME)
+            generate_excel_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "trimmomatic":
             logger.info(f"Running trimmomatic for project {PROJECT_NAME}")
-            trimmomatic_run(PROJECT_NAME)
+            trimmomatic_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "SPAdes":
             logger.info(f"Running SPAdes for project {PROJECT_NAME}")
-            SPAdes_run(PROJECT_NAME)
+            SPAdes_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "bowtie":
             logger.info(f"Running bowtie for project {PROJECT_NAME}")
             reference = args.reference
-            bowtie_run(PROJECT_NAME, reference)
+            bowtie_run(PROJECT_NAME, reference, extra_config=extra_config)
         elif operation == "resfinder":
             logger.info(f"Running resfinder for project {PROJECT_NAME}")
-            resfinder_run(PROJECT_NAME)
+            resfinder_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "oprD":
             logger.info(f"Running oprD for project {PROJECT_NAME}")
-            oprD_run(PROJECT_NAME)
+            oprD_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
-            mlst_run(PROJECT_NAME)
+            mlst_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "snippy":
             logger.info(f"Running snippy for project {PROJECT_NAME}")
-            snippy_run(PROJECT_NAME)
+            snippy_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "PDC":
             logger.info(f"Running PDC for project {PROJECT_NAME}")
-            PDC_run(PROJECT_NAME)
+            PDC_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
-            trimmomatic_run(PROJECT_NAME)
-            SPAdes_run(PROJECT_NAME)
+            logger.info(f"short for SPAdes, resfinder, oprD, mlst, generate_excel")
+            SPAdes_run(PROJECT_NAME, extra_config=extra_config)
             reference = args.reference
-            resfinder_run(PROJECT_NAME)
-            oprD_run(PROJECT_NAME)
-            mlst_run(PROJECT_NAME)
-            generate_excel_run(PROJECT_NAME)
+            resfinder_run(PROJECT_NAME, extra_config=extra_config)
+            oprD_run(PROJECT_NAME, extra_config=extra_config)
+            mlst_run(PROJECT_NAME, extra_config=extra_config)
+            generate_excel_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "novasec":
             logger.info(f"Running novasec for project {PROJECT_NAME}")
-            novasec_run(PROJECT_NAME)
+            novasec_run(PROJECT_NAME, extra_config=extra_config)
         else:
             logger.warning("Operation not found %s", operation)
             logger.info("Operations available: create_project")

@@ -16,7 +16,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "resfinder.json")
+config = init_configs(script_directory, "resfinder.json", required_keys=["RESFINDER_PATH", "RESFINDER_OPTIONS", "INTRINSIC_PAER_GENES"])
 
 
 def print_metadata(data):
@@ -84,7 +84,7 @@ def filter_output(data, ignore_list):
     return csv_fullcoverage, csv_partialcoverage
 
 
-def resfinder_run(project_name, config=config, only_output=False, direct_file = None):
+def resfinder_run(project_name, config=config, only_output=False, direct_file = None, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -136,8 +136,7 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
         execute = True
         if not os.path.exists(SPADES_FILE):
             execute = False
-
-            logger.error("You have to run first the trimmomatic process")
+            logger.error("You have to run first the SPAdes process")
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
@@ -170,7 +169,8 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)
 
     os.chdir(previous_dir)
-
+    if not extra_config["keep_output"]:
+        os.system(f"rm -rf {OUTPUT_PATH_SCRIPT}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
@@ -178,14 +178,16 @@ if __name__ == "__main__":
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')
     parser.add_argument('--file', type=str, help='Path to the file', default=None)
-    
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
+
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)
+        config = init_configs(script_directory, args.json_config, required_keys=["RESFINDER_PATH", "RESFINDER_OPTIONS", "INTRINSIC_PAER_GENES"])
         
     # Start the python logging variable to generate a file
     configure_logs(project_name, "resfinder", config)
 
-    resfinder_run(project_name, config, args.parse_output, args.file)
+    resfinder_run(project_name, config, args.parse_output, args.file, extra_config={"force": args.force, "keep_output": args.keep_output})

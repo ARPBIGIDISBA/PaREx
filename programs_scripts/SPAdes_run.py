@@ -17,10 +17,10 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "SPAdes.json")
+config = init_configs(script_directory, "SPAdes.json", required_keys=["SPADES_PATH", "SPADES_OPTIONS"])
 
 
-def SPAdes_run(project_name, config=config):
+def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the SPAdes program to the fastq.gz files
 
@@ -86,7 +86,7 @@ def SPAdes_run(project_name, config=config):
             new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
             result = False
 
-            if not os.path.exists(new_file_path):
+            if not os.path.exists(new_file_path) or extra_config["force"]:
                 command = ["python3", SPADES_PROGRAM_PATH, "-o", OUTPUT_PATH, "-1", input_r1_path, "-2", input_r2_path] + SPADES_OPTIONS
                 result = execute_command(command)
 
@@ -101,21 +101,37 @@ def SPAdes_run(project_name, config=config):
                     logger.error("SPAdes assembly failed")
             else:
                 logger.warning(f"File {new_file_path} already exists, skipping")
+            
+    # Clear output files
+    if not extra_config["keep_output"]:
+        for file_ in os.listdir(OUTPUT_PATH):
+            # remove all the files and directory minus .log and SPAdes.denovoassembly.fasta
+            if not file_.endswith("SPAdes.denovoassembly.fasta") and not file_.endswith(".log"):
+                file_path = os.path.join(OUTPUT_PATH, file_)
+                if os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+                else:
+                    os.remove(file_path)
+            
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
+    parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
+
     
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
     if args.json_config:
-        config = init_configs(script_directory, args.json_config)
+        config = init_configs(script_directory, args.json_config, required_keys=["SPADES_PATH", "SPADES_OPTIONS"])
 
     # Start the python logging variable to generate a file
     configure_logs(project_name, "SPAdes", config)
 
     logger = logging.getLogger(__name__)
 
-    SPAdes_run(project_name, config)
+    SPAdes_run(project_name, config, extra_config={"force": args.force, "keep_output": args.keep_output})

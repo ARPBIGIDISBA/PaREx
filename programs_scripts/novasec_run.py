@@ -19,7 +19,7 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "novasec.json")
 
 
-def novasec_run(project_name, config=config):
+def novasec_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
@@ -45,18 +45,18 @@ def novasec_run(project_name, config=config):
     # read folder list of files
     files = os.listdir(FILES_PATH)
     # filter only folders
-    files = [f for f in files if os.path.isdir(os.path.join(FILES_PATH, f))]
+    folders = [f for f in files if os.path.isdir(os.path.join(FILES_PATH, f))]
 
-    if len(files) == 0:
+    if len(folders) == 0:
         logger.warning(f"No files found in {FILES_PATH}")
         logger.warning(f"The novasec program needs the files in the following format: sample_L1_ds and sample_L2_ds")
         logger.warning(f"Please check the files in {FILES_PATH}")
         return
-    logger.debug(files)
+    logger.debug(folders)
     
     pattern = re.compile(r'(?P<sample_name>\d+)_L(?P<lane>\d)_ds\..+')
     samples = {}
-    for item in files:
+    for item in folders:
         match = pattern.match(item)
         if match:
             sample_name = match.group('sample_name')
@@ -65,8 +65,6 @@ def novasec_run(project_name, config=config):
                 samples[sample_name] = {}
             samples[sample_name]["sample_name"] = sample_name
             samples[sample_name][lane] = item    
-    
-    ## {'10062444': {'sample_name': '10062444', 'L1': '10062444_L1_ds.94ade02377de4179ae594bcb401f1f65', 'L2': '10062444_L2_ds.3e2e7bfc7d764b60a6f29a53eb43676f'}, '10004571': {'sample_name': '10004571', 'L2': '10004571_L2_ds.fe1442f809c848f5b1c9c95c7a5467f7', 'L1': '10004571_L1_ds.bbeec78802fe4aa2a77a2dd83a9577ab'}, '10027645': {'sample_name': '10027645', 'L1': '10027645_L1_ds.5049f1d2af754fd28541d3e205a9ce09', 'L2': '10027645_L2_ds.e7ff8b297bf94e29b7174eccd2a3298c'}}
     
     for sample in samples:
         logger.info(f"Processing {sample}")
@@ -88,6 +86,11 @@ def novasec_run(project_name, config=config):
                     with open(file, 'rb') as infile:
                         shutil.copyfileobj(infile, outfile)
     
+    # Delete the folders after mergin
+    if not extra_config["keep_output"]:
+        for folder in folders:
+            logger.info(f"Deleting folder {folder}")
+            shutil.rmtree(os.path.join(FILES_PATH, folder))
 
 if __name__ == "__main__":
     # Define the arguments that the program expects
@@ -95,14 +98,14 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
         config = init_configs(script_directory, args.json_config)   
     
     config["force"] = args.force
-    
     configure_logs(PROJECT_NAME, "novasec", config)
+
     logger = logging.getLogger(__name__)
-    logger.info(config)
-    novasec_run(PROJECT_NAME, config)
+    novasec_run(PROJECT_NAME, config, extra_config={"force": args.force, "keep_output": args.keep_output})

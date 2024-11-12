@@ -13,160 +13,162 @@ import csv
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 import glob
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory)
 
-def read_csv_results(csv_path, sample_id_row ="sample_name"):
-    samples = {}
-    if os.path.exists(csv_path):
-        with open(csv_path, 'r') as file:
-            reader = csv.DictReader(file, delimiter=';')
-            for row in reader:
-                strain_id = row[sample_id_row]
-                samples[strain_id] = row
-    else:
+
+def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=";"):
+    if not os.path.exists(csv_path):
         logger.error(f"File not found {csv_path}")
         logger.warning("Execute first the analysis")
         return None
-    return samples
-    
-def generate_excel_run(project_name, config=config):
-    ''' 
-        this function is used to apply the resfinder program to the denovo files output of SPAdes
 
-        parameters:
-            project_name (str): Name of the project
-            config dict (dict): readed from Path  is resfinder.json
-            only_output (bool): Set the flag to not execute but only process json file
-            direct_file (str): path to the file instead of list in sample list
-            normal_output (bool): Set the flag to not execute but only process normal blast outputs
-        results:
-
-    '''
-
-    PROJECTS_PATH = config["PROJECTS_PATH"]
-    OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}","")
-
-    # Crear y escribir en el archivo CSV usando punto y coma como delimitador
-    # Object with information about the samples key is STRAIN_ID and values from json files
-    samples = {}
-
-
-    oprD_csv = os.path.join(OUTPUT_PATH, "oprD_results",f"{project_name}_oprD_results.csv")
-    oprD_samples = read_csv_results(oprD_csv)
-    
-    PDC_csv = os.path.join(OUTPUT_PATH, "PDC_results",f"{project_name}_PDC_results.csv")
-    PDC_samples = read_csv_results(PDC_csv)
-
-    mlst_csv = os.path.join(OUTPUT_PATH, "mlst_results",f"{project_name}_mlst_results.csv")
-    mlst_samples = read_csv_results(mlst_csv)
-    
-    snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results","processed", f"*_snippy.csv")
-    files = glob.glob(snippy_csv)
-    
-    snippy_data = []
-    for file in files:
-        sample_name = os.path.basename(file).replace("_snippy.csv", "")
-        snippy_samples = read_csv_results(file)
-        mutations = {}
-        for name in snippy_samples:
-            logger.info("name %s mutation %s", name, snippy_samples[name]["mutations"])
-            mutations[name] = snippy_samples[name]["mutations"]
+    try:
+        df = pd.read_csv(csv_path, delimiter=delimiter)
+        if sample_id_col not in df.columns:
+            logger.error(f"Column '{sample_id_col}' not found in the file.")
+            return None
+        df.rename(columns={sample_id_col: "STRAIN ID"}, inplace=True)
+        df =  df.set_index("STRAIN ID")
         
+        if columns == ["all"]:
+            return df
+        else:
+            return df[columns]
+    except Exception as e:
+        logger.error(f"Error reading CSV file: {e}")
+        logger.warning(f"Check the file format {csv_path}")
+        return None
+
+
+def process_resfinder_samples(resfinder_path, sample_id_col="name"):
+    # Crear una lista vacía para almacenar las filas del DataFrame
+    rows = []
+
+    for file in glob.glob(os.path.join(resfinder_path, "*fullcoverage.csv")):
+        sample_name = os.path.basename(file).replace(".fullcoverage.csv", "")
         
-    resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results","csv_samples")
-    files = glob.glob(os.path.join(resfinder_path, "*processed.csv"))
-    resfinder_samples = None 
-    if len(files)>0:
-        resfinder_samples = {}
-        for file in files:  
-            sample_name = os.path.basename(file).replace(".processed.csv", "")
-            samples = read_csv_results(file, sample_id_row ="name")
-            resfinder_samples[sample_name] = {
-                "beta":[],
-                "aminologlycoside":[],
-                "fluoroquinolones":[],
-                "other":[]
+        # Lee el archivo como DataFrame
+        df = pd.read_csv(file, delimiter=";")
+
+        # Asegúrate de que la columna `sample_id_col` y `phenotypes` existen
+        if sample_id_col in df.columns and 'phenotypes' in df.columns:
+            df["phenotypes"] = df["phenotypes"].fillna("").str.split(",")  # Divide en listas
+            
+            # Inicializa la estructura de datos para este sample
+            sample_data = {
+                "STRAIN ID": sample_name,
+                "beta": [],
+                "aminoglycoside": [],
+                "fluoroquinolones": [],
+                "other": []
             }
-            for name in samples:
-                added_pheno=False
-                phenotypes = samples[name].get("phenotypes","").split(",")
-                for phenotype in phenotypes:
-                    phenotype = phenotype.strip()
-                    
-                    if phenotype in ["tobramycin", "gentamycin", "amikacin"]:
-                        resfinder_samples[sample_name]["aminologlycoside"].append(name)
-                        added_pheno = True
-                        break
-                    
-                    if phenotype in ["fluoroquinolones", "ciprofloxacin"]: # "cephalosporins", "penicillins" propuestos IA
-                        resfinder_samples[sample_name]["fluoroquinolones"].append(name)
-                        added_pheno = True
-                        break
-                if not added_pheno:
-                    if name.startswith("bla"):
-                        resfinder_samples[sample_name]["beta"].append(name)
-                    else:
-                        resfinder_samples[sample_name]["other"].append(name)      
             
-    
-    results_data = [] 
-    samples = read_args(project_name, config)
-    results_data_names = ["STRAIN ID"]
-    header_added = {}
-    for sample in samples:
-        sample_id = sample.strip()
-        row={}
-        row["STRAIN ID"] = sample_id
-        if mlst_samples:
-            if "MLST" not in header_added:
-                results_data_names.append("SEQUENCE TYPE") 
-                header_added["MLST"] = True
-            
-            data = mlst_samples.get(sample_id, None)
-            if data:
-                if data["sequence_type"] == "-":
-                    row["SEQUENCE TYPE"] = data["alleles"]
+            # Clasifica los genes por categorías
+            for _, row in df.iterrows():
+                gene = row[sample_id_col]
+                phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios
+
+                # Categorización de acuerdo a los fenotipos
+                if any(phenotype in ["tobramycin", "gentamycin", "amikacin"] for phenotype in phenotypes):
+                    sample_data["aminoglycoside"].append(gene)
+                elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
+                    sample_data["fluoroquinolones"].append(gene)
+                elif gene.startswith("bla"):
+                    sample_data["beta"].append(gene)
                 else:
-                    row["SEQUENCE TYPE"] = data["sequence_type"]
-            else:
-                row["SEQUENCE TYPE"] = "-"
-                row["SEQUENCE TYPE"] = "-"
+                    sample_data["other"].append(gene)
 
-        if resfinder_samples:
-            if "RESFINDER" not in header_added:
-                results_data_names +=["ACQUIRED BETA-LACTAMASESE", "ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES", 
-                          "FLUOROQUINOLONES RESISTANCE DETERMINANTS","OTHER ACQUIRED RESISTANCE DETERMINANTS"]
-                header_added["RESFINDER"] = True
+            # Añadir la fila a la lista de filas
+            rows.append(sample_data)
 
-            data = resfinder_samples.get(sample_id, None)
-            if data:
-                row["ACQUIRED BETA-LACTAMASESE"] = ",".join(data["beta"])
-                row["ACQUIRED AMINOGLYCOSIDE MODIFYING ENZYMES"] =  ",".join(data["aminologlycoside"])
-                row["FLUOROQUINOLONES RESISTANCE DETERMINANTS"] =  ",".join(data["fluoroquinolones"])
-                row["OTHER ACQUIRED RESISTANCE DETERMINANTS"] =  ",".join(data["other"])
-                
-        if oprD_samples:
-            if "OprD" not in header_added:
-                results_data_names.append("oprD")
-                results_data_names.append("oprD_REFERENCE")
-                header_added["OprD"] = True
+    # Si no se encontraron resultados, devolver None
+    if not rows:
+        return None
+
+    # Crear el DataFrame directamente desde la lista de filas
+    resfinder_df = pd.DataFrame(rows)
+    resfinder_df.set_index("STRAIN ID", inplace=True)
+    
+    # Combina las listas en cada celda en una sola cadena separada por comas
+    for col in resfinder_df.columns:
+        resfinder_df[col] = resfinder_df[col].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
+
+    return resfinder_df
+
+def generate_excel_run(project_name, config=config, extra_config=None):
+    PROJECTS_PATH = config["PROJECTS_PATH"]
+    OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}", "")
+
+    # Load data from CSVs
+    csv_files = {
+                    "oprD": {
+                        "path": os.path.join(OUTPUT_PATH, "oprD_results", f"{project_name}_oprD_results.csv"),
+                        "columns": ["oprD", "oprD_REFERENCE"]
+                    },
+                    "PDC": {
+                        "path": os.path.join(OUTPUT_PATH, "PDC_results", f"{project_name}_PDC_results.csv"),
+                        "columns": ["PDC", "PDC_REFERENCE"]
+                    },
+                    "mlst": {
+                        "path": os.path.join(OUTPUT_PATH, "mlst_results", f"{project_name}_mlst_results.csv"),
+                        "columns": ["sequence_type", "alleles" ]
+                    }
+                }
+
+    sample_results = {name: read_csv_results(value["path"], value["columns"]) for name, value in csv_files.items()}
+
+    resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results", "csv_samples")
+    resfinder_samples = process_resfinder_samples(resfinder_path)
+    sample_results['resfinder'] = resfinder_samples
+
+    # Remove None values from sample_results    
+    
+    concat = []
+    for key, value in sample_results.items():
+        if value is not None:
+            concat.append(value)
+    
+    combined_df = pd.concat(concat, axis=1)
+    
+    # SNIPPY Section
+    output_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
+
+    snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
+    if os.path.exists(snippy_csv):
+        sheets = ["All", "All_clean", "Basic", "Basic_clean"]
+        for sheet in sheets:
+            df_snippy = pd.read_excel(snippy_csv, sheet_name=sheet)
+            ## rename sample_name to STRAIN ID16835951_S9_L001 16835951_S9_L001
+            df_snippy.rename(columns={"sample_name": "STRAIN ID"}, inplace=True)
+            df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].str.strip().str.replace('"', '')
+            df_snippy = df_snippy.set_index("STRAIN ID")
             
-            oprD_sample = oprD_samples.get(sample_id, None)
-            row["oprD"] = oprD_sample["oprD"]
-            row["oprD_REFERENCE"] = oprD_sample["oprD_REFERENCE"]
-        results_data.append(row)
+            df_snippy = pd.concat([combined_df, df_snippy], axis=1)
+            if sheet == "All":
+                df_all = df_snippy
+            elif sheet == "All_clean":
+                df_all_clean = df_snippy
+            elif sheet == "Basic":
+                df_basic = df_snippy
+            elif sheet == "Basic_clean":
+                df_basic_clean = df_snippy
 
-    filename = os.path.join(OUTPUT_PATH, f"{project_name}_summary.csv")
-    logger.info("Writing results in %s", filename)
+        # Cargar el archivo existente sin sobrescribir
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            df_all.to_excel(writer, sheet_name='All', index=True)
+            df_all_clean.to_excel(writer, sheet_name='All_clean', index=True)
+            df_basic.to_excel(writer, sheet_name='Basic', index=True)
+            df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
 
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, delimiter=';', fieldnames=results_data_names)
-        writer.writeheader()
-        writer.writerows(results_data)
+    else:
+        combined_df.to_excel(output_file, sheet_name="Summary", index=False)
+
+    logger.info(f"Results written to {output_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
