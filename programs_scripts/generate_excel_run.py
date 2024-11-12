@@ -54,7 +54,6 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
         
         # Lee el archivo como DataFrame
         df = pd.read_csv(file, delimiter=";")
-
         # Asegúrate de que la columna `sample_id_col` y `phenotypes` existen
         if sample_id_col in df.columns and 'phenotypes' in df.columns:
             df["phenotypes"] = df["phenotypes"].fillna("").str.split(",")  # Divide en listas
@@ -74,12 +73,13 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                 phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios
 
                 # Categorización de acuerdo a los fenotipos
-                if any(phenotype in ["tobramycin", "gentamycin", "amikacin"] for phenotype in phenotypes):
+                if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
                     sample_data["aminoglycoside"].append(gene)
                 elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
                     sample_data["fluoroquinolones"].append(gene)
                 elif gene.startswith("bla"):
-                    sample_data["beta"].append(gene)
+                    identity = row["identity"]
+                    sample_data["beta"].append(f"{gene} ({identity}%)")
                 else:
                     sample_data["other"].append(gene)
 
