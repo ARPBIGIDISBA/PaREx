@@ -1,98 +1,138 @@
-# Proyecto de Análisis de Resistencias Bacterianas
 
-Este proyecto es un pipeline en Python diseñado para realizar análisis genómicos y de resistencia antimicrobiana en muestras de *Pseudomonas aeruginosa*. Incluye el procesamiento de archivos FASTQ, ensamblado de novo, alineación, identificación de fenotipos de resistencia y generación de reportes.
+# Bacterial Resistance Analysis Project
 
-## Estructura del Código
+This project is a Python pipeline designed to perform genomic and antimicrobial resistance analysis on *Pseudomonas aeruginosa* samples. It includes FASTQ file processing, de novo assembly, alignment, resistance phenotype identification, and report generation.
 
-- **programs_scripts/**: Contiene scripts específicos para cada paso del pipeline.
-- **programs_scripts/configs/**: Archivos de configuración en formato `.json` necesarios para la ejecución de los scripts. También incluye archivos de ejemplo `.json.sample`.
-- **execute_pipelines**: python execute_pipelines.py PROJECT_NAME "commands"
+## Code Structure
 
-## Generated folders
-- **logs/**: Carpeta donde se almacenan los logs generados durante la ejecución.
-- **PROJECTS/**: Carpeta 
+- **programs_scripts/**: Contains specific scripts for each step of the pipeline.
+- **programs_scripts/configs/**: Configuration files in `.json` format necessary for running the scripts. Also includes `.json.sample` example files.
+- **execute_pipelines**: Run with `python execute_pipelines.py PROJECT_NAME "commands"`
 
-## Necesary Folders
-- **REFERENCE4ALIGNMENT/**: Carpeta donde se almacenan los logs generados durante la ejecución.
-  
-## Requisitos de instalación
-- Python 3.8 o superior
-- Paquetes de Python:
+## Generated Folders
+- **logs/**: Folder where logs generated during execution are stored.
+- **PROJECTS/**: Folder to store project-related data.
+
+## Necessary Folders
+- **REFERENCE4ALIGNMENT/**: Folder where alignment reference files are stored.
+
+## Installation Requirements
+- Python 3.8 or higher
+- Python packages:
   - `pandas`
   - `openpyxl`
   - `pysam`
-  - Otros paquetes listados en `requirements.txt`
+  - Other packages listed in `requirements.txt`
 
-## Instalación
+## Installation
 
-1. Clona el repositorio:
-
-   ```bash
-   git clone https://github.com/tuusuario/proyecto.git
-   cd proyecto```
-
-2. Instala las dependencias:
+1. Clone the repository:
 
    ```bash
-   pip install -r requirements.txt```
+   git clone https://github.com/yourusername/project.git
+   cd project
+   ```
 
-3. Configura los archivos `.json` en la carpeta `configs/`. Si los archivos `.json` no existen, el programa generará automáticamente estos archivos a partir de los archivos `.json.sample`. Pero se devben ajustar las url de los programas.
-   
+2. Install dependencies:
 
-## Configuración
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Cada archivo de configuración `.json` contiene parámetros necesarios para diferentes pasos del pipeline. Asegúrate de personalizar los valores en función de tus necesidades antes de ejecutar el programa.
-f
-### Archivos de Configuración
+3. Configure the `.json` files in the `configs/` folder. If `.json` files are missing, the program will automatically generate them from the `.json.sample` files. However, you need to adjust program URLs as required.
 
-- **general.json**: Contiene configuraciones globales, como la ruta a los proyectos y archivos de referencia.
-- **trimmomatic.json**, **snippy.json**, etc.: Configuraciones específicas para cada herramienta usada en el pipeline.
+## Configuration
 
-Si no existen los archivos `.json`, puedes crearlos automáticamente desde los `.json.sample` proporcionados. El programa emitirá una advertencia y los generará.
+Each `.json` configuration file contains parameters needed for different steps in the pipeline. Be sure to customize the values to suit your requirements before running the program.
 
-## Uso
+### Configuration Files
 
-### Ejecución del Pipeline Completo
+- **general.json**: Contains global settings, such as paths to projects and reference files.
+- **trimmomatic.json**, **snippy.json**, etc.: Specific configurations for each tool used in the pipeline.
 
-El pipeline se puede ejecutar desde la línea de comandos con los siguientes parámetros:
+If the `.json` files do not exist, you can create them automatically from the provided `.json.sample` files. The program will generate a warning and create the necessary files.
+
+## Usage
+
+### Running the Complete Pipeline
+
+The pipeline can be executed from the command line with the following parameters:
 
 ```bash
 python execute_pipeline.py PROJECT_NAME operation [--reference REFERENCE_PATH] [--log-level LOG_LEVEL] [--force]
 ```
 
-- **PROJECT_NAME**: Nombre del proyecto. Se usará como nombre de carpeta en el `PROJECTS_PATH` especificado en `general.json`.
-- **operation**: Operación a ejecutar. Puede ser una sola operación o varias, separadas por comas.
-- **--reference**: Ruta al archivo de referencia (opcional).
-- **--log-level**: Nivel de logging (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).
-- **--force**: Fuerza la ejecución de procesos.
+- **PROJECT_NAME**: Project name. This will be used as a folder name in the `PROJECTS_PATH` specified in `general.json`.
+- **operation**: Operation to execute. You can specify a single operation or multiple ones separated by commas.
+- **--reference**: Path to the reference file (optional).
+- **--log-level**: Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`).
+- **--force**: Forces the execution of processes.
 
-### Ejemplo
+### Example
 
-Para ejecutar la operación `trimmomatic` en el proyecto `Muestra_A` con nivel de log en `DEBUG`:
+To run the `trimmomatic` operation for the `Sample_A` project with `DEBUG` log level:
 
 ```bash
-python execute_pipeline.py Muestra_A trimmomatic --log-level DEBUG
+python execute_pipeline.py Sample_A trimmomatic --log-level DEBUG
 ```
 
-### Operaciones Disponibles
+### Available Operations
 
-Las operaciones incluyen:
+The available operations include:
 
-- `create_project`: Crea la estructura inicial de un proyecto.
-- `create_sample_list`: Genera una lista de muestras.
-- `generate_excel`: Genera un reporte consolidado en Excel.
-- `trimmomatic`: Realiza trimming de las lecturas.
-- `SPAdes`: Realiza ensamblado de novo.
-- `bowtie`: Realiza alineación de lecturas.
-- `resfinder`, `oprD`, `mlst`, `snippy`, `PDC`: Otros análisis de resistencia.
+- `create_project`: Creates the initial structure for a project.
+- `create_sample_list`: Generates a sample list.
+- `generate_excel`: Generates a consolidated Excel report.
+- `trimmomatic`: Performs sequence trimming.
+- `SPAdes`: Performs de novo assembly.
+- `bowtie`: Performs sequence alignment.
+- `resfinder`, `oprD`, `mlst`, `snippy`, `PDC`: Additional resistance analyses.
 
-Para más información sobre cada operación, consulta la documentación en cada script en `programs_scripts/`.
+For more details on each operation, refer to the documentation within each script in `programs_scripts/`.
 
 ## Logs
 
-Los archivos de log se almacenan en `logs/`. Se generan de forma automática en cada ejecución y se almacenan en la subcarpeta `Logs/` dentro de cada proyecto.
+Log files are stored in the `logs/` folder. They are automatically generated with each run and saved in the `Logs/` subdirectory within each project.
 
-## Contacto
+## Required Programs
 
-Para preguntas o problemas, abre un *issue* en el repositorio o contacta con el equipo de desarrollo en [matiasbonet@oceandrivers.com](matiasbonet@oceandrivers.com).
+Below are the required programs along with installation instructions:
 
+1. **Trimmomatic**
+   - Download and unzip from the official source:
+     ```bash
+     wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
+     unzip Trimmomatic-0.39.zip
+     ```
+
+2. **SPAdes**
+   - Download and extract the Linux version from the official website:
+     ```bash
+     wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
+     tar -xzf SPAdes-3.15.3-Linux.tar.gz
+     ```
+
+3. **Bowtie2**
+   - Install with the following command (for Debian/Ubuntu systems):
+     ```bash
+     sudo apt install bowtie2
+     ```
+
+4. **Resfinder**
+   - Resfinder can be cloned from its repository (link may need verification):
+     ```bash
+     git clone https://bitbucket.org/genomicepidemiology/resfinder.git
+     ```
+
+5. **MLST**
+   - MLST requires a specific download setup based on system. Instructions are available at its [official source](https://github.com/tseemann/mlst).
+
+6. **Snippy**
+   - Install Snippy by cloning its GitHub repository:
+     ```bash
+     git clone https://github.com/tseemann/snippy.git
+     ```
+
+## Contact
+
+For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com).
