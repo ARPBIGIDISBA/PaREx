@@ -2,14 +2,20 @@
 
 Este proyecto es un pipeline en Python diseñado para realizar análisis genómicos y de resistencia antimicrobiana en muestras de *Pseudomonas aeruginosa*. Incluye el procesamiento de archivos FASTQ, ensamblado de novo, alineación, identificación de fenotipos de resistencia y generación de reportes.
 
-## Estructura del Proyecto
+## Estructura del Códifo
 
 - **programs_scripts/**: Contiene scripts específicos para cada paso del pipeline.
 - **programs_scripts/configs/**: Archivos de configuración en formato `.json` necesarios para la ejecución de los scripts. También incluye archivos de ejemplo `.json.sample`.
+- **execute_pipelines**: python execute_pipelines.py PROJECT_NAME "commands"
+
+## Generated folders
 - **logs/**: Carpeta donde se almacenan los logs generados durante la ejecución.
+- **PROJECTS/**: Carpeta 
 
-## Requisitos
-
+## Necesary Folders
+- **REFERENCE4ALIGNMENT/**: Carpeta donde se almacenan los logs generados durante la ejecución.
+  
+## Requisitos de instalación
 - Python 3.8 o superior
 - Paquetes de Python:
   - `pandas`
@@ -30,12 +36,13 @@ Este proyecto es un pipeline en Python diseñado para realizar análisis genómi
    ```bash
    pip install -r requirements.txt```
 
-3. Configura los archivos `.json` en la carpeta `configs/`. Si los archivos `.json` no existen, el programa generará automáticamente estos archivos a partir de los archivos `.json.sample`.
+3. Configura los archivos `.json` en la carpeta `configs/`. Si los archivos `.json` no existen, el programa generará automáticamente estos archivos a partir de los archivos `.json.sample`. Pero se devben ajustar las url de los programas.
+   
 
 ## Configuración
 
 Cada archivo de configuración `.json` contiene parámetros necesarios para diferentes pasos del pipeline. Asegúrate de personalizar los valores en función de tus necesidades antes de ejecutar el programa.
-
+f
 ### Archivos de Configuración
 
 - **general.json**: Contiene configuraciones globales, como la ruta a los proyectos y archivos de referencia.
