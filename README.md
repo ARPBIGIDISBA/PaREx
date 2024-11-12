@@ -42,7 +42,7 @@ Este proyecto es un pipeline en Python diseñado para realizar análisis genómi
 ## Configuración
 
 Cada archivo de configuración `.json` contiene parámetros necesarios para diferentes pasos del pipeline. Asegúrate de personalizar los valores en función de tus necesidades antes de ejecutar el programa.
-
+f
 ### Archivos de Configuración
 
 - **general.json**: Contiene configuraciones globales, como la ruta a los proyectos y archivos de referencia.
