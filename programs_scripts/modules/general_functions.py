@@ -11,14 +11,15 @@ import shutil
 logger = logging.getLogger(__name__)
 
 
-def validate_config(config, required_keys):
+def validate_config(config, required_keys, config_json):
     missing_keys = [key for key in required_keys if key not in config]
     if missing_keys:
         logger.error(f"Missing required config keys: {', '.join(missing_keys)}")
+        logger.error(f"Check the config file: {config_json}")
         sys.exit(1)
     return True
 
-def read_config(config_json, required_keys = ["PROJECTS_PATH", "REFERENCE_PATH"]):
+def read_config(config_json, required_keys = []):
     # Check if the .json config file exists
     if not os.path.exists(config_json):
         # If not, look for the .json.sample file
@@ -37,7 +38,7 @@ def read_config(config_json, required_keys = ["PROJECTS_PATH", "REFERENCE_PATH"]
             
     with open(config_json, 'r') as file:
         config = json.load(file)
-        validate_config(config, required_keys)
+        validate_config(config, required_keys, config_json)
         return config
 
 def check_project(project_path):

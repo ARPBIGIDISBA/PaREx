@@ -28,7 +28,7 @@ if __name__ == "__main__":
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
                              "all_sequence", "snippy", "PDC", "novasec"]
     
-    parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
+    parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('operation', type=str, help=f'Existing operations {OPERATIONS_DEVELOPED}')
     parser.add_argument('--reference', type=str, help='Reference for alignment')
