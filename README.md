@@ -87,5 +87,5 @@ Los archivos de log se almacenan en `logs/`. Se generan de forma automática en 
 
 ## Contacto
 
-Para preguntas o problemas, abre un *issue* en el repositorio o contacta con el equipo de desarrollo en [correo@ejemplo.com](mailto:correo@ejemplo.com).
+Para preguntas o problemas, abre un *issue* en el repositorio o contacta con el equipo de desarrollo en [matiasbonet@oceandrivers.com](matiasbonet@oceandrivers.com).
 
