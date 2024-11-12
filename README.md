@@ -2,7 +2,7 @@
 
 Este proyecto es un pipeline en Python diseñado para realizar análisis genómicos y de resistencia antimicrobiana en muestras de *Pseudomonas aeruginosa*. Incluye el procesamiento de archivos FASTQ, ensamblado de novo, alineación, identificación de fenotipos de resistencia y generación de reportes.
 
-## Estructura del Códifo
+## Estructura del Código
 
 - **programs_scripts/**: Contiene scripts específicos para cada paso del pipeline.
 - **programs_scripts/configs/**: Archivos de configuración en formato `.json` necesarios para la ejecución de los scripts. También incluye archivos de ejemplo `.json.sample`.
