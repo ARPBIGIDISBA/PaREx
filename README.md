@@ -87,7 +87,7 @@ The available operations include:
 - `trimmomatic`: Performs sequence trimming.
 - `SPAdes`: Performs de novo assembly.
 - `bowtie`: Performs sequence alignment.
-- `resfinder`, `oprD`, `mlst`, `snippy`, `PDC`: Additional resistance analyses.
+- `resfinder`, `oprD`, `mlst`, `snippy`, `PDC`.
 
 For more details on each operation, refer to the documentation within each script in `programs_scripts/`.
 
