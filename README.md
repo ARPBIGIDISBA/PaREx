@@ -13,8 +13,9 @@ This project is a Python pipeline designed to perform genomic and antimicrobial 
 - **logs/**: Folder where logs generated during execution are stored.
 - **PROJECTS/**: Folder to store project-related data.
 
-## Necessary Folders
+## References for alignent
 - **REFERENCE4ALIGNMENT/**: Folder where alignment reference files are stored.
+There is arepository which this project uses the [References4alignment](https://github.com/matiasbonet/References4alignment) repository as the primary source of references for data alignment. This repository contains key information and useful tools that complement the functionality of this project, ensuring consistency and accuracy in the results. Feel free to explore it to better understand the dependencies and how the references are utilized in this context.
 
 ## Installation Requirements
 - Python 3.8 or higher
