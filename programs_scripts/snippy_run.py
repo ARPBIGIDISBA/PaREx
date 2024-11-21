@@ -58,10 +58,12 @@ def translate_amino_acid(value, value_c=""):
             value = value_c.replace("c.","")
             if value.find("del") > 0:
                 # 240_247delGCCGGCCA add nt at the begining and remove letters after del nt240_247del
-                value = [f"nt{value[:value.find('del')]}del"]
+                value = f"nt{value[:value.find('del')]}del"
             elif value.find("ins") > 0:
-                value = [f"nt{value}"]
-            return value
+                value = f"nt{value}"
+            elif value.find("dup") > 0:
+                value = f"nt{value}"
+            return [value]
         elif value.find("*") > 0:
             value = value.replace("p.","").replace("*","Stop")
             letter = amino_acids.get(value[0:3].capitalize(), None)
@@ -217,12 +219,6 @@ def combined_excel_files(samples, output_path):
             gene = row['genes']
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
-            # add sample name in pandas if not exists
-            # if sample_name not in df_all.index:
-            #     df_all.loc[sample_name,"sample_name"] = sample_name
-            #     df_all_clean.loc[sample_name,"sample_name"] = sample_name
-            #     df_basic.loc[sample_name,"sample_name"] = sample_name
-            #     df_basic_clean.loc[sample_name,"sample_name"] = sample_name
 
             if locus in filter_all.keys():
                 name = f"{locus}_{gene}"
