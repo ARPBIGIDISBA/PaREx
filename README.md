@@ -17,8 +17,17 @@ This project is a Python pipeline designed to perform genomic and antimicrobial 
 - **REFERENCE4ALIGNMENT/**: Folder where alignment reference files are stored.
 There is arepository which this project uses the [References4alignment](https://github.com/matiasbonet/References4alignment) repository as the primary source of references for data alignment. This repository contains key information and useful tools that complement the functionality of this project, ensuring consistency and accuracy in the results. Feel free to explore it to better understand the dependencies and how the references are utilized in this context.
 
-## Input files:
-- The project can read FASTQ or Novaseq input files. It can also use denovo files directly for the programs that go directly to the denovo.
+## Input Files
+
+The project is designed to handle a variety of input file formats, ensuring flexibility and compatibility with different sequencing workflows:
+
+- **FASTQ Files**: Raw sequencing reads in FASTQ format are the primary input for processing workflows. These files typically contain paired-end reads (`R1` and `R2`) generated from Illumina or similar platforms.
+
+- **NovaSeq Files**: High-throughput NovaSeq files are supported, allowing seamless integration with modern sequencing technologies. It converts in the output into FASTQ files R1/R2
+
+- **De Novo Assembly Files**: For workflows that bypass raw read processing, preassembled de novo files can be directly utilized. This is particularly useful for tools and analyses that focus on assembled genomes, reducing the computational overhead of preprocessing.
+
+This multi-format compatibility enables the project to adapt to different experimental setups, whether working with raw sequencing data or preassembled genomes, enhancing its usability and flexibility across genomic research pipelines.
 
 ## Installation Requirements
 - Python 3.8 or higher
