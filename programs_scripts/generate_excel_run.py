@@ -70,8 +70,7 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             # Clasifica los genes por categorías
             for _, row in df.iterrows():
                 gene = row[sample_id_col]
-                phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios
-
+                phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios en blanco
                 # Categorización de acuerdo a los fenotipos
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
                     sample_data["aminoglycoside"].append(gene)
@@ -129,10 +128,11 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     # Remove None values from sample_results    
     
     concat = []
+    # Concatenate all the DataFrames by the index (STRAIN ID)
     for key, value in sample_results.items():
         if value is not None:
             concat.append(value)
-    
+
     combined_df = pd.concat(concat, axis=1)
     
     # SNIPPY Section
@@ -166,7 +166,13 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
 
     else:
+<<<<<<< HEAD
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
+=======
+        ## Add to combined_df the index of the samples
+
+        combined_df.to_excel(output_file, sheet_name="Summary", index=False)
+>>>>>>> 924b92c78c484b2b3c4eb959119fc69f3fc94668
 
     logger.info(f"Results written to {output_file}")
 

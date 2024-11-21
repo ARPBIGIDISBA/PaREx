@@ -13,6 +13,9 @@ This project is a Python pipeline designed to perform genomic and antimicrobial 
 - **logs/**: Folder where logs generated during execution are stored.
 - **PROJECTS/**: Folder to store project-related data, it is the base to create and add the FASTQ files for input data
 
+
+hola que tal
+
 ## References for alignent
 - **REFERENCE4ALIGNMENT/**: Folder where alignment reference files are stored.
 There is arepository which this project uses the [References4alignment](https://github.com/matiasbonet/References4alignment) repository as the primary source of references for data alignment. This repository contains key information and useful tools that complement the functionality of this project, ensuring consistency and accuracy in the results. Feel free to explore it to better understand the dependencies and how the references are utilized in this context.
@@ -150,4 +153,4 @@ Below are the required programs along with installation instructions:
 
 ## Contact
 
-For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com).
+For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)
