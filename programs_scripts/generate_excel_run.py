@@ -166,7 +166,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
 
     else:
-        combined_df.to_excel(output_file, sheet_name="Summary", index=False)
+        combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")
 

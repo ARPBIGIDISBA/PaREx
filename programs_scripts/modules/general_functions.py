@@ -100,7 +100,7 @@ def execute_command(command):
         for output in process.stdout.readlines():
             logger.debug(output.strip())
         for output in process.stderr.readlines():
-            logger.error(output.strip())  # Log errors separately
+            logger.warning(output.strip())  # Log errors separately
 
         return process.returncode == 0
     except Exception as e:

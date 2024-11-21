@@ -245,7 +245,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 else:
                     result_pro = execute_command(command_protein)
                     result = result_pro
-                
             
                 if result and not normal_output:
                     # Read the json file and get the results
