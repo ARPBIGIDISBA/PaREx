@@ -150,4 +150,4 @@ Below are the required programs along with installation instructions:
 
 ## Contact
 
-For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com).
+For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)
