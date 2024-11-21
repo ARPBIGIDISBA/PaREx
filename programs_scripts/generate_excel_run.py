@@ -132,7 +132,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     for key, value in sample_results.items():
         if value is not None:
             concat.append(value)
-
+    
     combined_df = pd.concat(concat, axis=1)
     
     # SNIPPY Section
@@ -166,13 +166,10 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
 
     else:
-<<<<<<< HEAD
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
-=======
         ## Add to combined_df the index of the samples
 
         combined_df.to_excel(output_file, sheet_name="Summary", index=False)
->>>>>>> 924b92c78c484b2b3c4eb959119fc69f3fc94668
 
     logger.info(f"Results written to {output_file}")
 
