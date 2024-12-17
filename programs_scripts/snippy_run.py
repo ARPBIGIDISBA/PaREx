@@ -32,6 +32,13 @@ amino_acids = {
     "?": "?"
 }
 
+def update_dataframe(df, sample_name, name, value):
+    existing_value = df.loc[sample_name, name] if name in df.columns else None
+    if pd.notna(existing_value):  # Append to existing value if it's not NaN
+        df.loc[sample_name, name] = f"{existing_value}, {value}"
+    else:  # Assign new value if cell is empty
+        df.loc[sample_name, name] = value
+
 def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
 
@@ -116,6 +123,7 @@ def read_data_from_file(filename):
     files = [all_df, basic_df]
     keys = ['All', 'Basic']
     output = {}
+    
 
     for key, df in enumerate(files):
         data = {}
@@ -220,16 +228,28 @@ def combined_excel_files(samples, output_path):
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
 
+            # Update DataFrames for 'all' filters
             if locus in filter_all.keys():
-                name = f"{locus}_{gene}"
                 if name in df_all.columns:
-                    df_all.loc[sample_name, name] = changes
-                    df_all_clean.loc[sample_name, name] = filtered_mutations
+                    update_dataframe(df_all, sample_name, name, changes)
+                    update_dataframe(df_all_clean, sample_name, name, filtered_mutations)
+
+            # Update DataFrames for 'basic' filters
             if locus in filter_basic.keys():
-                name = f"{locus}_{gene}"
                 if name in df_basic.columns:
-                    df_basic.loc[sample_name, name] = changes
-                    df_basic_clean.loc[sample_name, name] = filtered_mutations
+                    update_dataframe(df_basic, sample_name, name, changes)
+                    update_dataframe(df_basic_clean, sample_name, name, filtered_mutations)
+                    
+            # if locus in filter_all.keys():
+            #     name = f"{locus}_{gene}"
+            #     if name in df_all.columns:
+            #         df_all.loc[sample_name, name] = changes
+            #         df_all_clean.loc[sample_name, name] = filtered_mutations
+            # if locus in filter_basic.keys():
+            #     name = f"{locus}_{gene}"
+            #     if name in df_basic.columns:
+            #         df_basic.loc[sample_name, name] = changes
+            #         df_basic_clean.loc[sample_name, name] = filtered_mutations
 
     if os.path.exists(csv_output):
         os.remove(csv_output)

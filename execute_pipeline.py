@@ -35,13 +35,15 @@ if __name__ == "__main__":
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--file', type=str, help='Path to the file', default=None)
     args = parser.parse_args()
 
 
     extra_config = {
         "force": args.force,
         "keep_output": args.keep_output,
-        "log_level": args.log_level
+        "log_level": args.log_level,
+        "file": args.file
     }
 
     PROJECT_NAME = args.PROJECT_NAME
