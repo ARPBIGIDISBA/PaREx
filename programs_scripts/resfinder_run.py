@@ -60,7 +60,7 @@ def filter_output(data, ignore_list):
             line += f"{seq_info['query_start_pos']};{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
 
             # Change to postive first
-            if (alignment == seq_length and coverage >= 100 and identity>=100) or name=="crpP":
+            if (alignment == seq_length and coverage >= 100) or name=="crpP":
                 full = True
                 csv_fullcoverage = csv_fullcoverage + line
             else:
