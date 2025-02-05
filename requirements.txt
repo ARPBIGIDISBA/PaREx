@@ -6,4 +6,3 @@ resfinder
 xlsxwriter
 flask
 flask-restx
-#192.0.78.25

@@ -33,12 +33,29 @@ amino_acids = {
 }
 
 def update_dataframe(df, sample_name, name, value):
+<<<<<<< HEAD
     existing_value = df.loc[sample_name, name] if name in df.columns else None
+=======
+    # Ensure sample_name exists in the DataFrame index
+    if sample_name not in df.index:
+        df.loc[sample_name] = pd.Series(dtype=object)  # Create a new row for sample_name
+    
+    # Ensure name exists in the DataFrame columns
+    if name not in df.columns:
+        df[name] = pd.Series(dtype=object)  # Create a new column for name
+
+    # Append or assign value
+    existing_value = df.loc[sample_name, name]
+>>>>>>> 5bbf5b37a3c60909aa746f2e73aa619991938a07
     if pd.notna(existing_value):  # Append to existing value if it's not NaN
         df.loc[sample_name, name] = f"{existing_value}, {value}"
     else:  # Assign new value if cell is empty
         df.loc[sample_name, name] = value
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 5bbf5b37a3c60909aa746f2e73aa619991938a07
 def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
 
@@ -113,12 +130,11 @@ def translate_amino_acid(value, value_c=""):
         sys.exit(1)
         return value
 
-def read_data_from_file(filename):
 
+def read_data_from_file(filename):
     # Read All tab no matter if upper or lower case
     all_df = pd.read_excel(filename, sheet_name='All').fillna('')
     basic_df = pd.read_excel(filename, sheet_name='Basic').fillna('')
-
 
     files = [all_df, basic_df]
     keys = ['All', 'Basic']
@@ -144,6 +160,7 @@ def read_data_from_file(filename):
 
         output[keys[key]] = data
     return output
+
 
 def process_output(vcf_path, sample_name, output_path):
     output_dir = os.path.join(output_path, "processed")
@@ -212,6 +229,7 @@ def combined_excel_files(samples, output_path):
     df_basic_clean.set_index('sample_name', inplace=True)
 
     for sample_name in samples:
+        sample_name = sample_name.strip()
         csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
         if not os.path.exists(csv_path):
             logger.warning("The file %s does not exist", csv_path)
@@ -227,29 +245,24 @@ def combined_excel_files(samples, output_path):
             gene = row['genes']
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
-
-            # Update DataFrames for 'all' filters
             if locus in filter_all.keys():
                 if name in df_all.columns:
-                    update_dataframe(df_all, sample_name, name, changes)
-                    update_dataframe(df_all_clean, sample_name, name, filtered_mutations)
-
-            # Update DataFrames for 'basic' filters
+                    if sample_name in df_all.index and pd.notna(df_all.loc[sample_name, name]):
+                        changes = f"{changes},{df_all.loc[sample_name, name]}"
+                    df_all.loc[sample_name, name] = changes
+                    if pd.notna(filtered_mutations):
+                        if sample_name in df_all_clean.index and pd.notna(df_all_clean.loc[sample_name, name]):
+                            filtered_mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
+                        df_all_clean.loc[sample_name, name] = filtered_mutations
             if locus in filter_basic.keys():
                 if name in df_basic.columns:
-                    update_dataframe(df_basic, sample_name, name, changes)
-                    update_dataframe(df_basic_clean, sample_name, name, filtered_mutations)
-                    
-            # if locus in filter_all.keys():
-            #     name = f"{locus}_{gene}"
-            #     if name in df_all.columns:
-            #         df_all.loc[sample_name, name] = changes
-            #         df_all_clean.loc[sample_name, name] = filtered_mutations
-            # if locus in filter_basic.keys():
-            #     name = f"{locus}_{gene}"
-            #     if name in df_basic.columns:
-            #         df_basic.loc[sample_name, name] = changes
-            #         df_basic_clean.loc[sample_name, name] = filtered_mutations
+                    if sample_name in df_basic.index and pd.notna(df_basic.loc[sample_name, name]):
+                        changes = f"{changes},{df_basic.loc[sample_name, name]}"
+                    df_basic.loc[sample_name, name] = changes
+                    if pd.notna(filtered_mutations):
+                        if sample_name in df_basic_clean.index and pd.notna(df_basic_clean.loc[sample_name, name]):
+                            filtered_mutations = f"{filtered_mutations},{df_basic_clean.loc[sample_name, name]}"
+                        df_basic_clean.loc[sample_name, name] = filtered_mutations
 
     if os.path.exists(csv_output):
         os.remove(csv_output)
@@ -330,13 +343,15 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
-        if only_output or (os.path.exists(VCF_FILE) and not extra_config["force"]):
+
+        PROCESSED_RESULTS = os.path.join(OUTPUT_PATH, "processed")
+        PROCESSED_FILE = os.path.join(PROCESSED_RESULTS, f"{sample_name}_snippy.csv")
+        if only_output or (os.path.exists(PROCESSED_FILE) and not extra_config["force"]):
             if os.path.exists(VCF_FILE):
                 result = True
             else:
-                logger.error("You have to run first the resfinder process")
-                logger.error("File not found: %s", VCF_FILE)
-                return False
+                result = False
+                logger.warning(f"Output already generated using {sample_name}_snippy.csv")
         else:
             # Ejecutar Trimmomatic
             command = [SNIPPY_PATH, "--outdir", OUTPUT_RESULTS, "--ref", SNIPPY_REFERENCE, "--R1", input_r1_path, "--R2", input_r2_path] + SNIPPY_OPTIONS

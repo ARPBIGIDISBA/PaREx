@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "snippy", "PDC", "novasec"]
+                             "all_sequence", "snippy", "PDC", "novasec", "projects"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -53,19 +53,18 @@ if __name__ == "__main__":
     PROJECTS_PATH = config_general["PROJECTS_PATH"]
     project_path = os.path.join(PROJECTS_PATH, PROJECT_NAME)
     
-    check_project(project_path)
-    
-    logging.basicConfig(level=args.log_level,
-                    format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    handlers=[
-                        logging.FileHandler(
-                            os.path.join(project_path, "Logs", f'execute_pipeline.log'),
-                            mode="w"),
-                        logging.StreamHandler()
-                    ])
+    if PROJECT_NAME != "list":
+        check_project(project_path)
+        logging.basicConfig(level=args.log_level,
+                        format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            logging.FileHandler(
+                                os.path.join(project_path, "Logs", f'execute_pipeline.log'),
+                                mode="w"),
+                            logging.StreamHandler()
+                        ])
 
-    
     logger.info("executing operations: '%s'", " ".join(OPERATIONS))
     for operation in OPERATIONS:
         logger.info("Executing operation %s", operation)
@@ -82,6 +81,13 @@ if __name__ == "__main__":
             os.makedirs(os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}"), exist_ok=True)
             with open(os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}"), 'w') as file:
                 pass 
+        elif operation == "projects":
+            logger.info("Listing projects")
+            # List folder name in PROJECTS_PATH
+            projects = os.listdir(PROJECTS_PATH)
+            for project in projects:
+                print("project %s" % project)
+
         elif operation == "create_sample_list":
             file_name = f"SAMPLES_LIST_{PROJECT_NAME}"
             path = os.path.join(project_path, file_name)
