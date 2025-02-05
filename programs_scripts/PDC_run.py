@@ -146,13 +146,16 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
         results:
 
     '''
+    
+    if direct_file is None and extra_config["file"] is not None:
+        direct_file = extra_config["file"]
 
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
         samples = read_args(project_name, config)
     else:
         samples = [direct_file]
-
+    
     PROJECTS_PATH = config["PROJECTS_PATH"]
     TBLASTN_OPTIONS = config['TBLASTN_OPTIONS']
     PROTEIN_PATH = config["PROTEIN_PATH"]

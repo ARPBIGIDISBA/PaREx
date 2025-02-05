@@ -281,6 +281,18 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
             filename format will be  sample_name_trim_R1.fastq.gz and sample_name_trim_R2.fastq.gz
     '''
 
+    direct_file = None
+    if extra_config["file"] is not None:
+        direct_file = extra_config["file"]
+    
+    # Read command line arguments, sample list and config file  or direct file
+    if not direct_file:
+        samples = read_args(project_name, config)
+    else:
+        samples = [direct_file]
+
+    if direct_file is None and extra_config["file"] is not None:
+        direct_file = extra_config["file"]
     # Leer las muestras y ficheros de configuracion
     samples = read_args(project_name, config)
 

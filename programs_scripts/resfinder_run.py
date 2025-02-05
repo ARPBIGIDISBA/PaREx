@@ -96,6 +96,10 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
             
 
     '''
+
+    if direct_file is None and extra_config["file"] is not None:
+        direct_file = extra_config["file"]
+        
     # Read command line arguments, sample list and config file
     if direct_file:
         samples = [direct_file]

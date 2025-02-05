@@ -33,11 +33,15 @@ def mlst_run(project_name, config=config, direct_file = None, extra_config={"for
 
     '''
 
-    # Read command line arguments, sample list and config file
+    if direct_file is None and extra_config["file"] is not None:
+        direct_file = extra_config["file"]
+    
+    # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
         samples = read_args(project_name, config)
     else:
         samples = [direct_file]
+
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
     # list of coma separated options https://github.com/ablab/spades#sec3.2

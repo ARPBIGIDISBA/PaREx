@@ -31,11 +31,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('operation', type=str, help=f"Existing operations: {' | '.join(OPERATIONS_DEVELOPED)}")
-    parser.add_argument('--reference', type=str, help='Direct file path without using sample list')
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
-    parser.add_argument('--file', type=str, help='Path to the file', default=None)
+    parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
     args = parser.parse_args()
 
 

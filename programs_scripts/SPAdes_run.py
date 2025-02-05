@@ -34,6 +34,16 @@ def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_
 
     '''
 
+    direct_file = None
+    if extra_config["file"] is not None:
+        direct_file = extra_config["file"]
+    
+    # Read command line arguments, sample list and config file  or direct file
+    if not direct_file:
+        samples = read_args(project_name, config)
+    else:
+        samples = [direct_file]
+
     # Read command line arguments, sample list and config file
     samples = read_args(project_name, config)
 
