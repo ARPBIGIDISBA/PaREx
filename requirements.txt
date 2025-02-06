@@ -6,3 +6,4 @@ resfinder
 xlsxwriter
 flask
 flask-restx
+flask-cors

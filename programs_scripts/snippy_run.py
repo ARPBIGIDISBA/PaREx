@@ -33,9 +33,6 @@ amino_acids = {
 }
 
 def update_dataframe(df, sample_name, name, value):
-<<<<<<< HEAD
-    existing_value = df.loc[sample_name, name] if name in df.columns else None
-=======
     # Ensure sample_name exists in the DataFrame index
     if sample_name not in df.index:
         df.loc[sample_name] = pd.Series(dtype=object)  # Create a new row for sample_name
@@ -46,16 +43,11 @@ def update_dataframe(df, sample_name, name, value):
 
     # Append or assign value
     existing_value = df.loc[sample_name, name]
->>>>>>> 5bbf5b37a3c60909aa746f2e73aa619991938a07
     if pd.notna(existing_value):  # Append to existing value if it's not NaN
         df.loc[sample_name, name] = f"{existing_value}, {value}"
     else:  # Assign new value if cell is empty
         df.loc[sample_name, name] = value
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 5bbf5b37a3c60909aa746f2e73aa619991938a07
 def translate_amino_acid(value, value_c=""):
     # Remove p. select three letters before number and after number translate "p.Asp104Glu"
 

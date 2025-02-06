@@ -308,7 +308,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 writer = csv.writer(file, delimiter=';')
                 writer.writerows(results_data)
     
-    logger.info("PDC analysis finished")
+    logger.info("PDC analysis finished: result in %s", filename)
     if not extra_config["keep_output"]:
         os.system(f"rm -r {os.path.join(OUTPUT_PATH, 'output')}")
 
