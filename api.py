@@ -38,7 +38,16 @@ logging.basicConfig(level=logging.DEBUG,
 
 # Configuración de Flask y API
 app = Flask(__name__)
-CORS(app)
+cors_config = {
+        'ORIGINS': [
+            os.getenv("CORS_ORIGIN") or "http://localhost:5173",
+        ]}
+
+CORS(app,
+        resources={r'/api*': {'origins': cors_config['ORIGINS']}},
+        supports_credentials=True
+        )
+
 api = Api(app, version="1.0", title="Pipeline API", prefix="/api",
           description="API para ejecutar el pipeline de análisis de datos")
 
