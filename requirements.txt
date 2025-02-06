@@ -7,3 +7,4 @@ xlsxwriter
 flask
 flask-restx
 flask-cors
+gunicorn

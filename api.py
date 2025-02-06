@@ -21,8 +21,6 @@ logger = logging.getLogger("api_pipeline")
 logger.setLevel(logging.DEBUG)  # Capture all logs
 
 
-
-
 # Read projects path from environment variable
 PROJECTS_PATH = os.getenv("PROJECTS_PATH") or "/home/mbonet/microbiologia/Projects/"  
 TEMP_FOLDER = os.getenv("TEMP_FOLDER") or "/tmp"    
