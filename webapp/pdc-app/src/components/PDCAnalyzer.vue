@@ -2,6 +2,8 @@
 import { ref, computed, onUnmounted, nextTick } from "vue";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const fileInput = ref(null);
 const directSequence = ref("");
 const logMessages = ref([]);
@@ -52,8 +54,7 @@ const startLogStream = () => {
 
   console.debug("📡 Connecting to real-time logs...");
 
-  eventSource.value = new EventSource("http://localhost:5000/pipeline/pdc/logs");
-
+  eventSource.value = new EventSource(`${API_URL}/pipeline/pdc/logs`);
   eventSource.value.onmessage = (event) => {
     console.debug("📩 Log received:", event.data);
     // check if result is ready then finish event.restult
@@ -96,7 +97,7 @@ const uploadFile = async () => {
  
   try {
     result.value = null;
-    await axios.post("http://localhost:5000/pipeline/pdc", formData, {
+    await axios.post(`${API_URL}/pipeline/pdc`, formData, {
       headers: { "Content-Type": "multipart/form-data" }
     });
   } catch (error) {
@@ -116,7 +117,7 @@ const sendDirectSequence = async () => {
   startLogStream(); // ✅ Start log stream BEFORE sending request
 
   try {
-    await axios.post("http://localhost:5000/pipeline/pdc", {
+    await axios.post(`${API_URL}/pipeline/pdc`, {
       direct_sequence: directSequence.value
     });
   } catch (error) {
@@ -145,26 +146,30 @@ onUnmounted(() => stopLogStream());
     <div class="result-section" v-if="result">
       <h2>Result:</h2>
       <table>
-        <tr v-for="(value, key) in JSON.parse(result)">
-          <th>{{ key }}</th>
-          <td>{{ value }}</td>
-        </tr>
+        <tbody>
+          <tr v-for="(value, key) in JSON.parse(result)">
+            <th>{{ key }}</th>
+            <td>{{ value }}</td>
+          </tr>
+        </tbody>
       </table>
     </div>
     <div class="progress-section" v-if="!result && logText.length > 0">
       <table>
-        <tr>
-          <th>Comparing to</th>
-          <td>{{ lastLogMessage["pdc"] }}</td>
-        </tr>
-        <tr>
-          <th>Progress</th>
-          <td>{{ lastLogMessage["progress"] }}</td>
-        </tr>
-        <tr>
-          <th>Identity</th>
-          <td>{{ lastLogMessage["identity"] }}%</td>
-        </tr>
+        <tbody>
+          <tr>
+            <th>Comparing to</th>
+            <td>{{ lastLogMessage["pdc"] }}</td>
+          </tr>
+          <tr>
+            <th>Progress</th>
+            <td>{{ lastLogMessage["progress"] }}</td>
+          </tr>
+          <tr>
+            <th>Identity</th>
+            <td>{{ lastLogMessage["identity"] }}%</td>
+          </tr>
+        </tbody>
       </table>
     </div>
 

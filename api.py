@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.DEBUG,
 # Configuración de Flask y API
 app = Flask(__name__)
 CORS(app)
-api = Api(app, version="1.0", title="Pipeline API",
+api = Api(app, version="1.0", title="Pipeline API", prefix="/api",
           description="API para ejecutar el pipeline de análisis de datos")
 
 ns_pipeline = Namespace('pipeline', description='Operaciones del pipeline')
@@ -100,7 +100,7 @@ class PDCRun(Resource):
 
         return {"message": "PDC execution started"}
 
-@app.route('/pipeline/pdc/logs')
+@app.route('/api/pipeline/pdc/logs')
 def stream_logs():
     global current_process
     if not current_process:
