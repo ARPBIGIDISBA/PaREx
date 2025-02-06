@@ -43,10 +43,7 @@ cors_config = {
             os.getenv("CORS_ORIGIN") or "http://localhost:5173",
         ]}
 
-CORS(app,
-        resources={r'/api*': {'origins': cors_config['ORIGINS']}},
-        supports_credentials=True
-        )
+CORS(app, resources={r'/api*': {'origins': cors_config['ORIGINS']}}, supports_credentials=True)
 
 api = Api(app, version="1.0", title="Pipeline API", prefix="/api",
           description="API para ejecutar el pipeline de análisis de datos")
@@ -57,8 +54,6 @@ api.add_namespace(ns_pipeline)
 
 UPLOAD_FOLDER = "/tmp"  # Directorio para almacenar archivos temporales
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-
 
 # Definir los parámetros del formulario (incluye archivo)
 pdc_parser = reqparse.RequestParser()
@@ -104,46 +99,56 @@ class PDCRun(Resource):
 
         # ✅ Start subprocess and store process
         current_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
+        print("current_process", current_process)
         return {"message": "PDC execution started"}
 
 @app.route('/api/pipeline/pdc/logs')
 def stream_logs():
-    global current_process
-    if not current_process:
-        return {"error": "No process running"}, 400
 
     def generate_logs():
-        while True:
-            reads = [current_process.stdout.fileno(), current_process.stderr.fileno()]
-            ready, _, _ = select.select(reads, [], [])
-            for fd in ready:
-                if fd == current_process.stdout.fileno():
-                    output = current_process.stdout.readline().strip()
-                    if output:
-                        yield f"data: {output}\n\n"
-
-                if fd == current_process.stderr.fileno():
-                    error = current_process.stderr.readline().strip()
-                    if error:
-                        yield f"data: {error}\n\n"
-
-            if current_process.poll() is not None:
+        global current_process
+        print("current_process", current_process)
+        # try 5 seconds to get the process
+        for _ in range(5):
+            print("current_process", current_process, _)
+            yield "data: Waiting for process to start\n\n"
+            if current_process:
                 break
-        # read final output /home/mbonet/microbiologia/Projects/temp/ANALYSIS_temp/PDC_results/temp_PDC_results.csv
-        # sample_name;PDC;PDC_REFERENCE;bit_score;gaps;identity
-        # PA01-DK_S26_L001.SPAdes.denovoassembly;;PDC-1;807.364;0;100.0
+            time.sleep(1)
+        if not current_process:
+            logger.info("No process running")
+            yield "error: No process running\n\n"
+        else:
+            while True:
+                reads = [current_process.stdout.fileno(), current_process.stderr.fileno()]
+                ready, _, _ = select.select(reads, [], [])
+                for fd in ready:
+                    if fd == current_process.stdout.fileno():
+                        output = current_process.stdout.readline().strip()
+                        if output:
+                            yield f"data: {output}\n\n"
 
-        output_file = os.path.join(PROJECTS_PATH, "temp/ANALYSIS_temp/PDC_results", "temp_PDC_results.csv")
-        with open(output_file, "r") as f:
-            lines = f.readlines()
-            headers = lines[0].strip().split(";")
-            for line in lines[1:]:
-                data = line.strip().split(";")
-                data_dict = dict(zip(headers, data))
-                yield f"data:Result:{json.dumps(data_dict)}\n\n"
-        
+                    if fd == current_process.stderr.fileno():
+                        error = current_process.stderr.readline().strip()
+                        if error:
+                            yield f"data: {error}\n\n"
 
+                if current_process.poll() is not None:
+                    break
+            # read final output /home/mbonet/microbiologia/Projects/temp/ANALYSIS_temp/PDC_results/temp_PDC_results.csv
+            # sample_name;PDC;PDC_REFERENCE;bit_score;gaps;identity
+            # PA01-DK_S26_L001.SPAdes.denovoassembly;;PDC-1;807.364;0;100.0
+
+            output_file = os.path.join(PROJECTS_PATH, "temp/ANALYSIS_temp/PDC_results", "temp_PDC_results.csv")
+            with open(output_file, "r") as f:
+                lines = f.readlines()
+                headers = lines[0].strip().split(";")
+                for line in lines[1:]:
+                    data = line.strip().split(";")
+                    data_dict = dict(zip(headers, data))
+                    yield f"data:Result:{json.dumps(data_dict)}\n\n"
+            
     return Response(generate_logs(), mimetype='text/event-stream')
+
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)

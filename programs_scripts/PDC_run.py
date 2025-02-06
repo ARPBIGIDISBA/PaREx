@@ -293,7 +293,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
 
             if max_bitscore["gaps"] == -1:
                 logger.warning("PDC failed assembly failed on sample %s", sample_name)
-                logger.warning(results)
                 results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
             
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
