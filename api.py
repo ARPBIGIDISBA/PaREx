@@ -20,6 +20,13 @@ logger.setLevel(logging.INFO)
 logger = logging.getLogger("api_pipeline")
 logger.setLevel(logging.DEBUG)  # Capture all logs
 
+
+
+
+# Read projects path from environment variable
+PROJECTS_PATH = os.getenv("PROJECTS_PATH") or "/home/mbonet/microbiologia/Projects/"  
+TEMP_FOLDER = os.getenv("TEMP_FOLDER") or "/tmp"    
+
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -30,11 +37,6 @@ logging.basicConfig(level=logging.DEBUG,
                         logging.StreamHandler()
                     ])
 
-
-
-# Read projects path from environment variable
-PROJECTS_PATH = os.getenv("PROJECTS_PATH") or "home/mbonet/microbiologia/Projects/"  
-TEMP_FOLDER = os.getenv("TEMP_FOLDER") or "/tmp"    
 
 # Configuración de Flask y API
 app = Flask(__name__)

@@ -12,6 +12,30 @@ const logContainer = ref(null);
 
 const logText = computed(() => logMessages.value.join("\n"));
 
+const parseLog = (logLine) => {
+  const pattern = /\((\d+)\/(\d+)\)\) gaps: (\d+) identity:([\d.]+)\s+pdc\s+(PDC-\d+)/;
+  const match = logLine.match(pattern);
+
+  if (match) {
+    const [, x, y, gaps, identity, pdcName] = match;
+    return {
+      pdc: pdcName,
+      gaps: parseInt(gaps, 10),
+      identity: parseFloat(identity),
+      x: parseInt(x, 10),
+      y: parseInt(y, 10),
+      progress: `${x}/${y}`
+    };
+  } else {
+    return { error: "No match found" };
+  }
+};
+
+const lastLogMessage = computed(() => {
+  if (logMessages.value.length === 0) return "";
+  return parseLog(logMessages.value[logMessages.value.length - 1])
+});
+
 const scrollToBottom = () => {
   nextTick(() => {
     if (logContainer.value) {
@@ -120,7 +144,6 @@ onUnmounted(() => stopLogStream());
     </div>
     <div class="result-section" v-if="result">
       <h2>Result:</h2>
-      <!--{"sample_name": "PA01-DK_S26_L001.SPAdes.denovoassembly", "PDC": "", "PDC_REFERENCE": "PDC-1", "bit_score": "807.364", "gaps": "0", "identity": "100.0"}-->
       <table>
         <tr v-for="(value, key) in JSON.parse(result)">
           <th>{{ key }}</th>
@@ -128,10 +151,25 @@ onUnmounted(() => stopLogStream());
         </tr>
       </table>
     </div>
+    <div class="progress-section" v-if="!result && logText.length > 0">
+      <table>
+        <tr>
+          <th>Comparing to</th>
+          <td>{{ lastLogMessage["pdc"] }}</td>
+        </tr>
+        <tr>
+          <th>Progress</th>
+          <td>{{ lastLogMessage["progress"] }}</td>
+        </tr>
+        <tr>
+          <th>Identity</th>
+          <td>{{ lastLogMessage["identity"] }}%</td>
+        </tr>
+      </table>
+    </div>
 
     <div class="logs-section">
-      <h2>Real-Time Logs:</h2>
-  
+      <h2>Real-Time Logs:</h2>  
       <div ref="logContainer" class="logs">
         <pre>{{ logText }}</pre>
       </div>
@@ -140,6 +178,37 @@ onUnmounted(() => stopLogStream());
 </template>
 
 <style scoped>
+.progress-section table{
+  margin:0 auto;
+}
+.result-section table{
+  margin:0 auto;
+}
+.result-section table th{
+  text-align:right;
+  background: #00334c;
+  color: white;
+  font-weight: bold;
+}
+.result-section table td{
+  background: #ffffff;
+  text-align:left;
+}
+.result-section table th, .result-section table td{
+  padding: 10px;
+}
+.result-section tbody tr:nth-child(even) {
+  background: #f1f1f1;
+}
+
+.result-section table th{
+  font-weight: bold;
+}
+.result-section table td{
+  border-bottom: 1px solid #ddd;
+}
+
+
 .container {
   width: 900px;
   margin: auto;
