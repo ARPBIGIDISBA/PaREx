@@ -23,7 +23,6 @@ from programs_scripts.novasec_run import novasec_run
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
                              "all_sequence", "snippy", "PDC", "novasec", "projects"]
