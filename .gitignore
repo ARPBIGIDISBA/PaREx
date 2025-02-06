@@ -213,3 +213,4 @@ Thumbs.db
 *.json
 venv_huse/*
 activate_local.sh
+venv_arpbig_pipelines
