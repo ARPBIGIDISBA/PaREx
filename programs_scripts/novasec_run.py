@@ -54,7 +54,7 @@ def novasec_run(project_name, config=config, extra_config={"force": False, "keep
         return
     logger.debug(folders)
     
-    pattern = re.compile(r'(?P<sample_name>\d+)_L(?P<lane>\d)_ds\..+')
+    pattern = re.compile(r'(?P<sample_name>[^_]+)_L(?P<lane>\d)_ds\..+')
     samples = {}
     for item in folders:
         match = pattern.match(item)
