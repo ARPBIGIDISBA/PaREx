@@ -1,20 +1,7 @@
-<<<<<<< HEAD
 #!/bin/bash
 
 # Directorio de instalación por defecto
 INSTALL_DIR=/root/code/Programs
-=======
-#!/bin/bash -x
-VERBOSE=0
-OS_NAME=
-OS_VERSION=
-OS_CODE_NAME=
-ARCH=
-export IP=
-export DEBIAN_FRONTEND=noninteractive
-[[ -z "$CREATE_AMI" ]] && export CREATE_AMI
-[[ -z "$DB_ENGINE" ]] && export DB_ENGINE="MYSQL_8.0"
->>>>>>> add63062d4fd9cc195a972d4b8c0c5611714c98c
 
 # Si se proporciona un argumento, usarlo como directorio de instalación
 if [ ! -z "$1" ]; then
