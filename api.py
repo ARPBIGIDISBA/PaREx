@@ -1,3 +1,10 @@
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/
+
+This is the api.py file that will be used to create the API to execute the pipeline from a web interface.
+
+"""
 from flask import Flask, request, Response
 from flask_restx import Api, Resource, Namespace, reqparse
 from flask_cors import CORS

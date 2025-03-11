@@ -1,11 +1,9 @@
-'''
-    Este script aplica el ensamblaje de novo con SPAdes a los ficheros fastq.gz
-    Ejecuta el programa en python spades sobre los ficheros fastq
-    Tiene como entrada los ficheros fastq.gz de las muestras
-    Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
-    Here are the command options for spades https://github.com/ablab/spades#sec3.2
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/"
 
-'''
+This script is used to run the resfinder program to get the resistance genes of the samples
+"""
 import os
 import argparse
 import logging
@@ -172,6 +170,10 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
             else:
                 logger.error("Resfinder failed assembly failed on sample %s", sample_name)
 
+    logger.info("Resfinder process finished")
+    logger.info("Full converage excel %s", os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.fullcoverage.csv"))
+    logger.info("Partial converage excel %s", os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.partialcoverage.csv"))
+            
     os.chdir(previous_dir)
     if not extra_config["keep_output"]:
         os.system(f"rm -rf {OUTPUT_PATH_SCRIPT}")

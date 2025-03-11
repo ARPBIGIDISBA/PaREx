@@ -1,8 +1,9 @@
-'''
-    Este script se utiliza para aplicar el programa Trimmomatic a los ficheros fastq.gz
-    Tiene como entrada los ficheros fastq.gz de las muestras
-    Da como resultado dos ficheros R1_001.fastq.gz y R2_001.fastq.gz escritos en OUT
-'''
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/
+
+    This script is used to modify novaseac files to the format output to be compatible with the pipeline
+"""
 
 import os
 import shutil

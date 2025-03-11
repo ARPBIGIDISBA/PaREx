@@ -1,8 +1,10 @@
-'''
-    Este script aplica el progama bowtie para buscar una referencia de alineamiento
-    utilizar como entrada dos parametros PROJECT NAME  y fichero de referencia
-    https://bowtie-bio.sourceforge.net/tutorial.shtml
-'''
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/
+
+This script is used to run the bowtie program to align the reads with a reference file
+
+"""
 import os
 import sys
 import argparse
