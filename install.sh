@@ -1,5 +1,4 @@
 #!/bin/bash -x
-
 VERBOSE=0
 OS_NAME=
 OS_VERSION=
