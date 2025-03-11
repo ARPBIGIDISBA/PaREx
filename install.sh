@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Directorio de instalación por defecto
-INSTALL_DIR=/root/code/Programs
+# INSTALL_DIR=/root/code/Programs
 
 # Si se proporciona un argumento, usarlo como directorio de instalación
 if [ ! -z "$1" ]; then
