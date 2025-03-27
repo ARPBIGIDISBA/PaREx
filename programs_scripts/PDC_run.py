@@ -227,6 +227,8 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 logger.debug("Processing sample %s", name)
                 protein_file = os.path.join(PROTEIN_PATH, protein_file)
                 logger.debug("Using protein file: %s", protein_file)
+                
+                        
                 output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
                 os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
 
@@ -274,7 +276,15 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         
                     if bit_score >= max_bitscore["value"]:
                         logger.debug("------------New max bit score %s", bit_score)
-                        max_bitscore["name"] = name
+                                # read text from protein file
+                        with open(protein_file, "r") as f:
+                            # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
+                            # read first line of the file 
+                            protein_text = f.readline()
+                            # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
+                            full_name = "{} ({})".format(pdc_name,protein_text.split(" ")[0][1:])
+
+                        max_bitscore["name"] = full_name
                         max_bitscore["path"] = protein_file
                         max_bitscore["value"] = bit_score
                         max_bitscore["gaps"] = gaps

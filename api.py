@@ -17,6 +17,7 @@ import subprocess
 import time
 import logging
 from werkzeug.datastructures import FileStorage 
+import uuid
 
 # Add path Scripts to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'programs_scripts')))
@@ -68,7 +69,7 @@ pdc_parser.add_argument('direct_sequence', type=str, required=False, help='Secue
 pdc_parser.add_argument('file', type=FileStorage, location='files', required=False, help='Archivo FASTA')
 
 # ✅ Store the latest process
-current_process = None
+processes = {}
 
 @ns_pipeline.route('/pdc')
 class PDCRun(Resource):
@@ -78,7 +79,7 @@ class PDCRun(Resource):
         consumes="multipart/form-data",
     )
     def post(self):
-        global current_process
+        global processes
         args = pdc_parser.parse_args()
         direct_sequence = args['direct_sequence']
         file_path = None
@@ -106,18 +107,21 @@ class PDCRun(Resource):
 
         # ✅ Start subprocess and store process
         current_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        print("current_process", current_process)
-        return {"message": "PDC execution started"}
+        process_id = str(uuid.uuid4())
+        processes[process_id] = current_process
+        logger.info(f"🔧 Procés iniciat amb ID: {process_id}")
+        return {"message": "PDC execution started", "process_id": process_id}
 
 @app.route('/api/pipeline/pdc/logs')
 def stream_logs():
-
+    global processes
+    process_id = request.args.get("process_id")
+    current_process = processes.get(process_id)
+        
     def generate_logs():
-        global current_process
-        print("current_process", current_process)
+        
         # try 5 seconds to get the process
         for _ in range(5):
-            print("current_process", current_process, _)
             yield "data: Waiting for process to start\n\n"
             if current_process:
                 break
@@ -142,9 +146,7 @@ def stream_logs():
 
                 if current_process.poll() is not None:
                     break
-            # read final output /home/mbonet/microbiologia/Projects/temp/ANALYSIS_temp/PDC_results/temp_PDC_results.csv
-            # sample_name;PDC;PDC_REFERENCE;bit_score;gaps;identity
-            # PA01-DK_S26_L001.SPAdes.denovoassembly;;PDC-1;807.364;0;100.0
+
 
             output_file = os.path.join(PROJECTS_PATH, "temp/ANALYSIS_temp/PDC_results", "temp_PDC_results.csv")
             with open(output_file, "r") as f:
