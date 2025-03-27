@@ -12,6 +12,7 @@ const isStreaming = ref(false);
 const result = ref(null); 
 const logContainer = ref(null);
 const processId = ref(null);
+const runing_process = ref(null);
 
 const logText = computed(() => logMessages.value.join("\n"));
 
@@ -73,9 +74,20 @@ const stopLogStream = () => {
   if (eventSource.value) {
     eventSource.value.close();
     isStreaming.value = false;
+    runing_process.value = null;
   }
 };
 
+const stopProcess = async () => {
+  try {
+    await axios.post(`${API_URL}/pipeline/pdc/stop/${processId.value}`);
+    stopLogStream();
+    result.value = null;
+    logMessages.value = [];
+  } catch (error) {
+    console.error("❌ Error stopping the process:", error);
+  }
+};
 const uploadFile = async () => {
   const file = fileInput.value;
   if (!file) {
@@ -91,6 +103,7 @@ const uploadFile = async () => {
     const res = await axios.post(`${API_URL}/pipeline/pdc`, formData, {
       headers: { "Content-Type": "multipart/form-data" }
     });
+    runing_process.value = res.data.process_id;
     startLogStream(res.data.process_id);
   } catch (error) {
     console.error("❌ Error uploading the file:", error);
@@ -119,44 +132,49 @@ onUnmounted(() => stopLogStream());
 
 <template>
   <v-container>
-    <v-row>
-      <v-col>
-        <v-card>
-          <v-card-text>
-            <p>Upload a FASTA file to analyze</p>
-            <v-file-input
-              label="Upload FASTA File"
-              @change="fileInput = $event.target.files[0]"
-              accept=".fasta"
-              outlined
-            />
-            <v-btn v-if="fileInput" class="mt-2" @click="uploadFile" color="primary">Submit File</v-btn>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      <v-col>
-        <v-card>
-          <v-card-text>
-            <p>Enter FASTA sequence</p>
-            <v-textarea
-              v-model="directSequence"
-              label="Enter FASTA sequence"
-              placeholder=""
-              rows="4"
-              outlined
-            />
-            <v-btn class="mt-2" @click="sendDirectSequence" color="primary" v-if="directSequence">Analyze Sequence</v-btn>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-    <v-row>
+    <div  style="position: relative;">
+      <v-overlay persistent :model-value="runing_process!=null" contained absolute opacity="0.3">
+      </v-overlay>
+      <v-row>
+        
+        <v-col>
+          <v-card>
+            <v-card-text>
+              <p>Upload a FASTA file to analyze</p>
+              <v-file-input
+                label="Upload FASTA File"
+                @change="fileInput = $event.target.files[0]"
+                accept=".fasta"
+                outlined
+              />
+              <v-btn v-if="fileInput" class="mt-2" @click="uploadFile" color="primary" :disabled="runing_process!=null">Submit File</v-btn>
+            </v-card-text>
+          </v-card>
+        </v-col>
+        <v-col>
+          <v-card>
+            <v-card-text>
+              <p>Enter FASTA sequence</p>
+              <v-textarea
+                v-model="directSequence"
+                label="Enter FASTA sequence"
+                placeholder=""
+                rows="4"
+                outlined
+              />
+              <v-btn class="mt-2" @click="sendDirectSequence" color="primary" v-if="directSequence" :disabled="runing_process!=null">Analyze Sequence</v-btn>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+    </div>
+    <v-row  v-if="logText.length > 0 || result">
       <v-col>
         <v-card color="surface" elevation="10" class="mt-4" style="height: 300px; overflow-y: auto;" ref="logContainer">
           <v-card-text v-if="result" >
             <h1>Detected: {{ JSON.parse(result)["PDC_REFERENCE"] }}</h1>
             
-            <v-table style="background-color: white !important;">  
+            <v-table>  
               <tbody>
                 <tr>
                   <th><b>Change with PDC-1</b></th>
@@ -170,8 +188,11 @@ onUnmounted(() => stopLogStream());
             </v-table>
             <h2> Sample name: {{ JSON.parse(result)["sample_name"] }}</h2>
           </v-card-text>
-          <v-card-text v-if="!result && logText.length > 0">
-            <v-table>
+          <v-card-text v-if="!result && logText.length > 0" width="300px">
+            <v-btn @click="stopProcess" color="error" class="float-right">
+              <v-icon>close</v-icon>
+            </v-btn>
+            <v-table width="300px" style="background-color: white !important;">
               <tbody>
                 <tr>
                   <th>Comparing to</th>

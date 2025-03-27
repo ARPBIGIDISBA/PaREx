@@ -18,6 +18,7 @@ import time
 import logging
 from werkzeug.datastructures import FileStorage 
 import uuid
+import shutil  # ja que ho necessitarem per eliminar directoris
 
 # Add path Scripts to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'programs_scripts')))
@@ -83,12 +84,13 @@ class PDCRun(Resource):
         args = pdc_parser.parse_args()
         direct_sequence = args['direct_sequence']
         file_path = None
+        process_id = str(uuid.uuid4())
 
         if 'file' in request.files:
             uploaded_file = request.files['file']
             if uploaded_file.filename == '':
                 return {"error": "No se ha seleccionado un archivo"}, 400
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], process_id + ".fasta")
             uploaded_file.save(file_path)
             logger.info(f"📂 Archivo recibido: {uploaded_file.filename}")
 
@@ -107,8 +109,12 @@ class PDCRun(Resource):
 
         # ✅ Start subprocess and store process
         current_process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        process_id = str(uuid.uuid4())
-        processes[process_id] = current_process
+        
+        processes[process_id] = {
+                                    "file_path": file_path,
+                                    "process":  current_process
+                                }
+        
         logger.info(f"🔧 Procés iniciat amb ID: {process_id}")
         return {"message": "PDC execution started", "process_id": process_id}
 
@@ -116,8 +122,10 @@ class PDCRun(Resource):
 def stream_logs():
     global processes
     process_id = request.args.get("process_id")
-    current_process = processes.get(process_id)
-        
+    process = processes.get(process_id)
+    current_process = process["process"] if process else None
+    file_path = process["file_path"] if process else None
+    
     def generate_logs():
         
         # try 5 seconds to get the process
@@ -149,6 +157,9 @@ def stream_logs():
 
 
             output_file = os.path.join(PROJECTS_PATH, "temp/ANALYSIS_temp/PDC_results", "temp_PDC_results.csv")
+            if not os.path.exists(output_file):
+                yield "error: No results found\n\n"
+                return
             with open(output_file, "r") as f:
                 lines = f.readlines()
                 headers = lines[0].strip().split(";")
@@ -156,8 +167,44 @@ def stream_logs():
                     data = line.strip().split(";")
                     data_dict = dict(zip(headers, data))
                     yield f"data:Result:{json.dumps(data_dict)}\n\n"
+
+            # cleanup: eliminar els resultats temporals
+            project_analysis_path = os.path.join(PROJECTS_PATH, "temp/ANALYSIS_temp")
+            try:
+                shutil.rmtree(project_analysis_path)
+                logger.info(f"🧹 S'ha eliminat {project_analysis_path}")
+            except Exception as e:
+                logger.warning(f"⚠️ No s'ha pogut netejar {project_analysis_path}: {str(e)}")            
             
+            try:
+                os.remove(file_path)
+                logger.info(f"🗑️ S'ha eliminat {file_path}")
+            except Exception as e:
+                logger.warning(f"⚠️ No s'ha pogut eliminar {file_path}: {str(e)}")
+
+            del processes[process_id]
+            logger.info(f"🔧 Procés finalitzat amb ID: {process_id}"
+                        )
     return Response(generate_logs(), mimetype='text/event-stream')
 
+
+@ns_pipeline.route('/pdc/stop/<string:process_id>')
+class StopProcess(Resource):
+    def post(self, process_id):
+        global processes
+        process_info = processes.get(process_id)
+
+        if not process_info:
+            return {"error": "Process not found"}, 404
+
+        process = process_info if isinstance(process_info, subprocess.Popen) else process_info["process"]
+        del processes[process_id]
+        if process.poll() is None:  # Encara actiu
+            process.terminate()
+            logger.info(f"🛑 Procés {process_id} aturat per l'usuari.")
+            return {"message": f"Process {process_id} terminated"}, 200
+        else:
+            return {"message": "Process already completed"}, 200
+        
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)

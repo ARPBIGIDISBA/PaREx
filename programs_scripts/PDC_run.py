@@ -282,8 +282,8 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                             # read first line of the file 
                             protein_text = f.readline()
                             # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
-                            full_name = "{} ({})".format(pdc_name,protein_text.split(" ")[0][1:])
-
+                            full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
+                        print("I am here with full name and pdc name", full_name, name)
                         max_bitscore["name"] = full_name
                         max_bitscore["path"] = protein_file
                         max_bitscore["value"] = bit_score
