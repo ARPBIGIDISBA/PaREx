@@ -52,7 +52,6 @@ def novasec_run(project_name, config=config, extra_config={"force": False, "keep
         logger.warning(f"The novasec program needs the files in the following format: sample_L1_ds and sample_L2_ds")
         logger.warning(f"Please check the files in {FILES_PATH}")
         return
-    logger.debug(folders)
     
     pattern = re.compile(r'(?P<sample_name>[^_]+)_L(?P<lane>\d)_ds\..+')
     samples = {}
@@ -67,30 +66,32 @@ def novasec_run(project_name, config=config, extra_config={"force": False, "keep
             samples[sample_name][lane] = item    
     
     for sample in samples:
-        logger.info(f"Processing {sample}")
-        logger.debug(samples[sample]["L1"])
-        logger.debug(os.path.join(FILES_PATH, samples[sample]["L1"]))
-        L1_files = os.listdir(os.path.join(FILES_PATH, samples[sample]["L1"]))
-        L2_files = os.listdir(os.path.join(FILES_PATH, samples[sample]["L2"]))
-        L1_files = [os.path.join(FILES_PATH, samples[sample]["L1"], f) for f in L1_files]
-        L2_files = [os.path.join(FILES_PATH, samples[sample]["L2"], f) for f in L2_files]
-        # merge two lists with files containing R1 and R2
-        merged_files = L1_files + L2_files
+        if not (os.path.join(FILES_PATH, f"{sample}_L001_R1_001.fastq.gz")):    
+            logger.info(f"Processing {sample}")
+            logger.debug(os.path.join(FILES_PATH, samples[sample]["L1"]))
+            try:
+                L1_files = os.listdir(os.path.join(FILES_PATH, samples[sample]["L1"]))
+                L2_files = os.listdir(os.path.join(FILES_PATH, samples[sample]["L2"]))
+                L1_files = [os.path.join(FILES_PATH, samples[sample]["L1"], f) for f in L1_files]
+                L2_files = [os.path.join(FILES_PATH, samples[sample]["L2"], f) for f in L2_files]
+                # merge two lists with files containing R1 and R2
+                merged_files = L1_files + L2_files
 
-        # full path to the files
-        content = ["_R1_", "_R2_"]
-        for c in content:
-            merge = [f for f in merged_files if f.find(c) > 0]
-            with open(os.path.join(FILES_PATH, f"{sample}_L001{c}001.fastq.gz"), 'wb') as outfile:
-                for file in merge:
-                    with open(file, 'rb') as infile:
-                        shutil.copyfileobj(infile, outfile)
-    
-    # Delete the folders after mergin
-    if not extra_config["keep_output"]:
-        for folder in folders:
-            logger.info(f"Deleting folder {folder}")
-            shutil.rmtree(os.path.join(FILES_PATH, folder))
+                # full path to the files
+                content = ["_R1_", "_R2_"]
+                for c in content:
+                    merge = [f for f in merged_files if f.find(c) > 0]
+                    with open(os.path.join(FILES_PATH, f"{sample}_L001{c}001.fastq.gz"), 'wb') as outfile:
+                        for file in merge:
+                            with open(file, 'rb') as infile:
+                                shutil.copyfileobj(infile, outfile)
+                
+            except Exception:
+                logger.warning("Error in sample")
+                logger.warning(samples[sample])
+        else:
+            logger.warning(f"Sample already proccessed {sample}")
+
 
 if __name__ == "__main__":
     # Define the arguments that the program expects
