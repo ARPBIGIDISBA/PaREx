@@ -189,9 +189,10 @@ def process_output(vcf_path, sample_name, output_path):
                             c = fields[9]
                             changes = translate_amino_acid(p, c)
                             filter_mutations = [m for m in changes if m not in filter_all[locus]['polymorphisms']]
-                            row = [locus, filter_all[locus]['gene'],p.replace("p.",""),  ",".join(changes), ",".join(filter_mutations), c.replace("c.","")]
+                            row = [locus, filter_all[locus]['gene'], p.replace("p.",""),  ",".join(changes), ",".join(filter_mutations), c.replace("c.","")]
                             results.append(row)
                             csv_writer.writerow(row)
+
 
 def combined_excel_files(samples, output_path):
     output_dir = os.path.join(output_path, "processed")
