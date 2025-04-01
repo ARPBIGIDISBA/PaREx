@@ -1,3 +1,9 @@
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/
+
+This script is the main script to execute the pipeline. It receives the project name and the operation to execute
+"""
 import argparse
 import logging
 import sys

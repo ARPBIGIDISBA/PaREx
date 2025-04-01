@@ -1,11 +1,10 @@
-'''
-    Este script aplica el ensamblaje de novo con SPAdes a los ficheros fastq.gz
-    Ejecuta el programa en python spades sobre los ficheros fastq
-    Tiene como entrada los ficheros fastq.gz de las muestras
-    Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
-    Here are the command options for spades https://github.com/ablab/spades#sec3.2
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/"
 
-'''
+This script is used to run the PDC program to compare the nucleotide sequences with the protein sequences
+"""
+
 import os
 import sys
 import argparse
@@ -228,6 +227,8 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                 logger.debug("Processing sample %s", name)
                 protein_file = os.path.join(PROTEIN_PATH, protein_file)
                 logger.debug("Using protein file: %s", protein_file)
+                
+                        
                 output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
                 os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
 
@@ -275,7 +276,15 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         
                     if bit_score >= max_bitscore["value"]:
                         logger.debug("------------New max bit score %s", bit_score)
-                        max_bitscore["name"] = name
+                                # read text from protein file
+                        with open(protein_file, "r") as f:
+                            # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
+                            # read first line of the file 
+                            protein_text = f.readline()
+                            # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
+                            full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
+                        print("I am here with full name and pdc name", full_name, name)
+                        max_bitscore["name"] = full_name
                         max_bitscore["path"] = protein_file
                         max_bitscore["value"] = bit_score
                         max_bitscore["gaps"] = gaps

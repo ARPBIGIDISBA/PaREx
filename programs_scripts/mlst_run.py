@@ -1,13 +1,11 @@
-'''
-    Este script aplica el ensamblaje de novo con SPAdes a los ficheros fastq.gz
-    Ejecuta el programa en python spades sobre los ficheros fastq
-    Tiene como entrada los ficheros fastq.gz de las muestras
-    Da como resultado un fichero fasta con los SPAdes.denovoassembly.fasta
-    Here are the command options for spades https://github.com/ablab/spades#sec3.2
+"""
+This software is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+More details: https://creativecommons.org/licenses/by-nc/4.0/
 
-'''
+This script is used to run the mlst program to get the sequence type of the samples
+
+"""
 import os
-import sys
 import argparse
 import logging
 import json
