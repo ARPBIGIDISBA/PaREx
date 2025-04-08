@@ -10,6 +10,8 @@ import logging
 import json
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
+from generate_excel_run import process_resfinder_samples
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -67,8 +69,7 @@ def filter_output(data, ignore_list):
                 if coverage < 100:
                     logger.info("   Coverage minus 100%%: %s", coverage)
                 posible = True
-                csv_partialcoverage = csv_partialcoverage + line
-            
+                csv_partialcoverage = csv_partialcoverage + line            
 
     # To not generate the csv file if there is no result
     if not full:
@@ -173,6 +174,15 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
     logger.info("Resfinder process finished")
     logger.info("Full converage excel %s", os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.fullcoverage.csv"))
     logger.info("Partial converage excel %s", os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.partialcoverage.csv"))
+
+    # Generate combined excell
+    RESFINDER_PATH = os.path.join(OUTPUT_PATH, "csv_samples")
+
+    # Generate summary file for resfinder
+    df = process_resfinder_samples(RESFINDER_PATH)
+    OUTPUT_FILE = os.path.join(OUTPUT_PATH, f"{project_name}_resfinder_summary.xls")
+    with pd.ExcelWriter(OUTPUT_FILE, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='FullCoverage', index=True)
             
     os.chdir(previous_dir)
     if not extra_config["keep_output"]:

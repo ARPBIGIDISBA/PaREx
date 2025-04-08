@@ -183,7 +183,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
 
 
     results_data = [
-        ["sample_name","oprD", "oprD_REFERENCE", "bit_score", "gaps", "identity"]
+        ["sample_name", "oprD", "oprD_REFERENCE", "bit_score", "gaps", "identity"]
     ]
 
     for sample_name in samples:
@@ -330,6 +330,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
     filename = os.path.join(OUTPUT_PATH, f"{project_name}_oprD_results.csv")
+    logger.debug(filename)
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)

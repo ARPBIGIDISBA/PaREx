@@ -356,7 +356,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     
     
     combined_excel_files(samples, OUTPUT_PATH)
-
+    
     if not extra_config["keep_output"]:
         os.system(f"rm -r {OUTPUT_PATH}/output")
 

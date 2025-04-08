@@ -22,7 +22,7 @@ config = init_configs(script_directory)
 
 def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=";"):
     if not os.path.exists(csv_path):
-        logger.error(f"File not found {csv_path}")
+        logger.warning(f"File not found {csv_path}")
         logger.warning("Execute first the analysis")
         return None
 
@@ -32,8 +32,7 @@ def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=
             logger.error(f"Column '{sample_id_col}' not found in the file.")
             return None
         df.rename(columns={sample_id_col: "STRAIN ID"}, inplace=True)
-        df =  df.set_index("STRAIN ID")
-        
+        df = df.set_index("STRAIN ID")
         if columns == ["all"]:
             return df
         else:
@@ -47,10 +46,8 @@ def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=
 def process_resfinder_samples(resfinder_path, sample_id_col="name"):
     # Crear una lista vacía para almacenar las filas del DataFrame
     rows = []
-
     for file in glob.glob(os.path.join(resfinder_path, "*fullcoverage.csv")):
         sample_name = os.path.basename(file).replace(".fullcoverage.csv", "")
-        
         # Lee el archivo como DataFrame
         df = pd.read_csv(file, delimiter=";")
         # Asegúrate de que la columna `sample_id_col` y `phenotypes` existen
@@ -146,7 +143,6 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy.rename(columns={"sample_name": "STRAIN ID"}, inplace=True)
             df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].str.strip().str.replace('"', '')
             df_snippy = df_snippy.set_index("STRAIN ID")
-            
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
             if sheet == "All":
                 df_all = df_snippy
@@ -165,10 +161,9 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
 
     else:
-        combined_df.to_excel(output_file, sheet_name="Summary", index=True)
+        print(combined_df)
         ## Add to combined_df the index of the samples
-
-        combined_df.to_excel(output_file, sheet_name="Summary", index=False)
+        combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")
 
