@@ -23,7 +23,7 @@ from programs_scripts.mlst_run import mlst_run
 from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run
-from programs_scripts.novasec_run import novasec_run
+from programs_scripts.novaseq_run import novaseq_run
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "snippy", "PDC", "novasec", "projects"]
+                             "all_sequence", "snippy", "PDC", "novaseq", "projects"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                 for filename in fastaq_files:
                     logger.debug(filename)
                     file.write(filename + '\n')
-        
+                logger.info("Added %s samples to the list", len(fastaq_files))
         elif operation == "generate_excel":
             logger.info(f"Running generate_excell for project {PROJECT_NAME}")
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
@@ -158,9 +158,9 @@ if __name__ == "__main__":
             oprD_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
-        elif operation == "novasec":
-            logger.info(f"Running novasec for project {PROJECT_NAME}")
-            novasec_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "novaseq":
+            logger.info(f"Running novaseq for project {PROJECT_NAME}")
+            novaseq_run(PROJECT_NAME, extra_config=extra_config)
         else:
             logger.warning("Operation not found %s", operation)
             logger.info("Operations available: create_project")

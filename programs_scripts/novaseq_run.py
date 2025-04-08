@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 
-config = init_configs(script_directory, "novasec.json")
+config = init_configs(script_directory, "novaseq.json")
 
 
-def novasec_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
+def novaseq_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
@@ -45,16 +45,16 @@ def novasec_run(project_name, config=config, extra_config={"force": False, "keep
     
     # read folder list of files
     files = os.listdir(FILES_PATH)
+    
     # filter only folders
     folders = [f for f in files if os.path.isdir(os.path.join(FILES_PATH, f))]
-
+    
     if len(folders) == 0:
         logger.warning(f"No files found in {FILES_PATH}")
-        logger.warning(f"The novasec program needs the files in the following format: sample_L1_ds and sample_L2_ds")
+        logger.warning(f"The novaseq program needs the files in the following format: sample_L1_ds and sample_L2_ds")
         logger.warning(f"Please check the files in {FILES_PATH}")
         return
-    
-    pattern = re.compile(r'(?P<sample_name>[^_]+)_L(?P<lane>\d)_ds\..+')
+    pattern = re.compile(r'(?P<sample_name>.+)_L(?P<lane>\d)_ds\..+')
     samples = {}
     for item in folders:
         match = pattern.match(item)
@@ -65,9 +65,14 @@ def novasec_run(project_name, config=config, extra_config={"force": False, "keep
                 samples[sample_name] = {}
             samples[sample_name]["sample_name"] = sample_name
             samples[sample_name][lane] = item    
+        else:
+            logger.debug("Not match %s", item)
     
+    files = [f for f in files if not os.path.isdir(os.path.join(FILES_PATH, f))]
+    
+
     for sample in samples:
-        if not (os.path.join(FILES_PATH, f"{sample}_L001_R1_001.fastq.gz")):    
+        if not os.path.exists(os.path.join(FILES_PATH, f"{sample}_L001_R1_001.fastq.gz")):    
             logger.info(f"Processing {sample}")
             logger.debug(os.path.join(FILES_PATH, samples[sample]["L1"]))
             try:
@@ -107,7 +112,7 @@ if __name__ == "__main__":
         config = init_configs(script_directory, args.json_config)   
     
     config["force"] = args.force
-    configure_logs(PROJECT_NAME, "novasec", config)
+    configure_logs(PROJECT_NAME, "novaseq", config)
 
     logger = logging.getLogger(__name__)
-    novasec_run(PROJECT_NAME, config, extra_config={"force": args.force, "keep_output": args.keep_output})
+    novaseq_run(PROJECT_NAME, config, extra_config={"force": args.force, "keep_output": args.keep_output})
