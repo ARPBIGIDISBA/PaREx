@@ -180,7 +180,7 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
 
     # Generate summary file for resfinder
     df = process_resfinder_samples(RESFINDER_PATH)
-    OUTPUT_FILE = os.path.join(OUTPUT_PATH, f"{project_name}_resfinder_summary.xls")
+    OUTPUT_FILE = os.path.join(OUTPUT_PATH, f"{project_name}_resfinder_summary.xlsx")
     with pd.ExcelWriter(OUTPUT_FILE, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='FullCoverage', index=True)
             

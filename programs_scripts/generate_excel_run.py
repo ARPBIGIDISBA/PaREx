@@ -63,20 +63,42 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                 "other": []
             }
             
+            added_aminoglycoside = []
+            added_fluoroquinolones = []
+            added_beta = []
+            added_other = []
+
+            def check_if_exist(row, list):
+                for sample in list:
+                    if row["name"]==sample["name"] and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
+                        return False
+                return True
+
             # Clasifica los genes por categorías
             for _, row in df.iterrows():
                 gene = row[sample_id_col]
                 phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios en blanco
-                identity = row["identity"]
+                # Identity only 2 decimal places
+                identity = f"{float(row['identity'].replace(',', '.')):.2f}" if row['identity'] is not None else ""
+                
                 # Categorización de acuerdo a los fenotipos
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
-                    sample_data["aminoglycoside"].append(f"{gene} ({identity}%)")
+                    if check_if_exist(row, added_aminoglycoside):
+                        added_aminoglycoside.append(row)
+                        sample_data["aminoglycoside"].append(f"{gene} ({identity}%)")
+
                 elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
-                    sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
+                    if check_if_exist(row, added_fluoroquinolones):
+                        added_fluoroquinolones.append(row)
+                        sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
                 elif gene.startswith("bla"):
-                    sample_data["beta"].append(f"{gene} ({identity}%)")
+                    if check_if_exist(row, added_beta):
+                        added_beta.append(row)
+                        sample_data["beta"].append(f"{gene} ({identity}%)")
                 else:
-                    sample_data["other"].append(f"{gene} ({identity}%)")
+                    if check_if_exist(row, added_other):
+                        added_other.append(row)
+                        sample_data["other"].append(f"{gene} ({identity}%)")
 
             # Añadir la fila a la lista de filas
             rows.append(sample_data)

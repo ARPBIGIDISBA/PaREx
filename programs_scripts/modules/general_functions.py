@@ -23,8 +23,8 @@ def read_config(config_json, required_keys = []):
     # Check if the .json config file exists
     if not os.path.exists(config_json):
         # If not, look for the .json.sample file
-        sample_path = f"samples/{config_json}.sample"
-        
+        sample_path = f"{config_json}.sample"
+        sample_path = sample_path.replace("configs/", "configs/samples/")
         if os.path.exists(sample_path):
             logger.warning(f"Config file '{config_json}' not found. Creating it from '{sample_path}'")
             try:
