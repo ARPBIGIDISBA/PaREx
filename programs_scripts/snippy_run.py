@@ -161,7 +161,6 @@ def process_output(vcf_path, sample_name, output_path):
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
     if os.path.exists(csv_path):
         os.remove(csv_path)
-
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
         # Abrir el archivo VCF con pysam
@@ -196,7 +195,6 @@ def process_output(vcf_path, sample_name, output_path):
 
 def combined_excel_files(samples, output_path):
     output_dir = os.path.join(output_path, "processed")
-
     path = config.get("POLYMORPHISMS")
     filter = read_data_from_file(path)
     filter_all = filter['All']
@@ -240,6 +238,7 @@ def combined_excel_files(samples, output_path):
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
             if locus in filter_all.keys():
+                name = f"{locus}_{gene}"
                 if name in df_all.columns:
                     if sample_name in df_all.index and pd.notna(df_all.loc[sample_name, name]):
                         changes = f"{changes},{df_all.loc[sample_name, name]}"
@@ -247,6 +246,7 @@ def combined_excel_files(samples, output_path):
                     if pd.notna(filtered_mutations):
                         if sample_name in df_all_clean.index and pd.notna(df_all_clean.loc[sample_name, name]):
                             filtered_mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
+                        logger.debug("sample_name %s of name %s = %s", sample_name, name, filtered_mutations )
                         df_all_clean.loc[sample_name, name] = filtered_mutations
             if locus in filter_basic.keys():
                 if name in df_basic.columns:
@@ -353,10 +353,9 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
         if result:
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)
-    
-    
+
     combined_excel_files(samples, OUTPUT_PATH)
-    
+
     if not extra_config["keep_output"]:
         os.system(f"rm -r {OUTPUT_PATH}/output")
 
