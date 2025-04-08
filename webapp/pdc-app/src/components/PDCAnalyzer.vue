@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -13,6 +13,8 @@ const result = ref(null);
 const logContainer = ref(null);
 const processId = ref(null);
 const runing_process = ref(null);
+const totalSamples = ref(0)
+const isUploading = ref(false)
 
 const logText = computed(() => logMessages.value.join("\n"));
 
@@ -72,6 +74,7 @@ const startLogStream = (pid) => {
 
 const stopLogStream = () => {
   if (eventSource.value) {
+    fetchStats()
     eventSource.value.close();
     isStreaming.value = false;
     runing_process.value = null;
@@ -99,6 +102,7 @@ const uploadFile = async () => {
   formData.append("file", file);
 
   try {
+    isUploading.value = true
     result.value = null;
     const res = await axios.post(`${API_URL}/pipeline/pdc`, formData, {
       headers: { "Content-Type": "multipart/form-data" }
@@ -107,6 +111,8 @@ const uploadFile = async () => {
     startLogStream(res.data.process_id);
   } catch (error) {
     console.error("❌ Error uploading the file:", error);
+  } finally {
+    isUploading.value = false
   }
 };
 
@@ -126,6 +132,21 @@ const sendDirectSequence = async () => {
     console.error("❌ Error sending the sequence:", error);
   }
 };
+const fetchStats = async () => {
+  try {
+    const res = await axios.get(`${API_URL}/pipeline/pdc/stats`)
+    totalSamples.value = Object.keys(res.data).length
+  } catch (err) {
+    console.error("❌ Error loading stats:", err)
+  }
+}
+
+onMounted(() => {
+  fetchStats()
+  const interval = setInterval(fetchStats, 5000) // cada 10 segons
+
+  onUnmounted(() => clearInterval(interval)) // neteja l'interval si el component es desmunta
+})
 
 onUnmounted(() => stopLogStream());
 </script>
@@ -133,12 +154,16 @@ onUnmounted(() => stopLogStream());
 <template>
   <v-container>
     <div  style="position: relative;">
+      <v-toolbar color="light-grey"><v-spacer></v-spacer><h3 style="margin-right:10px"> 🔬 Total different sample analyzed: <strong>{{ totalSamples }} </strong>  </h3></v-toolbar>
       <v-overlay persistent :model-value="runing_process!=null" contained absolute opacity="0.3">
       </v-overlay>
       <v-row>
-        
         <v-col>
           <v-card>
+            <v-card-text v-if="isUploading">
+              <p>Uploading...</p>
+              <v-progress-linear indeterminate color="primary" />
+            </v-card-text>
             <v-card-text>
               <p>Upload a FASTA file to analyze</p>
               <v-file-input
@@ -149,6 +174,7 @@ onUnmounted(() => stopLogStream());
               />
               <v-btn v-if="fileInput" class="mt-2" @click="uploadFile" color="primary" :disabled="runing_process!=null">Submit File</v-btn>
             </v-card-text>
+            
           </v-card>
         </v-col>
         <v-col>
@@ -172,12 +198,11 @@ onUnmounted(() => stopLogStream());
       <v-col>
         <v-card color="surface" elevation="10" class="mt-4" style="height: 300px; overflow-y: auto;" ref="logContainer">
           <v-card-text v-if="result" >
-            <h1>Detected: {{ JSON.parse(result)["PDC_REFERENCE"] }}</h1>
-            
+            <h2>Detected: {{ JSON.parse(result)["PDC_REFERENCE"] }}</h2>
             <v-table>  
               <tbody>
                 <tr>
-                  <th><b>Change with PDC-1</b></th>
+                  <th><b>Difference with PDC-1</b></th>
                   <td><b>Observations</b></td>
                 </tr>
                 <tr v-for="(value, key) in JSON.parse(result)['PDC'].split(',')" :key="key">

@@ -72,6 +72,19 @@ pdc_parser.add_argument('file', type=FileStorage, location='files', required=Fal
 # ✅ Store the latest process
 processes = {}
 
+STATS_FILE = os.path.join(TEMP_FOLDER, "pdc_stats.json")
+
+def load_stats():
+    if not os.path.exists(STATS_FILE):
+        return {}
+    with open(STATS_FILE, "r") as f:
+        return json.load(f)
+
+def save_stats(stats):
+    with open(STATS_FILE, "w") as f:
+        json.dump(stats, f, indent=2)
+
+
 @ns_pipeline.route('/pdc')
 class PDCRun(Resource):
     @ns_pipeline.expect(pdc_parser)
@@ -90,14 +103,16 @@ class PDCRun(Resource):
             uploaded_file = request.files['file']
             if uploaded_file.filename == '':
                 return {"error": "No se ha seleccionado un archivo"}, 400
+            sample_name = uploaded_file.filename.split(".")[0]
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], process_id + ".fasta")
             uploaded_file.save(file_path)
             logger.info(f"📂 Archivo recibido: {uploaded_file.filename}")
 
         elif direct_sequence:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], "temp_sequence.fasta")
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], process_id + ".fasta")
             with open(file_path, "w") as f:
                 f.write(direct_sequence)
+            sample_name = "direct_sequence"
             logger.info(f"📝 Secuencia recibida: {file_path}")
 
         if not file_path:
@@ -112,10 +127,25 @@ class PDCRun(Resource):
         
         processes[process_id] = {
                                     "file_path": file_path,
-                                    "process":  current_process
+                                    "process":  current_process,
+                                    "sample_name": sample_name
                                 }
         
         logger.info(f"🔧 Procés iniciat amb ID: {process_id}")
+        
+        # Actualitzem stats
+        stats = load_stats()
+        if sample_name in stats:
+            stats[sample_name]["count"] += 1
+            stats[sample_name]["last_run"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            stats[sample_name] = {
+                "count": 1,
+                "first_run": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "last_run": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        save_stats(stats)
+
         return {"message": "PDC execution started", "process_id": process_id}
 
 @app.route('/api/pipeline/pdc/logs')
@@ -165,6 +195,7 @@ def stream_logs():
                 headers = lines[0].strip().split(";")
                 for line in lines[1:]:
                     data = line.strip().split(";")
+                    data[0] = process.get("sample_name")
                     data_dict = dict(zip(headers, data))
                     yield f"data:Result:{json.dumps(data_dict)}\n\n"
 
@@ -205,6 +236,12 @@ class StopProcess(Resource):
             return {"message": f"Process {process_id} terminated"}, 200
         else:
             return {"message": "Process already completed"}, 200
-        
+@ns_pipeline.route('/pdc/stats')
+class Stats(Resource):
+    def get(self):
+        stats = load_stats()
+        sorted_stats = dict(sorted(stats.items(), key=lambda item: item[1]["count"], reverse=True))
+        return sorted_stats
+    
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=5000)
