@@ -237,26 +237,41 @@ def combined_excel_files(samples, output_path):
             gene = row['genes']
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
+            
             if locus in filter_all.keys():
                 name = f"{locus}_{gene}"
                 if name in df_all.columns:
+                    
                     if sample_name in df_all.index and pd.notna(df_all.loc[sample_name, name]):
-                        changes = f"{changes},{df_all.loc[sample_name, name]}"
-                    df_all.loc[sample_name, name] = changes
+                        changes_filter = f"{changes},{df_all.loc[sample_name, name]}"
+                    else:
+                        changes_filter = changes
+                    df_all.loc[sample_name, name] = changes_filter
                     if pd.notna(filtered_mutations):
+                        
                         if sample_name in df_all_clean.index and pd.notna(df_all_clean.loc[sample_name, name]):
-                            filtered_mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
-                        logger.debug("sample_name %s of name %s = %s", sample_name, name, filtered_mutations )
-                        df_all_clean.loc[sample_name, name] = filtered_mutations
+                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name])
+                            mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
+                        else:
+                            mutations = filtered_mutations
+                        df_all_clean.loc[sample_name, name] = mutations
             if locus in filter_basic.keys():
+                name = f"{locus}_{gene}"
                 if name in df_basic.columns:
+                    
                     if sample_name in df_basic.index and pd.notna(df_basic.loc[sample_name, name]):
-                        changes = f"{changes},{df_basic.loc[sample_name, name]}"
-                    df_basic.loc[sample_name, name] = changes
+                        changes_filter = f"{changes},{df_basic.loc[sample_name, name]}"
+                    else:
+                        changes_filter = changes
+                    df_basic.loc[sample_name, name] = changes_filter
+
                     if pd.notna(filtered_mutations):
                         if sample_name in df_basic_clean.index and pd.notna(df_basic_clean.loc[sample_name, name]):
-                            filtered_mutations = f"{filtered_mutations},{df_basic_clean.loc[sample_name, name]}"
-                        df_basic_clean.loc[sample_name, name] = filtered_mutations
+                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name] )
+                            mutations = f"{filtered_mutations},{df_basic_clean.loc[sample_name, name]}"                            
+                        else:
+                            mutations = filtered_mutations
+                        df_basic_clean.loc[sample_name, name] = mutations
 
     if os.path.exists(csv_output):
         os.remove(csv_output)

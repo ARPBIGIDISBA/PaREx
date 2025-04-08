@@ -67,16 +67,16 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             for _, row in df.iterrows():
                 gene = row[sample_id_col]
                 phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios en blanco
+                identity = row["identity"]
                 # Categorización de acuerdo a los fenotipos
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
-                    sample_data["aminoglycoside"].append(gene)
+                    sample_data["aminoglycoside"].append(f"{gene} ({identity}%)")
                 elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
-                    sample_data["fluoroquinolones"].append(gene)
+                    sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
                 elif gene.startswith("bla"):
-                    identity = row["identity"]
                     sample_data["beta"].append(f"{gene} ({identity}%)")
                 else:
-                    sample_data["other"].append(gene)
+                    sample_data["other"].append(f"{gene} ({identity}%)")
 
             # Añadir la fila a la lista de filas
             rows.append(sample_data)
