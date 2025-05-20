@@ -21,7 +21,7 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "bowtie.json")
 
 
-def bowtie_run(project_name, reference, config=config, extra_config={"force": False, "keep_output": False}):
+def bowtie_run(project_name, reference, config=config, extra_config={"force": False, "keep_output": True}):
     ''' 
         this function is used to apply the bowtie program to the fastq.gz files
         with a reference file

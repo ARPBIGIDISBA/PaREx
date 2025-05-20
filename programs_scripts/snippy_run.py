@@ -289,7 +289,7 @@ def combined_excel_files(samples, output_path):
         df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
         
 
-def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": False}):
+def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": True}):
     '''
         this function is used to apply the Trimmomatic program to the fastq.gz files
 

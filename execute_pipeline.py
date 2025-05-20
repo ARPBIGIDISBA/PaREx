@@ -22,34 +22,37 @@ from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
 from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
-from programs_scripts.generate_excel_run import generate_excel_run
+from programs_scripts.generate_excel_run import generate_excel_run, generate_pdf_from_excel
 from programs_scripts.novaseq_run import novaseq_run
 
 
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "trimmomatic",
+    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "snippy", "PDC", "novaseq", "projects"]
+                             "all_sequence", "snippy", "PDC", "novaseq", "projects", "unzip"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('operation', type=str, help=f"Existing operations: {' | '.join(OPERATIONS_DEVELOPED)}")
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
-    parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep_output', action='store_true', help='Keep the output of the program')
+    parser.add_argument('--clean_output', action='store_true', help='Clean the output of the program')
     parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
     args = parser.parse_args()
 
 
     extra_config = {
         "force": args.force,
-        "keep_output": args.keep_output,
+        "keep_output": args.keep_output or not args.clean_output,
+        "clean_output": args.clean_output,
         "log_level": args.log_level,
         "file": args.file
     }
 
+    
     PROJECT_NAME = args.PROJECT_NAME
     OPERATIONS = args.operation.split(",")
     
@@ -124,6 +127,10 @@ if __name__ == "__main__":
         elif operation == "generate_excel":
             logger.info(f"Running generate_excell for project {PROJECT_NAME}")
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "generate_pdf":
+            logger.info(f"Running generate PDF for project {PROJECT_NAME}")
+            generate_excel_run(PROJECT_NAME, extra_config=extra_config)
+            generate_pdf_from_excel(PROJECT_NAME, extra_config=extra_config)
         elif operation == "trimmomatic":
             logger.info(f"Running trimmomatic for project {PROJECT_NAME}")
             trimmomatic_run(PROJECT_NAME, extra_config=extra_config)
@@ -149,6 +156,21 @@ if __name__ == "__main__":
         elif operation == "PDC":
             logger.info(f"Running PDC for project {PROJECT_NAME}")
             PDC_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "unzip":
+            logger.info(f"Unzipping files for project {PROJECT_NAME}")
+            path = os.path.join(project_path, f"FASTQ_{PROJECT_NAME}")
+            fastaq_files = glob.glob(f'{path}/*.fastq.gz')
+            for file in fastaq_files:
+                # If the file is not gzipped, skip it
+                if not file.endswith(".gz"):
+                    logger.warning(f"File {file} is not gzipped")
+                    continue
+                # if file alread unziped, skip it
+                if os.path.exists(file[:-3]):
+                    logger.warning(f"File {file} already unzipped")
+                    continue
+                logger.info(f"Unzipping {file}")
+                os.system(f"gunzip {file}")
         elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
             logger.info(f"short for SPAdes, resfinder, oprD, mlst, generate_excel")
@@ -166,23 +188,20 @@ if __name__ == "__main__":
             logger.info("Operations available: create_project")
     
     
-    
-    # reference = args.REFERENCE
-    
+    # reference = args.REFERENCE    
     # makedirs(path.join(PROJECTS_PATH, "Logs"), exist_ok=True)
 
-
-    # # Execute trimmomatic process
+    # Execute trimmomatic process
     # trimmomatic_run(PROJECT_NAME)
 
-    # # # Execute SPAdes analisis
+    # Execute SPAdes analisis
     # SPAdes_run(PROJECT_NAME)
 
-    # # # Execute bowtie analisis
+    # Execute bowtie analisis
     # bowtie_run(PROJECT_NAME, reference)
 
-    # # # Execute resfinder analisis
+    # Execute resfinder analisis
     # resfinder_run(PROJECT_NAME)
 
-    # # # Execute oprD analisis
+    # Execute oprD analisis
     # oprD_run(PROJECT_NAME)

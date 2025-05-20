@@ -22,8 +22,8 @@ config = init_configs(script_directory)
 
 def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=";"):
     if not os.path.exists(csv_path):
-        logger.warning(f"File not found {csv_path}")
-        logger.warning("Execute first the analysis")
+        logger.debug(f"File not found {csv_path}")
+        logger.debug("Execute first the analysis")
         return None
 
     try:
@@ -70,7 +70,11 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
 
             def check_if_exist(row, list):
                 for sample in list:
+
                     if row["name"]==sample["name"] and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
+                        return False
+                    
+                    if sample["name"].startswith("blaOXA") and row["name"].startswith("blaOXA"):
                         return False
                 return True
 
@@ -153,9 +157,9 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     
     combined_df = pd.concat(concat, axis=1)
     
-    # SNIPPY Section
     output_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
 
+    # SNIPPY Section
     snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
     if os.path.exists(snippy_csv):
         sheets = ["All", "All_clean", "Basic", "Basic_clean"]
@@ -188,6 +192,60 @@ def generate_excel_run(project_name, config=config, extra_config=None):
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")
+
+
+def generate_pdf_from_excel(project_name, config=config, extra_config=None):
+    import os
+    import pandas as pd
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph, Spacer
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import cm
+
+    PROJECTS_PATH = config["PROJECTS_PATH"]
+    OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}", "")
+    excel_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
+    pdf_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.pdf")
+
+    df = pd.read_excel(excel_file, sheet_name="All")
+
+    styles = getSampleStyleSheet()
+    style_title = styles['Heading2']
+
+    class PDFDocTemplate(SimpleDocTemplate):
+        def afterPage(self):
+            self.canv.saveState()
+            self.canv.setFont('Helvetica-Bold', 9)
+            self.canv.drawString(cm, A4[1] - 1.5 * cm, "ARPBIG IDISBA")
+            self.canv.setFont('Helvetica', 8)
+            self.canv.drawRightString(A4[0] - cm, 1.2 * cm, f"Page {self.page}")
+            self.canv.restoreState()
+
+    doc = PDFDocTemplate(pdf_file, pagesize=A4)
+    elements = []
+
+    for _, row in df.iterrows():
+        strain_id = row.get('STRAIN ID', 'Unknown')
+        elements.append(Paragraph(f"Strain ID: {strain_id}", style_title))
+        elements.append(Spacer(1, 6))
+
+        data = [[k, str(v) if pd.notna(v) else ''] for k, v in row.items() if k != 'STRAIN ID']
+        table = Table([['Field', 'Value']] + data, colWidths=[150, 380])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),  # Encabezado gris
+            ('GRID', (0, 0), (-1, -1), 0.25, colors.black),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        elements.append(table)
+        elements.append(PageBreak())
+
+    doc.build(elements)
+    logger.info(f"PDF generated: {pdf_file}")
+    return pdf_file
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')

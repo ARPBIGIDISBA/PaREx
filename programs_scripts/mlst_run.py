@@ -18,7 +18,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "mlst.json", required_keys=["MLST_PATH", "MLST_OPTIONS"])
 
-def mlst_run(project_name, config=config, direct_file = None, extra_config={"force": False, "keep_output": False}):
+def mlst_run(project_name, config=config, direct_file = None, extra_config={"force": False, "keep_output": True}):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 

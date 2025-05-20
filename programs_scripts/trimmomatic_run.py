@@ -19,7 +19,7 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "trimmomatic.json", required_keys=["TRIMMOMATIC_JAR_PATH", "TRIMMOMATIC_OPTIONS"])
 
 
-def trimmomatic_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
+def trimmomatic_run(project_name, config=config, extra_config={"force": False, "keep_output": True}):
     ''' 
         this function is used to apply the Trimmomatic program to the fastq.gz files
 

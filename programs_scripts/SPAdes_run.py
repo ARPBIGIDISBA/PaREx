@@ -17,7 +17,7 @@ script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "SPAdes.json", required_keys=["SPADES_PATH", "SPADES_OPTIONS"])
 
 
-def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_output": False}):
+def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_output": True}):
     ''' 
         this function is used to apply the SPAdes program to the fastq.gz files
 

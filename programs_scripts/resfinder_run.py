@@ -83,7 +83,7 @@ def filter_output(data, ignore_list):
     return csv_fullcoverage, csv_partialcoverage
 
 
-def resfinder_run(project_name, config=config, only_output=False, direct_file = None, extra_config={"force": False, "keep_output": False}):
+def resfinder_run(project_name, config=config, only_output=False, direct_file = None, extra_config={"force": False, "keep_output": True}):
     ''' 
         this function is used to apply the resfinder program to the denovo files output of SPAdes
 
@@ -180,6 +180,7 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
 
     # Generate summary file for resfinder
     df = process_resfinder_samples(RESFINDER_PATH)
+    print(df)
     OUTPUT_FILE = os.path.join(OUTPUT_PATH, f"{project_name}_resfinder_summary.xlsx")
     with pd.ExcelWriter(OUTPUT_FILE, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='FullCoverage', index=True)
