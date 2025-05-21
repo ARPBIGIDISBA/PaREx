@@ -59,12 +59,21 @@ def get_differences(hsps, name, gaps = 0):
         return differences
 
 def read_output(json_file):
-    data = json.load(open(json_file))['BlastOutput2'][0]['report']
+    try:
+        data = json.load(open(json_file))['BlastOutput2'][0]['report']
+    except json.decoder.JSONDecodeError as e:
+        logger.error("Error decoding JSON: %s", e)
+        logger.error("File %s is empty or not a valid JSON file", json_file)
+        data = {}
     return data
 
 def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
     protein_data = read_output(json_file)
-    
+    if not protein_data:
+        logger.error("Error reading json file %s", json_file)
+        # Remove the file if it is empty
+        os.remove(json_file)
+        return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
     logger.debug("Program: %s version %s",protein_data['program'], protein_data['version'])
     params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
     logger.debug("Params used: %s", params_str)
@@ -132,22 +141,32 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
 
-def PDC_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False, extra_config={"force": False, "keep_output": True}):
+def PDC_run(project_name, config=config, direct_file = None, extra_config={"force": False, "keep_output": True}):
     ''' 
         This function is the main function to run the PDC anylisis
 
         parameters:
             project_name (str): Name of the project
             config dict (dict): readed from Path  is resfinder.json
-            only_output (bool): Set the flag to not execute but only process json file
             direct_file (str): path to the file instead of list in sample list
-            normal_output (bool): Set the flag to not execute but only process normal blast outputs
+            extra_config (dict): Extra config to set the parameters
+                force (bool): Force
+                keep_output (bool): Keep the output
+                protein (bool): Set the flag to work with protein
+                nucleotide (bool): Set the flag to work with nucleotide
         results:
 
     '''
     
     if direct_file is None and extra_config["file"] is not None:
         direct_file = extra_config["file"]
+
+    if "nucleotide" not in extra_config.keys() and "protein" not in extra_config.keys():
+        extra_config["nucleotide"] = False
+        extra_config["protein"] = True
+    
+    if extra_config["nucleotide"]:
+        extra_config["protein"] = False
 
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
@@ -170,7 +189,6 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
     OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "PDC_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
-
 
     results_data = [
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
@@ -218,41 +236,46 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
             # sort files by pdc_name
             files = sorted(files, key=lambda x: int(x[1].split("-")[1]))
             
-            for index, protein_file in enumerate(files):
-                protein_file, name = files[index]
+            for index, file in enumerate(files):
+                file, name = files[index]
 
-                if protein_file.find(".fasta") == -1:
+                # if index > 3:
+                #     logger.debug("PDC found %s", name)
+                #     break
+
+                if file.find(".fasta") == -1:
                     continue
                 
                 logger.debug("Processing sample %s", name)
-                protein_file = os.path.join(PROTEIN_PATH, protein_file)
-                logger.debug("Using protein file: %s", protein_file)
+                file = os.path.join(PROTEIN_PATH, file)
+                logger.debug("Using protein file: %s", file)
                 
-                        
-                output_file_protein = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
+                output_file = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
                 os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
-
-                logger.debug("Output file %s", output_file_protein)
+                logger.debug("Output file %s", output_file)
                 
-                if normal_output:
-                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein.replace(".json", "")] + TBLASTN_OPTIONS
+                # This is for nucleotide
+                if extra_config["nucleotide"]:
+                    command_protein = ["blastn", "-query", SPADES_FILE, "-subject", file, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                # This is for protein
+                elif extra_config["protein"]:
+                    command_protein = ["blastp", "-query", SPADES_FILE, "-subject", file, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+            
+                if extra_config["force"] or not os.path.exists(output_file):
+                    logger.debug("Executing command: %s", " ".join(command_protein))
+                    result_pro = execute_command(command_protein)
+                    result = True
                 else:
-                    command_protein = ["tblastn", "-query", protein_file, "-subject", SPADES_FILE, "-out", output_file_protein, "-outfmt", "15"] + TBLASTN_OPTIONS
-                
-                if only_output and not normal_output:
-                    if os.path.exists(output_file_protein):
+                    if os.path.exists(output_file):
+                        logger.debug("Output file %s already exists", output_file)
                         result = True
                     else:
-                        logger.error("File not found: %s", output_file_protein)
-                        logger.error("You have to run first the PDC process")
+                        logger.error("Output file %s does not exist", output_file)
                         result = False
-                else:
-                    result_pro = execute_command(command_protein)
-                    result = result_pro
             
-                if result and not normal_output:
+                if result:
                     # Read the json file and get the results
-                    results = analize_sample(output_file_protein, name, "protein")
+                    results = analize_sample(output_file, name, "protein")
                     
                     logger.debug("***********************************************")
                     logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
@@ -268,25 +291,23 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                     
                     if name == "PDC-1":
                         logger.debug("PDC-1 found")
-                        PDC1["path"] = protein_file
+                        PDC1["path"] = file
                         PDC1["value"] = bit_score
                         PDC1["gaps"] = gaps
                         PDC1["identity"] = identity
                         PDC1["differences"] = results["differences"]
                         
                     if bit_score >= max_bitscore["value"]:
-                        logger.debug("------------New max bit score %s", bit_score)
-                                # read text from protein file
-                        with open(protein_file, "r") as f:
+                        # read text from protein file
+                        with open(file, "r") as f:
                             # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
-                            # read first line of the file 
                             protein_text = f.readline()
                             # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
                             full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
-                        logger.debug("I am here with full name and pdc name", full_name, name, results["differences"])
+
                         # Save the max bitscore
                         max_bitscore["name"] = full_name
-                        max_bitscore["path"] = protein_file
+                        max_bitscore["path"] = file
                         max_bitscore["value"] = bit_score
                         max_bitscore["gaps"] = gaps
                         max_bitscore["identity"] = identity
@@ -298,8 +319,7 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
                         logger.info("***********************************************")
                         break
                 else:
-                    if not normal_output and not only_output:
-                        logger.error("PDC failed assembly failed on sample %s", sample_name)
+                    logger.error("PDC failed assembly failed on sample %s", sample_name)
 
             if max_bitscore["gaps"] == -1:
                 logger.warning("PDC failed assembly failed on sample %s", sample_name)
@@ -308,7 +328,8 @@ def PDC_run(project_name, config=config, only_output = False, direct_file = None
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
                 logger.info("***********************************************")  
                 results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
+            #elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
+            else:
                 results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
             # Crear y escribir en el archivo CSV usando punto y coma como delimitador
@@ -327,11 +348,14 @@ if __name__ == "__main__":
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')   
     parser.add_argument('--file', type=str, help='Path to the file', default=None)
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
-    parser.add_argument('--normal-output', action='store_true', help='Produce only screen process normal blast outputs') 
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default=None)
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     parser.add_argument('--keep_output', action='store_true', help='Keep the output')
-                        
+    # Define argumnents if we want to work in protein or nucleotide default is protein
+    
+    parser.add_argument('--protein', action='store_true', default=True, help='Set the flag to work with protein')
+    parser.add_argument('--nucleotide', action='store_true', default=False, help='Set the flag to work with nucleotide')
+                            
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
 
@@ -343,4 +367,4 @@ if __name__ == "__main__":
 
     logger = logging.getLogger(__name__)
 
-    PDC_run(project_name, config, args.parse_output, args.file, args.normal_output, extra_config={"force": args.force, "keep_output": args.keep_output})    
+    PDC_run(project_name, config, args.file, extra_config={"force": args.force, "keep_output": args.keep_output, "protein": args.protein, "nucleotide": args.nucleotide, "file": args.file})    

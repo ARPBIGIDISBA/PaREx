@@ -126,32 +126,31 @@ def translate_amino_acid(value, value_c=""):
 
 def read_data_from_file(filename):
     # Read All tab no matter if upper or lower case
-    all_df = pd.read_excel(filename, sheet_name='All').fillna('')
-    basic_df = pd.read_excel(filename, sheet_name='Basic').fillna('')
-
-    files = [all_df, basic_df]
-    keys = ['All', 'Basic']
-    output = {}
+    all_df = pd.read_excel(filename, sheet_name='Extended_resistome').fillna('')
+    basic_df = pd.read_excel(filename, sheet_name='Basic_resistome').fillna('')
+    cefidoroco_df = pd.read_excel(filename, sheet_name='Cefidorocol_resistome').fillna('')
     
+    all_df = all_df.rename(columns=lambda x: x.strip())
+    basic_df = basic_df.rename(columns=lambda x: x.strip())
+    cefidoroco_df = cefidoroco_df.rename(columns=lambda x: x.strip())
 
+    files = [all_df, basic_df, cefidoroco_df]
+    keys = ['Extended_resistome', 'Basic_resistome', 'Cefidorocol_resistome']
+
+    output = {}
     for key, df in enumerate(files):
         data = {}
         for index, row in df.iterrows():
-            locus_gene, polymorphisms = row
-            if locus_gene.find("_")>0:
-                locus, gene = locus_gene.split('_')
-            else:
-                locus = locus_gene
-                gene = ""
-
+            locus = row['GENE_LOCUS']
+            gene = row['GENE_NAME']    
+            polymorphisms = row['POLYMORPHISMS']        
             if gene == "-":
                 gene = ""
-
             polymorphisms = polymorphisms.rstrip('.').split(', ')
             cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
             data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
-
         output[keys[key]] = data
+
     return output
 
 
@@ -170,8 +169,7 @@ def process_output(vcf_path, sample_name, output_path):
         # Iterar sobre cada registro en el archivo VCF
         path = config.get("POLYMORPHISMS")
         filter = read_data_from_file(path)
-        filter_all = filter['All']
-
+        filter_all = filter['Extended_resistome']
 
         results = []
         for record in vcf_file:
@@ -180,6 +178,7 @@ def process_output(vcf_path, sample_name, output_path):
                 # Each annotation can be split by comma, and further by pipe '|'
                 for annotation in annotations:
                     fields = annotation.split('|')
+                    
                     # Check if the impact field matches 'MODERATE'
                     if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
                         locus = fields[3]
@@ -197,8 +196,9 @@ def combined_excel_files(samples, output_path):
     output_dir = os.path.join(output_path, "processed")
     path = config.get("POLYMORPHISMS")
     filter = read_data_from_file(path)
-    filter_all = filter['All']
-    filter_basic = filter['Basic']
+    filter_all = filter['Extended_resistome']
+    filter_basic = filter['Basic_resistome']
+    filter_cefidoroco = filter['Cefidorocol_resistome']
     csv_output = os.path.join(output_path, "combined_snippy.xlsx")
 
     columns_all = ["sample_name"]
@@ -209,17 +209,26 @@ def combined_excel_files(samples, output_path):
     for locus in filter_basic:
         name = f"{locus}_{filter_basic[locus]['gene']}"
         columns_basic.append(name)
+    columns_cefidoroco = ["sample_name"]
+    for locus in filter_cefidoroco:
+        name = f"{locus}_{filter_cefidoroco[locus]['gene']}"
+        columns_cefidoroco.append(name)
+
     df_all = pd.DataFrame(columns=columns_all)
     df_all_clean = pd.DataFrame(columns=columns_all)
     df_basic = pd.DataFrame(columns=columns_basic)
     df_basic_clean = pd.DataFrame(columns=columns_basic)
+    df_cefidoroco = pd.DataFrame(columns=columns_cefidoroco)
+    df_cefidoroco_clean = pd.DataFrame(columns=columns_cefidoroco)
 
     # sample_name column is an index
     df_all.set_index('sample_name', inplace=True)
     df_all_clean.set_index('sample_name', inplace=True)
     df_basic.set_index('sample_name', inplace=True)
     df_basic_clean.set_index('sample_name', inplace=True)
-
+    df_cefidoroco.set_index('sample_name', inplace=True)
+    df_cefidoroco_clean.set_index('sample_name', inplace=True)
+    
     for sample_name in samples:
         sample_name = sample_name.strip()
         csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
@@ -228,20 +237,19 @@ def combined_excel_files(samples, output_path):
             continue
         #read the csv file
         df = pd.read_csv(csv_path, delimiter=";")
+        logger.info("File %s read", csv_path)
         # select the columns to be added to the final file
         df = df[['locus', 'genes', 'changes', 'filtered_mutations']]
-        # create a pandas with rows with different locus as columns
+        
         # find column to insert value in df_all
         for index, row in df.iterrows():
             locus = row['locus']
             gene = row['genes']
             changes = row['changes']
             filtered_mutations = row['filtered_mutations']
-            
             if locus in filter_all.keys():
                 name = f"{locus}_{gene}"
                 if name in df_all.columns:
-                    
                     if sample_name in df_all.index and pd.notna(df_all.loc[sample_name, name]):
                         changes_filter = f"{changes},{df_all.loc[sample_name, name]}"
                     else:
@@ -252,13 +260,24 @@ def combined_excel_files(samples, output_path):
                         if sample_name in df_all_clean.index and pd.notna(df_all_clean.loc[sample_name, name]):
                             # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name])
                             mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
+                            
                         else:
-                            mutations = filtered_mutations
+                            # Check if array and if not empty
+                            if not isinstance(filtered_mutations, str):
+                                # join if not empty string
+                                if len(filtered_mutations) > 0:
+                                    mutations = ",".join(filtered_mutations)
+                                else:
+                                    mutations = ""
+                            else:
+                                mutations = filtered_mutations
+                            
+                        logger.info("Adding %s %s", sample_name, mutations)
                         df_all_clean.loc[sample_name, name] = mutations
+
             if locus in filter_basic.keys():
                 name = f"{locus}_{gene}"
                 if name in df_basic.columns:
-                    
                     if sample_name in df_basic.index and pd.notna(df_basic.loc[sample_name, name]):
                         changes_filter = f"{changes},{df_basic.loc[sample_name, name]}"
                     else:
@@ -273,20 +292,36 @@ def combined_excel_files(samples, output_path):
                             mutations = filtered_mutations
                         df_basic_clean.loc[sample_name, name] = mutations
 
+            if locus in filter_cefidoroco.keys():
+                name = f"{locus}_{gene}"
+                if name in df_cefidoroco.columns:
+                    if sample_name in df_cefidoroco.index and pd.notna(df_cefidoroco.loc[sample_name, name]):
+                        changes_filter = f"{changes},{df_cefidoroco.loc[sample_name, name]}"
+                    else:
+                        changes_filter = changes
+                    df_cefidoroco.loc[sample_name, name] = changes_filter
+                    if pd.notna(filtered_mutations):
+                        if sample_name in df_cefidoroco_clean.index and pd.notna(df_cefidoroco_clean.loc[sample_name, name]):
+                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name])
+                            mutations = f"{filtered_mutations},{df_cefidoroco_clean.loc[sample_name, name]}"
+                        else:
+                            mutations = filtered_mutations
+                        df_cefidoroco_clean.loc[sample_name, name] = mutations
+
     if os.path.exists(csv_output):
         os.remove(csv_output)
 
-    # workbook = openpyxl.Workbook()
-    # workbook.save(csv_output)
     workbook = openpyxl.Workbook()
     workbook.save(csv_output)
-            
+    logger.info("Saving the file %s", csv_output)        
     # Cargar el archivo existente sin sobrescribir
     with pd.ExcelWriter(csv_output, engine='openpyxl') as writer:
-        df_all.to_excel(writer, sheet_name='All', index=True)
-        df_all_clean.to_excel(writer, sheet_name='All_clean', index=True)
-        df_basic.to_excel(writer, sheet_name='Basic', index=True)
-        df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
+        df_all.to_excel(writer, sheet_name='Extended_resistome', index=True)
+        df_all_clean.to_excel(writer, sheet_name='Extended_resistome_clean', index=True)
+        df_basic.to_excel(writer, sheet_name='Basic_resistome', index=True)
+        df_basic_clean.to_excel(writer, sheet_name='Basic_resistome_clean', index=True)
+        df_cefidoroco.to_excel(writer, sheet_name='Cefidorocol_resistome', index=True)
+        df_cefidoroco_clean.to_excel(writer, sheet_name='Cefidorocol_resistome_clean', index=True)
         
 
 def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": True}):
@@ -307,16 +342,15 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     if extra_config["file"] is not None:
         direct_file = extra_config["file"]
     
+    
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
         samples = read_args(project_name, config)
     else:
         samples = [direct_file]
 
-    if direct_file is None and extra_config["file"] is not None:
-        direct_file = extra_config["file"]
-    # Leer las muestras y ficheros de configuracion
-    samples = read_args(project_name, config)
+    logger.info("Samples to process %s", samples)
+
 
     # Parametros de configuración de este script
     PROJECTS_PATH = config['PROJECTS_PATH']
@@ -346,8 +380,11 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
         input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
         input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-            logger.error(f"The fastq.gz file for {sample_name} don't exist")
-            logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
+            if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
+                logger.error(f"The fastq.gz file for {sample_name} don't exist")
+                logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
 
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
@@ -365,6 +402,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
             # Ejecutar Trimmomatic
             command = [SNIPPY_PATH, "--outdir", OUTPUT_RESULTS, "--ref", SNIPPY_REFERENCE, "--R1", input_r1_path, "--R2", input_r2_path] + SNIPPY_OPTIONS
             result = execute_command(command)
+            
         if result:
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)
@@ -383,6 +421,7 @@ if __name__ == "__main__":
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
     parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--file', type=str, help='Direct file to process', default=None)
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
@@ -390,4 +429,4 @@ if __name__ == "__main__":
 
     configure_logs(PROJECT_NAME, "snippy", config)
     logger = logging.getLogger(__name__)
-    snippy_run(PROJECT_NAME, args.parse_output, config, extra_config={"force": args.force, "keep_output": args.keep_output})
+    snippy_run(PROJECT_NAME, args.parse_output, config, extra_config={"force": args.force, "keep_output": args.keep_output, "file": args.file})

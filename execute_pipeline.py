@@ -13,7 +13,7 @@ import glob
 # Add path Scripts to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'programs_scripts')))
 
-from programs_scripts.modules.general_functions import read_config, check_project
+from programs_scripts.modules.general_functions import read_config, check_project, execute_command
 from programs_scripts.trimmomatic_run import trimmomatic_run
 from programs_scripts.SPAdes_run import SPAdes_run
 from programs_scripts.bowtie_run import bowtie_run
@@ -24,7 +24,6 @@ from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run, generate_pdf_from_excel
 from programs_scripts.novaseq_run import novaseq_run
-
 
 logger = logging.getLogger(__name__)
 
@@ -159,23 +158,20 @@ if __name__ == "__main__":
         elif operation == "unzip":
             logger.info(f"Unzipping files for project {PROJECT_NAME}")
             path = os.path.join(project_path, f"FASTQ_{PROJECT_NAME}")
-            fastaq_files = glob.glob(f'{path}/*.fastq.gz')
+            fastaq_files = glob.glob(f'{path}/*.fastq*')
             for file in fastaq_files:
                 # If the file is not gzipped, skip it
                 if not file.endswith(".gz"):
                     logger.warning(f"File {file} is not gzipped")
                     continue
-                # if file alread unziped, skip it
-                if os.path.exists(file[:-3]):
-                    logger.warning(f"File {file} already unzipped")
-                    continue
-                logger.info(f"Unzipping {file}")
-                os.system(f"gunzip {file}")
+                else:
+                    logger.info(f"Unzipping {file}")
+                    execute_command(["gunzip", file])
+
         elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
             logger.info(f"short for SPAdes, resfinder, oprD, mlst, generate_excel")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
-            reference = args.reference
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
             oprD_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)

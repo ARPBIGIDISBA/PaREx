@@ -162,7 +162,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     # SNIPPY Section
     snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
     if os.path.exists(snippy_csv):
-        sheets = ["All", "All_clean", "Basic", "Basic_clean"]
+        sheets = ["Extended_resistome", "Basic_resistome", "Cefidorocol_resistome"]
         for sheet in sheets:
             df_snippy = pd.read_excel(snippy_csv, sheet_name=sheet)
             ## rename sample_name to STRAIN ID16835951_S9_L001 16835951_S9_L001
@@ -170,24 +170,29 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].str.strip().str.replace('"', '')
             df_snippy = df_snippy.set_index("STRAIN ID")
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
-            if sheet == "All":
-                df_all = df_snippy
-            elif sheet == "All_clean":
-                df_all_clean = df_snippy
-            elif sheet == "Basic":
-                df_basic = df_snippy
-            elif sheet == "Basic_clean":
-                df_basic_clean = df_snippy
+            if sheet == "Extended_resistome":
+                df_extended_resistome = df_snippy
+            elif sheet == "Extended_resistome_clean":
+                df_extended_resistome_clean = df_snippy
+            elif sheet == "Basic_resistome":
+                df_basic_resistome = df_snippy
+            elif sheet == "Basic_resistome_clean":
+                df_basic_resistome_clean = df_snippy
+            elif sheet == "Cefidorocol_resistome":
+                df_cefidorol_resistome = df_snippy
+            elif sheet == "Cefidorocol_resistome_clean":
+                df_cefidorol_resistome_clean = df_snippy
 
         # Cargar el archivo existente sin sobrescribir
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            df_all.to_excel(writer, sheet_name='All', index=True)
-            df_all_clean.to_excel(writer, sheet_name='All_clean', index=True)
-            df_basic.to_excel(writer, sheet_name='Basic', index=True)
-            df_basic_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
+            df_extended_resistome.to_excel(writer, sheet_name='All', index=True)
+            df_extended_resistome_clean.to_excel(writer, sheet_name='All_clean', index=True)
+            df_basic_resistome.to_excel(writer, sheet_name='Basic', index=True)
+            df_basic_resistome_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
+            df_cefidorol_resistome.to_excel(writer, sheet_name='Cefidorocol', index=True)
+            df_cefidorol_resistome_clean.to_excel(writer, sheet_name='Cefidorocol_clean', index=True)            
 
     else:
-        print(combined_df)
         ## Add to combined_df the index of the samples
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 

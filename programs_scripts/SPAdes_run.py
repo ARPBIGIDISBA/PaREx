@@ -68,26 +68,31 @@ def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_
         input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
         execute = True
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-            logger.warning("You have to run first the trimmomatic process")
+            logger.debug("You have to run first the trimmomatic process")
             if not os.path.exists(input_r1_path):
                 execute = False
-                logger.warning("This file does not exist: %s", input_r1_path)
+                logger.debug("This file does not exist: %s", input_r1_path)
             
             if not os.path.exists(input_r2_path):
                 execute = False
-                logger.warning("This file does not exist: %s", input_r2_path)
-        
+                logger.debug("This file does not exist: %s", input_r2_path)
         if not execute:
-            logger.warning("ussing the untrimmed files")
             # Crear los paths de entrada y salida
             input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
             input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
-            logger.warning("Files used: %s %s", input_r1_path, input_r2_path)
+            logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
             if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
                 execute = True      
             else:
-                logger.error("The original FASTQ files does not exist either")
-        
+                input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
+                input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
+                logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
+                if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                    execute = True
+                else:
+                    logger.warning("Files used: %s %s", input_r1_path, input_r2_path)
+                    execute = False
+                    
         if execute:
             old_file_path = os.path.join(OUTPUT_PATH, "contigs.fasta")
             new_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
@@ -127,7 +132,7 @@ if __name__ == "__main__":
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
-    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
+    parser.add_argument('--keep_output', action='store_true', default=True, help='Keep the output files')
 
     
     args = parser.parse_args()

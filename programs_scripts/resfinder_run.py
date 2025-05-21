@@ -180,11 +180,11 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
 
     # Generate summary file for resfinder
     df = process_resfinder_samples(RESFINDER_PATH)
-    print(df)
+    
     OUTPUT_FILE = os.path.join(OUTPUT_PATH, f"{project_name}_resfinder_summary.xlsx")
     with pd.ExcelWriter(OUTPUT_FILE, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='FullCoverage', index=True)
-            
+    logger.info("Excel file generated %s", OUTPUT_FILE)
     os.chdir(previous_dir)
     if not extra_config["keep_output"]:
         os.system(f"rm -rf {OUTPUT_PATH_SCRIPT}")
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process json file')
     parser.add_argument('--file', type=str, help='Path to the file', default=None)
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
-    parser.add_argument('--keep_output', action='store_true', help='Keep the output files')
+    parser.add_argument('--keep_output', action='store_true', default = True, help='Keep the output files')
 
     args = parser.parse_args()
     project_name = args.PROJECT_NAME
