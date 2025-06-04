@@ -129,13 +129,15 @@ def read_data_from_file(filename):
     all_df = pd.read_excel(filename, sheet_name='Extended_resistome').fillna('')
     basic_df = pd.read_excel(filename, sheet_name='Basic_resistome').fillna('')
     cefidoroco_df = pd.read_excel(filename, sheet_name='Cefidorocol_resistome').fillna('')
+    hypermutation_df = pd.read_excel(filename, sheet_name='Hypermutation').fillna('')
     
     all_df = all_df.rename(columns=lambda x: x.strip())
     basic_df = basic_df.rename(columns=lambda x: x.strip())
     cefidoroco_df = cefidoroco_df.rename(columns=lambda x: x.strip())
+    hypermutation_df = hypermutation_df.rename(columns=lambda x: x.strip())
 
-    files = [all_df, basic_df, cefidoroco_df]
-    keys = ['Extended_resistome', 'Basic_resistome', 'Cefidorocol_resistome']
+    files = [all_df, basic_df, cefidoroco_df, hypermutation_df]
+    keys = ['Extended_resistome', 'Basic_resistome', 'Cefidorocol_resistome', 'Hypermutation']
 
     output = {}
     for key, df in enumerate(files):
@@ -193,135 +195,79 @@ def process_output(vcf_path, sample_name, output_path):
 
 
 def combined_excel_files(samples, output_path):
+    # Set paths and files
     output_dir = os.path.join(output_path, "processed")
-    path = config.get("POLYMORPHISMS")
-    filter = read_data_from_file(path)
-    filter_all = filter['Extended_resistome']
-    filter_basic = filter['Basic_resistome']
-    filter_cefidoroco = filter['Cefidorocol_resistome']
     csv_output = os.path.join(output_path, "combined_snippy.xlsx")
+    csv_output_full = os.path.join(output_path, "combined_snippy_full.xlsx")
+    path = config.get("POLYMORPHISMS")
 
-    columns_all = ["sample_name"]
-    for locus in filter_all:
-        name = f"{locus}_{filter_all[locus]['gene']}"
-        columns_all.append(name)
-    columns_basic = ["sample_name"]
-    for locus in filter_basic:
-        name = f"{locus}_{filter_basic[locus]['gene']}"
-        columns_basic.append(name)
-    columns_cefidoroco = ["sample_name"]
-    for locus in filter_cefidoroco:
-        name = f"{locus}_{filter_cefidoroco[locus]['gene']}"
-        columns_cefidoroco.append(name)
+    # Define tabs to filter by 
+    filter = read_data_from_file(path)
+    filter_names = ['Extended_resistome', 'Basic_resistome', 'Cefidorocol_resistome', 'Hypermutation']
+    filters = {name: filter[name] for name in filter_names}
 
-    df_all = pd.DataFrame(columns=columns_all)
-    df_all_clean = pd.DataFrame(columns=columns_all)
-    df_basic = pd.DataFrame(columns=columns_basic)
-    df_basic_clean = pd.DataFrame(columns=columns_basic)
-    df_cefidoroco = pd.DataFrame(columns=columns_cefidoroco)
-    df_cefidoroco_clean = pd.DataFrame(columns=columns_cefidoroco)
-
-    # sample_name column is an index
-    df_all.set_index('sample_name', inplace=True)
-    df_all_clean.set_index('sample_name', inplace=True)
-    df_basic.set_index('sample_name', inplace=True)
-    df_basic_clean.set_index('sample_name', inplace=True)
-    df_cefidoroco.set_index('sample_name', inplace=True)
-    df_cefidoroco_clean.set_index('sample_name', inplace=True)
+    columns_per_filter = {
+        "Extended_resistome": ["locus", "genes", "changes", "filtered_mutations"],
+        "Basic_resistome": ["locus", "genes"],
+        "Cefidorocol_resistome": ["locus", "genes", "filtered_mutations"],
+        "Hypermutation": ["locus", "genes", "changes"]
+    }
     
+    dataframes = {}
+    for filter_name, loci in filters.items():
+        columns = ["sample_name"] + [
+            f"{locus}_{info['gene']}" for locus, info in loci.items()
+        ]
+        dataframes[filter_name] = pd.DataFrame(columns=columns).set_index("sample_name")
+        dataframes[f"{filter_name}_clean"] = pd.DataFrame(columns=columns).set_index("sample_name")
+
     for sample_name in samples:
         sample_name = sample_name.strip()
-        csv_path = os.path.join(output_dir, f"{sample_name.strip()}_snippy.csv")
+        csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
         if not os.path.exists(csv_path):
             logger.warning("The file %s does not exist", csv_path)
             continue
-        #read the csv file
-        df = pd.read_csv(csv_path, delimiter=";")
-        logger.info("File %s read", csv_path)
-        # select the columns to be added to the final file
-        df = df[['locus', 'genes', 'changes', 'filtered_mutations']]
+        df = pd.read_csv(csv_path, delimiter=";", na_values=["nan", "NaN"])
+        df.replace("nan", pd.NA, inplace=True)
+        df.replace("NaN", pd.NA, inplace=True)
+        df = df.fillna('')
         
-        # find column to insert value in df_all
-        for index, row in df.iterrows():
-            locus = row['locus']
-            gene = row['genes']
-            changes = row['changes']
-            filtered_mutations = row['filtered_mutations']
-            if locus in filter_all.keys():
-                name = f"{locus}_{gene}"
-                if name in df_all.columns:
-                    if sample_name in df_all.index and pd.notna(df_all.loc[sample_name, name]):
-                        changes_filter = f"{changes},{df_all.loc[sample_name, name]}"
-                    else:
-                        changes_filter = changes
-                    df_all.loc[sample_name, name] = changes_filter
-                    if pd.notna(filtered_mutations):
-                        
-                        if sample_name in df_all_clean.index and pd.notna(df_all_clean.loc[sample_name, name]):
-                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name])
-                            mutations = f"{filtered_mutations},{df_all_clean.loc[sample_name, name]}"
-                            
-                        else:
-                            # Check if array and if not empty
-                            if not isinstance(filtered_mutations, str):
-                                # join if not empty string
-                                if len(filtered_mutations) > 0:
-                                    mutations = ",".join(filtered_mutations)
-                                else:
-                                    mutations = ""
-                            else:
-                                mutations = filtered_mutations
-                            
-                        logger.info("Adding %s %s", sample_name, mutations)
-                        df_all_clean.loc[sample_name, name] = mutations
+        for filter_name, loci in filters.items():
+            columns = columns_per_filter[filter_name]
+            for _, row in df.iterrows():
+                locus = row['locus']
+                gene = row['genes']
+                changes = row.get('changes', '')
+                filtered_mutations = row.get('filtered_mutations', '')
+                colname = f"{locus}_{gene}"
+                if locus in loci and colname in dataframes[filter_name].columns:
+                    # cambios
+                    prev = dataframes[filter_name].at[sample_name, colname] if sample_name in dataframes[filter_name].index else ''
+                    parts = [str(x) for x in [changes, prev] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
+                    val = ",".join(parts)
+                    dataframes[filter_name].at[sample_name, colname] = val
 
-            if locus in filter_basic.keys():
-                name = f"{locus}_{gene}"
-                if name in df_basic.columns:
-                    if sample_name in df_basic.index and pd.notna(df_basic.loc[sample_name, name]):
-                        changes_filter = f"{changes},{df_basic.loc[sample_name, name]}"
-                    else:
-                        changes_filter = changes
-                    df_basic.loc[sample_name, name] = changes_filter
-
-                    if pd.notna(filtered_mutations):
-                        if sample_name in df_basic_clean.index and pd.notna(df_basic_clean.loc[sample_name, name]):
-                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name] )
-                            mutations = f"{filtered_mutations},{df_basic_clean.loc[sample_name, name]}"                            
-                        else:
-                            mutations = filtered_mutations
-                        df_basic_clean.loc[sample_name, name] = mutations
-
-            if locus in filter_cefidoroco.keys():
-                name = f"{locus}_{gene}"
-                if name in df_cefidoroco.columns:
-                    if sample_name in df_cefidoroco.index and pd.notna(df_cefidoroco.loc[sample_name, name]):
-                        changes_filter = f"{changes},{df_cefidoroco.loc[sample_name, name]}"
-                    else:
-                        changes_filter = changes
-                    df_cefidoroco.loc[sample_name, name] = changes_filter
-                    if pd.notna(filtered_mutations):
-                        if sample_name in df_cefidoroco_clean.index and pd.notna(df_cefidoroco_clean.loc[sample_name, name]):
-                            # logger.debug("here %s %s", filtered_mutations, df_basic_clean.loc[sample_name, name])
-                            mutations = f"{filtered_mutations},{df_cefidoroco_clean.loc[sample_name, name]}"
-                        else:
-                            mutations = filtered_mutations
-                        df_cefidoroco_clean.loc[sample_name, name] = mutations
-
+                    # clean
+                    prev_clean = dataframes[f"{filter_name}_clean"].at[sample_name, colname] if sample_name in dataframes[f"{filter_name}_clean"].index else ''
+                    parts_clean = [str(x) for x in [filtered_mutations, prev_clean] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
+                    val_clean = ",".join(parts_clean)
+                    dataframes[f"{filter_name}_clean"].at[sample_name, colname] = val_clean
     if os.path.exists(csv_output):
         os.remove(csv_output)
-
-    workbook = openpyxl.Workbook()
-    workbook.save(csv_output)
-    logger.info("Saving the file %s", csv_output)        
-    # Cargar el archivo existente sin sobrescribir
+    
     with pd.ExcelWriter(csv_output, engine='openpyxl') as writer:
-        df_all.to_excel(writer, sheet_name='Extended_resistome', index=True)
-        df_all_clean.to_excel(writer, sheet_name='Extended_resistome_clean', index=True)
-        df_basic.to_excel(writer, sheet_name='Basic_resistome', index=True)
-        df_basic_clean.to_excel(writer, sheet_name='Basic_resistome_clean', index=True)
-        df_cefidoroco.to_excel(writer, sheet_name='Cefidorocol_resistome', index=True)
-        df_cefidoroco_clean.to_excel(writer, sheet_name='Cefidorocol_resistome_clean', index=True)
+        dataframes['Extended_resistome'].to_excel(writer, sheet_name='Extended_resistome', index=True)
+        dataframes['Extended_resistome_clean'].to_excel(writer, sheet_name='Extended_resistome_clean', index=True)
+        dataframes['Basic_resistome'].to_excel(writer, sheet_name='Basic_resistome', index=True)
+        dataframes['Basic_resistome_clean'].to_excel(writer, sheet_name='Basic_resistome_clean', index=True)
+    logger.info("Saving the file %s", csv_output)  
+    if os.path.exists(csv_output_full):
+        os.remove(csv_output_full)
+
+    with pd.ExcelWriter(csv_output_full, engine='openpyxl') as writer:
+        for name, df in dataframes.items():
+            df.to_excel(writer, sheet_name=name, index=True)
+    logger.info("Saving the file full hyperresistome %s", csv_output_full)  
         
 
 def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": True}):

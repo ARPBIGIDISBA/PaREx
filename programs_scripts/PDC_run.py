@@ -193,7 +193,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     results_data = [
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
     ]
-
+    filename = None
     for sample_name in samples:
         
         if direct_file:
@@ -338,10 +338,13 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 writer = csv.writer(file, delimiter=';')
                 writer.writerows(results_data)
     
-    logger.info("PDC analysis finished: result in %s", filename)
-    if not extra_config["keep_output"]:
-        os.system(f"rm -r {os.path.join(OUTPUT_PATH, 'output')}")
+    if filename is not None:
+        logger.info("PDC analysis finished: result in %s", filename)
+        if not extra_config["keep_output"]:
+            os.system(f"rm -r {os.path.join(OUTPUT_PATH, 'output')}")
 
+    else:
+        logger.error("PDC analysis finished but no results found")
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')

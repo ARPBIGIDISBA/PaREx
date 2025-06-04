@@ -46,26 +46,29 @@ def filter_output(data, ignore_list):
     for seq_key, seq_info in data["seq_regions"].items():
         name = seq_info["name"]
         if name not in ignore_list:
-            alignment = seq_info["alignment_length"]
-            seq_length = seq_info["ref_seq_length"]
+            alignment_length = seq_info["alignment_length"]
+            ref_seq_length = seq_info["ref_seq_length"]
             identity = seq_info["identity"]
             start_pos = seq_info["ref_start_pos"]
             end_pos = seq_info["ref_end_pos"]
-            ref_query = seq_info["ref_seq_length"]
             coverage = seq_info["coverage"]
+            if coverage != (alignment_length / ref_seq_length) * 100:
+                logger.warning("Coverage mismatch: %s != %s", coverage, (alignment_length / ref_seq_length) * 100)
+                coverage = (alignment_length / ref_seq_length) * 100
+            
             phenotypes = ', '.join(seq_info['phenotypes'])
             #logh keys seq_info
             logger.info("Gene: %s identity %2.f. (%s, %s) %s %s", name, identity, start_pos, end_pos, identity, coverage)
-            line = f"{name};{identity};{coverage};{start_pos};{end_pos};{ref_query};{coverage};{seq_info['ref_id']};{seq_info['query_id']};"
+            line = f"{name};{identity};{coverage};{start_pos};{end_pos};{ref_seq_length};{coverage};{seq_info['ref_id']};{seq_info['query_id']};"
             line += f"{seq_info['query_start_pos']};{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
 
             # Change to postive first
-            if (alignment == seq_length and coverage >= 100) or name=="crpP":
+            if (alignment_length == ref_seq_length and coverage >= 100) or name=="crpP":
                 full = True
                 csv_fullcoverage = csv_fullcoverage + line
             else:
-                if alignment != seq_length:
-                    logger.info("   Distint lenght: %s %s", alignment, seq_length)
+                if alignment_length != ref_seq_length:
+                    logger.info("   Distint lenght: %s %s", alignment_length, ref_seq_length)
                 if coverage < 100:
                     logger.info("   Coverage minus 100%%: %s", coverage)
                 posible = True
