@@ -13,6 +13,7 @@ from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 import glob
 import pandas as pd
+import re
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -121,6 +122,88 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
 
     return resfinder_df
 
+def reorder_columns(df, moving_cols, ref_col):
+        """
+        Reorders specific columns in the DataFrame to ensure they appear in a desired order.
+        """
+        cols = list(df.columns)
+
+        # Quita las columnas PDC si ya están
+        for col in moving_cols:
+            if col in cols:
+                cols.remove(col)
+
+        # Busca la posición de la columna de referencia
+        if ref_col in cols:
+            idx = cols.index(ref_col)
+            # Inserta las columnas después, manteniendo orden
+            for col in reversed(moving_cols):  # reversed para que queden en el orden correcto
+                cols.insert(idx + 1, col)
+
+        # Reorder the columns
+        df = df.reindex(columns=cols)
+        return df
+
+def rename_columns(df):
+    """
+    Renames columns in a DataFrame based on a mapping dictionary.
+    
+    Parameters:
+    df (pd.DataFrame): The DataFrame whose columns are to be renamed.
+    columns_mapping (dict): A dictionary where keys are current column names and values are new column names.
+    
+    Returns:
+    pd.DataFrame: The DataFrame with renamed columns.
+    """
+    columns_mapping = {
+        "sequence_type": "ST",
+        "alleles": "MLST allelic profile",
+        "beta": "Acquired beta-lactamases",
+        "aminoglycoside": "Acquired aminoglycoside modifying enzymes",
+        "fluoroquinolones": "Acquired quinolones resistance genes",
+        "other": "Other acquired resistance genes",
+        "oprD_REFERENCE": "oprD_reference-strain",
+        "PDC": "aminoacid substitutions (vs PDC-1)",
+        "PDC_REFERENCE": "PDC variant (RefSeq protein ID)"
+    }
+    # Strain ID is the index of the DataFrame, so we need to rename it separately
+    if "STRAIN ID" in df.index.names:
+        df.index.rename("Isolate ID", inplace=True)
+    
+    df = df.rename(columns=columns_mapping)
+
+    primeras = ["ST", "MLST allelic profile", "Acquired beta-lactamases", "Acquired aminoglycoside modifying enzymes", "Acquired quinolones resistance genes", "Other acquired resistance genes"]  # las que quieras primero
+
+    resto = [col for col in df.columns if col not in primeras]
+    df = df.reindex(columns=primeras + resto)      
+
+    # Ordenar PDC after P4A110_ampc 
+    pdc_cols = ["aminoacid substitutions (vs PDC-1)", "PDC variant (RefSeq protein ID)"]
+    ref_col = "PA4110_ampC"
+    df = reorder_columns(df, pdc_cols, ref_col)
+
+    # Reordenamos oprD	oprD_reference-strain lo mas cercano a PA0958
+    reference_number = 958
+    candidatas = []
+    for col in df.columns:
+        m = re.match(r"PA(\d+)", col)
+        if m:
+            num = int(m.group(1))
+            candidatas.append((abs(num - reference_number), col))
+
+    # Si hay candidatas, escoge la más cercana
+    if candidatas:
+        _, mejor_col = min(candidatas, key=lambda x: x[0])
+        logger.debug(f"La columna más cercana a PA{reference_number} es: {mejor_col}")
+    else:
+        logger.debug("No se encontró ninguna columna PAxxxx")
+
+    oprD_cols = ["oprD", "oprD_reference-strain"]
+    ref_col = mejor_col if mejor_col else "PA0958"
+    df = reorder_columns(df, oprD_cols, ref_col)
+
+    return df
+
 def generate_excel_run(project_name, config=config, extra_config=None):
     PROJECTS_PATH = config["PROJECTS_PATH"]
     OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}", "")
@@ -156,44 +239,31 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             concat.append(value)
     
     combined_df = pd.concat(concat, axis=1)
-    
     output_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
 
     # SNIPPY Section
     snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
     if os.path.exists(snippy_csv):
-        sheets = ["Extended_resistome", "Basic_resistome", "Cefidorocol_resistome"]
+        sheets = ["Extended_resistome", "Basic_resistome"]
+        # Add also the clean sheets
+        sheets += [f"{sheet}_clean" for sheet in sheets]
+        dfs = {}
         for sheet in sheets:
             df_snippy = pd.read_excel(snippy_csv, sheet_name=sheet)
-            ## rename sample_name to STRAIN ID16835951_S9_L001 16835951_S9_L001
             df_snippy.rename(columns={"sample_name": "STRAIN ID"}, inplace=True)
-            df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].str.strip().str.replace('"', '')
+            df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].astype(str).str.strip().str.replace('"', '')
             df_snippy = df_snippy.set_index("STRAIN ID")
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
-            if sheet == "Extended_resistome":
-                df_extended_resistome = df_snippy
-            elif sheet == "Extended_resistome_clean":
-                df_extended_resistome_clean = df_snippy
-            elif sheet == "Basic_resistome":
-                df_basic_resistome = df_snippy
-            elif sheet == "Basic_resistome_clean":
-                df_basic_resistome_clean = df_snippy
-            elif sheet == "Cefidorocol_resistome":
-                df_cefidorol_resistome = df_snippy
-            elif sheet == "Cefidorocol_resistome_clean":
-                df_cefidorol_resistome_clean = df_snippy
-
-        # Cargar el archivo existente sin sobrescribir
+            dfs[sheet] = df_snippy
+            
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            df_extended_resistome.to_excel(writer, sheet_name='All', index=True)
-            df_extended_resistome_clean.to_excel(writer, sheet_name='All_clean', index=True)
-            df_basic_resistome.to_excel(writer, sheet_name='Basic', index=True)
-            df_basic_resistome_clean.to_excel(writer, sheet_name='Basic_clean', index=True)
-            df_cefidorol_resistome.to_excel(writer, sheet_name='Cefidorocol', index=True)
-            df_cefidorol_resistome_clean.to_excel(writer, sheet_name='Cefidorocol_clean', index=True)            
+            for sheet in dfs:
+                df = rename_columns(dfs[sheet])
+                df.to_excel(writer, sheet_name=sheet, index=True)
 
     else:
         ## Add to combined_df the index of the samples
+        combined_df = rename_columns(combined_df)
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")
