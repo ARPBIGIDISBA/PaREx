@@ -34,13 +34,13 @@ def get_differences(hsps, name, gaps = 0):
             if q =="-":
                 if not qstate:
                     qstate = True
-                    differences.append(f"X{i+1}{h}")
+                    # differences.append(f"X{i+1}{h}")
             else:
                 qstate = False
             if h == "-":
                 if not hstate:
                     hstate = True
-                    differences.append(f"{q}{i+1}X")
+                    # differences.append(f"{q}{i+1}X")
             else:
                 hstate = False
                 
@@ -162,8 +162,8 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
         direct_file = extra_config["file"]
 
     if "nucleotide" not in extra_config.keys() and "protein" not in extra_config.keys():
-        extra_config["nucleotide"] = False
-        extra_config["protein"] = True
+        extra_config["nucleotide"] = True
+        extra_config["protein"] = False
     
     if extra_config["nucleotide"]:
         extra_config["protein"] = False
@@ -239,10 +239,10 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             for index, file in enumerate(files):
                 file, name = files[index]
 
-                # if index > 3:
-                #     logger.debug("PDC found %s", name)
-                #     break
-
+                # if index !=0 and index <220:
+                #     logger.debug("Skipping file %s with index %s", file, index)
+                #     continue
+                
                 if file.find(".fasta") == -1:
                     continue
                 
@@ -256,11 +256,11 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 
                 # This is for nucleotide
                 if extra_config["nucleotide"]:
-                    command_protein = ["blastn", "-query", SPADES_FILE, "-subject", file, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                    command_protein = ["tblastn", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
                 # This is for protein
                 elif extra_config["protein"]:
-                    command_protein = ["blastp", "-query", SPADES_FILE, "-subject", file, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
-            
+                    command_protein = ["blastp", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                
                 if extra_config["force"] or not os.path.exists(output_file):
                     logger.debug("Executing command: %s", " ".join(command_protein))
                     result_pro = execute_command(command_protein)
@@ -353,8 +353,8 @@ if __name__ == "__main__":
     parser.add_argument('--keep_output', action='store_true', help='Keep the output')
     # Define argumnents if we want to work in protein or nucleotide default is protein
     
-    parser.add_argument('--protein', action='store_true', default=True, help='Set the flag to work with protein')
-    parser.add_argument('--nucleotide', action='store_true', default=False, help='Set the flag to work with nucleotide')
+    parser.add_argument('--protein', action='store_true', default=False, help='Set the flag to work with protein')
+    parser.add_argument('--nucleotide', action='store_true', default=True, help='Set the flag to work with nucleotide')
                             
     args = parser.parse_args()
     project_name = args.PROJECT_NAME

@@ -4,7 +4,3 @@ openpyxl
 cgelib
 resfinder
 xlsxwriter
-flask
-flask-restx
-flask-cors
-gunicorn
