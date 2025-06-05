@@ -154,42 +154,58 @@ def read_data_from_file(filename):
 
 
 def process_output(vcf_path, sample_name, output_path):
+    import pysam
+    import os
+    import csv
+
     output_dir = os.path.join(output_path, "processed")
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
     if os.path.exists(csv_path):
         os.remove(csv_path)
+
     with open(csv_path, mode='w', newline='') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=";")
-        # Abrir el archivo VCF con pysam
-        vcf_file = pysam.VariantFile(vcf_path)
+        # Puedes añadir aquí el filtro si quieres: ['locus', 'genes', ..., 'filter_name']
         csv_writer.writerow(['locus', 'genes', 'P.', 'changes', 'filtered_mutations', 'C.'])
 
-        # Iterar sobre cada registro en el archivo VCF
+        vcf_file = pysam.VariantFile(vcf_path)
         path = config.get("POLYMORPHISMS")
-        filter = read_data_from_file(path)
-        filter_all = filter['Extended_resistome']
+        filter_dict = read_data_from_file(path)
+
+        # Construir mapping: locus -> filtro
+        locus_to_filter = {}
+        for filter_name, loci in filter_dict.items():
+            for locus in loci.keys():
+                locus_to_filter[locus] = filter_name
 
         results = []
         for record in vcf_file:
             if 'ANN' in record.info:
                 annotations = record.info['ANN']
-                # Each annotation can be split by comma, and further by pipe '|'
                 for annotation in annotations:
                     fields = annotation.split('|')
-                    
-                    # Check if the impact field matches 'MODERATE'
-                    if len(fields) > 1  and fields[2]!='LOW' and fields[2]!='MODIFIER':
+                    if len(fields) > 1 and fields[2] not in ('LOW', 'MODIFIER'):
                         locus = fields[3]
-                        if locus in filter_all.keys() :
+                        if locus in locus_to_filter:
+                            filtro_actual = locus_to_filter[locus]
+                            gene_name = filter_dict[filtro_actual][locus]['gene']
+                            known_polymorphisms = filter_dict[filtro_actual][locus]['polymorphisms']
                             p = fields[10]
                             c = fields[9]
                             changes = translate_amino_acid(p, c)
-                            filter_mutations = [m for m in changes if m not in filter_all[locus]['polymorphisms']]
-                            row = [locus, filter_all[locus]['gene'], p.replace("p.",""),  ",".join(changes), ",".join(filter_mutations), c.replace("c.","")]
+                            filter_mutations = [m for m in changes if m not in known_polymorphisms]
+                            row = [
+                                locus,
+                                gene_name,
+                                p.replace("p.", ""),
+                                ",".join(changes),
+                                ",".join(filter_mutations),
+                                c.replace("c.", "")
+                                # Si quieres añadir el filtro, pon: , filtro_actual
+                            ]
                             results.append(row)
                             csv_writer.writerow(row)
-
 
 def combined_excel_files(samples, output_path):
     # Set paths and files
@@ -230,8 +246,8 @@ def combined_excel_files(samples, output_path):
         df.replace("NaN", pd.NA, inplace=True)
         df = df.fillna('')
         
+
         for filter_name, loci in filters.items():
-            print(loci)
             columns = columns_per_filter[filter_name]
             for _, row in df.iterrows():
                 locus = row['locus']
@@ -251,13 +267,7 @@ def combined_excel_files(samples, output_path):
                     parts_clean = [str(x) for x in [filtered_mutations, prev_clean] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
                     val_clean = ",".join(parts_clean)
                     dataframes[f"{filter_name}_clean"].at[sample_name, colname] = val_clean
-                else:
-                    if colname not in dataframes[filter_name].columns:
-                        dataframes[filter_name].at[sample_name, colname] = ''
-                    if colname not in dataframes[f"{filter_name}_clean"].columns:
-                        dataframes[f"{filter_name}_clean"].at[sample_name, colname] = ''
-                    logger.warning("Locus %s not found in filter %s for sample %s", locus, filter_name, sample_name)
-                    continue
+                
     if os.path.exists(csv_output):
         os.remove(csv_output)
     
