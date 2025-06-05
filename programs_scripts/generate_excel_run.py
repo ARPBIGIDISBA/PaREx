@@ -75,8 +75,6 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                     if row["name"]==sample["name"] and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
                         return False
                     
-                    if sample["name"].startswith("blaOXA") and row["name"].startswith("blaOXA"):
-                        return False
                 return True
 
             # Clasifica los genes por categorías
@@ -98,7 +96,22 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                         sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
                 elif gene.startswith("bla"):
                     if check_if_exist(row, added_beta):
-                        added_beta.append(row)
+                        # Check if there another column starting with "blaOXA" or "blaOXA-XXX" keep the one with lowers number in XXX is number
+                        if gene.startswith("blaOXA") and any(added_gene["name"].startswith("blaOXA") for added_gene in added_beta):
+                            # Check if the number is lower
+                            if re.search(r"blaOXA-(\d+)", gene):
+                                current_number = int(re.search(r"blaOXA-(\d+)", gene).group(1))
+                                for added_gene in added_beta:
+                                    if added_gene["name"].startswith("blaOXA") and re.search(r"blaOXA-(\d+)", added_gene["name"]):
+                                        added_number = int(re.search(r"blaOXA-(\d+)", added_gene["name"]).group(1))
+                                        if current_number < added_number:
+                                            # Replace the gene
+                                            sample_data["beta"].remove(f"{added_gene['name']} ({identity}%)")
+                                            added_beta.remove(added_gene)
+                                            added_beta.append(row)
+                                            break
+                        else:
+                            added_beta.append(row)
                         sample_data["beta"].append(f"{gene} ({identity}%)")
                 else:
                     if check_if_exist(row, added_other):
@@ -182,25 +195,15 @@ def rename_columns(df):
     ref_col = "PA4110_ampC"
     df = reorder_columns(df, pdc_cols, ref_col)
 
-    # Reordenamos oprD	oprD_reference-strain lo mas cercano a PA0958
-    reference_number = 958
-    candidatas = []
-    for col in df.columns:
-        m = re.match(r"PA(\d+)", col)
-        if m:
-            num = int(m.group(1))
-            candidatas.append((abs(num - reference_number), col))
-
-    # Si hay candidatas, escoge la más cercana
-    if candidatas:
-        _, mejor_col = min(candidatas, key=lambda x: x[0])
-        logger.debug(f"La columna más cercana a PA{reference_number} es: {mejor_col}")
-    else:
-        logger.debug("No se encontró ninguna columna PAxxxx")
-
+    ref_col = "_oprD"
     oprD_cols = ["oprD", "oprD_reference-strain"]
-    ref_col = mejor_col if mejor_col else "PA0958"
     df = reorder_columns(df, oprD_cols, ref_col)
+
+    # Reordenamos oprD	oprD_reference-strain lo mas cercano a PA0958
+    # Primero eliminamos column del fichero _oprD
+    if "_oprD" in df.columns:
+        logger.info("Eliminando columna _oprD")
+        df = df.drop(columns=["_oprD"])
 
     return df
 
@@ -244,9 +247,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     # SNIPPY Section
     snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
     if os.path.exists(snippy_csv):
-        sheets = ["Extended_resistome", "Basic_resistome"]
-        # Add also the clean sheets
-        sheets += [f"{sheet}_clean" for sheet in sheets]
+        sheets = ["Extended_resistome", "Extended_resistome_clean", "Basic_resistome", "Basic_resistome_clean"]
         dfs = {}
         for sheet in sheets:
             df_snippy = pd.read_excel(snippy_csv, sheet_name=sheet)

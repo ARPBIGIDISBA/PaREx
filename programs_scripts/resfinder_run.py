@@ -51,11 +51,7 @@ def filter_output(data, ignore_list):
             identity = seq_info["identity"]
             start_pos = seq_info["ref_start_pos"]
             end_pos = seq_info["ref_end_pos"]
-            coverage = seq_info["coverage"]
-            if coverage != (alignment_length / ref_seq_length) * 100:
-                logger.warning("Coverage mismatch: %s != %s", coverage, (alignment_length / ref_seq_length) * 100)
-                coverage = (alignment_length / ref_seq_length) * 100
-            
+            coverage = (alignment_length / ref_seq_length) * 100
             phenotypes = ', '.join(seq_info['phenotypes'])
             #logh keys seq_info
             logger.info("Gene: %s identity %2.f. (%s, %s) %s %s", name, identity, start_pos, end_pos, identity, coverage)

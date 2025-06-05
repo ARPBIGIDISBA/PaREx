@@ -125,33 +125,30 @@ def translate_amino_acid(value, value_c=""):
 
 
 def read_data_from_file(filename):
-    # Read All tab no matter if upper or lower case
-    all_df = pd.read_excel(filename, sheet_name='Extended_resistome').fillna('')
-    basic_df = pd.read_excel(filename, sheet_name='Basic_resistome').fillna('')
-    cefidoroco_df = pd.read_excel(filename, sheet_name='Cefidorocol_resistome').fillna('')
-    hypermutation_df = pd.read_excel(filename, sheet_name='Hypermutation').fillna('')
-    
-    all_df = all_df.rename(columns=lambda x: x.strip())
-    basic_df = basic_df.rename(columns=lambda x: x.strip())
-    cefidoroco_df = cefidoroco_df.rename(columns=lambda x: x.strip())
-    hypermutation_df = hypermutation_df.rename(columns=lambda x: x.strip())
-
-    files = [all_df, basic_df, cefidoroco_df, hypermutation_df]
-    keys = ['Extended_resistome', 'Basic_resistome', 'Cefidorocol_resistome', 'Hypermutation']
-
+    sheet_names = [
+        'Extended_resistome',
+        'Basic_resistome',
+        'Cefidorocol_resistome',
+        'Hypermutation'
+    ]
     output = {}
-    for key, df in enumerate(files):
+
+    for sheet in sheet_names:
+        df = pd.read_excel(filename, sheet_name=sheet).fillna('')
+        df = df.rename(columns=lambda x: x.strip())
         data = {}
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             locus = row['GENE_LOCUS']
-            gene = row['GENE_NAME']    
-            polymorphisms = row['POLYMORPHISMS']        
+            gene = row['GENE_NAME']
+            polymorphisms = row['POLYMORPHISMS']
             if gene == "-":
                 gene = ""
-            polymorphisms = polymorphisms.rstrip('.').split(', ')
+            # Split and clean polymorphisms
+            polymorphisms = polymorphisms.rstrip('.').split(',')
+            polymorphisms = [p.strip() for p in polymorphisms if p.strip()]
             cleaned_polymorphisms = [p.split(' (')[0].strip() for p in polymorphisms]
             data[locus] = {'gene': gene, 'polymorphisms': cleaned_polymorphisms}
-        output[keys[key]] = data
+        output[sheet] = data
 
     return output
 
@@ -208,9 +205,9 @@ def combined_excel_files(samples, output_path):
 
     columns_per_filter = {
         "Extended_resistome": ["locus", "genes", "changes", "filtered_mutations"],
-        "Basic_resistome": ["locus", "genes"],
+        "Basic_resistome": ["locus", "genes", "changes", "filtered_mutations"],
         "Cefidorocol_resistome": ["locus", "genes", "filtered_mutations"],
-        "Hypermutation": ["locus", "genes", "changes"]
+        "Hypermutation": ["locus", "genes", "changes", "filtered_mutations"]
     }
     
     dataframes = {}
@@ -221,6 +218,7 @@ def combined_excel_files(samples, output_path):
         dataframes[filter_name] = pd.DataFrame(columns=columns).set_index("sample_name")
         dataframes[f"{filter_name}_clean"] = pd.DataFrame(columns=columns).set_index("sample_name")
 
+    # Initialize dataframes with empty values
     for sample_name in samples:
         sample_name = sample_name.strip()
         csv_path = os.path.join(output_dir, f"{sample_name}_snippy.csv")
@@ -233,6 +231,7 @@ def combined_excel_files(samples, output_path):
         df = df.fillna('')
         
         for filter_name, loci in filters.items():
+            print(loci)
             columns = columns_per_filter[filter_name]
             for _, row in df.iterrows():
                 locus = row['locus']
@@ -252,6 +251,13 @@ def combined_excel_files(samples, output_path):
                     parts_clean = [str(x) for x in [filtered_mutations, prev_clean] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
                     val_clean = ",".join(parts_clean)
                     dataframes[f"{filter_name}_clean"].at[sample_name, colname] = val_clean
+                else:
+                    if colname not in dataframes[filter_name].columns:
+                        dataframes[filter_name].at[sample_name, colname] = ''
+                    if colname not in dataframes[f"{filter_name}_clean"].columns:
+                        dataframes[f"{filter_name}_clean"].at[sample_name, colname] = ''
+                    logger.warning("Locus %s not found in filter %s for sample %s", locus, filter_name, sample_name)
+                    continue
     if os.path.exists(csv_output):
         os.remove(csv_output)
     
