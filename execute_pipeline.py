@@ -170,10 +170,11 @@ if __name__ == "__main__":
 
         elif operation == "all_sequence":
             logger.info(f"Running all for project {PROJECT_NAME}")
-            logger.info(f"short for SPAdes, resfinder, oprD, mlst, generate_excel")
+            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, generate_excel")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
             oprD_run(PROJECT_NAME, extra_config=extra_config)
+            PDC_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "novaseq":
