@@ -202,7 +202,6 @@ def rename_columns(df):
     # Reordenamos oprD	oprD_reference-strain lo mas cercano a PA0958
     # Primero eliminamos column del fichero _oprD
     if "_oprD" in df.columns:
-        logger.info("Eliminando columna _oprD")
         df = df.drop(columns=["_oprD"])
 
     return df
@@ -273,52 +272,163 @@ def generate_excel_run(project_name, config=config, extra_config=None):
 def generate_pdf_from_excel(project_name, config=config, extra_config=None):
     import os
     import pandas as pd
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph, Spacer, Image
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
-    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
+    from reportlab.lib import colors
 
     PROJECTS_PATH = config["PROJECTS_PATH"]
+    LOGO_ARPBIG = "./programs_scripts/assets/logoarpbig.png"
+    LOGO_PAREX = "./programs_scripts/assets/logoparex.png"
     OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}", "")
     excel_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
-    pdf_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.pdf")
+    PDF_OUTPUT_PATH = os.path.join(OUTPUT_PATH, "PDF_results", "")
+    if not os.path.exists(PDF_OUTPUT_PATH):
+        os.makedirs(PDF_OUTPUT_PATH)
+    else:
+        # Si existe, eliminamos los PDFs anteriores
+        for file in os.listdir(PDF_OUTPUT_PATH):
+            if file.endswith(".pdf"):
+                os.remove(os.path.join(PDF_OUTPUT_PATH, file))
 
-    df = pd.read_excel(excel_file, sheet_name="All")
+    df = pd.read_excel(excel_file, sheet_name="Extended_resistome_clean", index_col="Isolate ID")
 
     styles = getSampleStyleSheet()
-    style_title = styles['Heading2']
-
+    title_style = styles['Title']
+    subtitle_style = styles['Heading2']
+    section_style = styles['Heading3']
+    normal_style = styles['BodyText']
+    small_style = ParagraphStyle(
+        name="SmallText",
+        parent=normal_style,
+        fontSize=8,         # Cambia el tamaño aquí
+        leading=8.5,        # Leading: separación entre líneas, suele ser 1.2x fontSize
+    )
+        
     class PDFDocTemplate(SimpleDocTemplate):
         def afterPage(self):
+            # Cabecera de logos + título en cada página
             self.canv.saveState()
-            self.canv.setFont('Helvetica-Bold', 9)
-            self.canv.drawString(cm, A4[1] - 1.5 * cm, "ARPBIG IDISBA")
+            # LOGO ARPBIG (izquierda)
+            self.canv.drawImage(LOGO_PAREX, cm-1.5*cm, A4[1] - 3.5*cm, width=9*cm, height=4*cm, preserveAspectRatio=True, mask='auto')
+            # LOGO parex (derecha)
+            self.canv.drawImage(LOGO_ARPBIG, A4[0]-4*cm, A4[1] - 2.5*cm, width=2.5*cm, height=1.6*cm, preserveAspectRatio=True, mask='auto')
+            # Título centrado
+            self.canv.setFont('Helvetica-Bold', 12)
+            self.canv.drawCentredString(A4[0]/2, A4[1] - 1.3*cm, "Pseudomonas Aeruginosa Resistance Explorer")
+            # Subtítulo debajo del título
+            self.canv.setFont('Helvetica', 8)
+            self.canv.drawCentredString(A4[0]/2, A4[1] - 2.0*cm, "RESISTANCE REPORT: GENOMIC RESISTOME ANALYSIS")
+            # Pie de página
             self.canv.setFont('Helvetica', 8)
             self.canv.drawRightString(A4[0] - cm, 1.2 * cm, f"Page {self.page}")
             self.canv.restoreState()
 
-    doc = PDFDocTemplate(pdf_file, pagesize=A4)
-    elements = []
+    def get_isolate_table(row):
+        # Replace all the NaN values with empty strings
+        row = row.fillna("")
+        # Tabla con merged cells para las secciones
+        pdc_variant = row.get("PDC variant (RefSeq protein ID)", "")
+        aminoacid_substitutions = row.get("aminoacid substitutions (vs PDC-1)", "")
+                
+        if aminoacid_substitutions and isinstance(aminoacid_substitutions, str):
+            aminoacid_substitutions = aminoacid_substitutions.replace(",", ",")
+
+        def chunk_list(lst, n):
+            """Divide lst en chunks de tamaño n"""
+            for i in range(0, len(lst), n):
+                yield lst[i:i+n]
+            
+        # Iterate columns starting with PA example PA4225_pchF  get the part after _ type it in cursiva y entre parentesis el valor, solo quiero una columna
+        mutational_results = []
+        for col in row.index:
+            if col.startswith("PA") and col not in ["PA4110_ampC", "PA0958"]:
+                value = row.get(col, "")
+                if value != "":
+                    # Get the part after _ and put it in cursive
+                    gene_name = col.split("_")[-1]
+                    if gene_name == "":
+                        gene_name = col.split("_")[-2]
+
+                    mutational_results.append(Paragraph(f"<i>{gene_name}</i> ({str(value)})", small_style))
+
+            if col == "oprD_reference-strain":
+                # Si es oprD_reference-strain, lo añadimos al final
+                continue
+            if col == "oprD" and value != "WT" and value != "":
+                # Si es oprD y no es WT, lo añadimos al final
+                mutational_results.append(Paragraph(f"<i>oprD</i> ({value})", small_style))
+        mutational_rows = list(chunk_list(mutational_results, 3))
+
+        data = [
+            # Sección MLST
+            [Paragraph("<b>Sequence Type</b>", normal_style), "", ""],
+            ["", "ST", row.get("ST", "")],
+            ["", "MLST allelic profile", Paragraph(row.get("MLST allelic profile", ""))],
+
+            # Sección PDC
+            [Paragraph("<b>PDC</b>", normal_style), "", ""],
+            ["",  Paragraph("Aminoacid substitutions (vs PDC-1)"), Paragraph(aminoacid_substitutions)],
+            ["",  Paragraph("PDC variant (RefSeq protein ID)"), Paragraph(pdc_variant)],
+
+            # Sección Resistome adquirido
+            [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), "", ""],
+            ["",  Paragraph("Beta-lactamases"), Paragraph(row.get("Acquired beta-lactamases", ""))],
+            ["",  Paragraph("AMEs"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
+            ["",  Paragraph("Quinolones resistance genes"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
+            ["",  Paragraph("Other resistance genes"), Paragraph(row.get("Other acquired resistance genes", ""))],
+
+            # Sección Resistome mutacional
+            [Paragraph("<b>Mutational resistome</b>", normal_style), "", ""],
+        ]
+
+
+        # Añade todas las filas mutacionales
+        if mutational_rows:
+            data += mutational_rows
+        else:
+            data += ["", "", ""]
+                    
+        # Define la tabla con spans
+        table = Table(data, colWidths=[5.2*cm, 6*cm, 6*cm])
+
+        # Merged cells y estilos
+        style = TableStyle([
+            ('SPAN', (0,0), (2,0)),  # Sequence Type
+            ('SPAN', (0,3), (2,3)),  # PDC
+            ('SPAN', (0,6), (2,6)),  # Horizontally acquired resistome
+            ('SPAN', (0,11), (2,11)), # Mutational resistome
+
+            ('BACKGROUND', (0,0), (2,0), colors.HexColor("#e6f2ff")), # azul claro para cabecera
+            ('BACKGROUND', (0,3), (2,3), colors.HexColor("#e6f2ff")),
+            ('BACKGROUND', (0,6), (2,6), colors.HexColor("#e6f2ff")),
+            ('BACKGROUND', (0,11), (2,11), colors.HexColor("#e6f2ff")),
+
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
+            ('LEFTPADDING', (0,0), (-1,-1), 3),
+            ('RIGHTPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
+            ('TOPPADDING', (0,0), (-1,-1), 2),
+        ])
+        table.setStyle(style)
+        return table
 
     for _, row in df.iterrows():
-        strain_id = row.get('STRAIN ID', 'Unknown')
-        elements.append(Paragraph(f"Strain ID: {strain_id}", style_title))
-        elements.append(Spacer(1, 6))
-
-        data = [[k, str(v) if pd.notna(v) else ''] for k, v in row.items() if k != 'STRAIN ID']
-        table = Table([['Field', 'Value']] + data, colWidths=[150, 380])
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),  # Encabezado gris
-            ('GRID', (0, 0), (-1, -1), 0.25, colors.black),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ]))
-        elements.append(table)
+        pdf_file = os.path.join(PDF_OUTPUT_PATH, f"{row.name}_summary.pdf")
+        doc = PDFDocTemplate(pdf_file, pagesize=A4)
+        elements = []
+        elements.append(Spacer(1, 1.8*cm))
+        elements.append(Paragraph(f"Isolate ID: {row.name}", styles['Heading2']))
+        elements.append(Spacer(1, 0.2*cm))
+        elements.append(get_isolate_table(row))
         elements.append(PageBreak())
+        doc.build(elements)
+        logger.info(f"PDF generated: {pdf_file}")
 
-    doc.build(elements)
-    logger.info(f"PDF generated: {pdf_file}")
     return pdf_file
 
 
