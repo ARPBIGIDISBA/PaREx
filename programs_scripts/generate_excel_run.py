@@ -394,7 +394,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
 
             # Sección PDC
             [Paragraph("<b>PDC</b>", normal_style), ""],
-            [Paragraph("<b>Aminoacid substitutions (vs PDC-1)</b>"), Paragraph(aminoacid_substitutions)],
+            [Paragraph("<b>Aminoacid substitutions (vs PDC-1)</b>"), Paragraph(aminoacid_substitutions.replace(",", ", "))],
             [Paragraph("<b>PDC variant (RefSeq protein ID)</b>"), Paragraph(pdc_variant)],
 
             # Sección Resistome adquirido
