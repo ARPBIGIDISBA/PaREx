@@ -176,6 +176,7 @@ if __name__ == "__main__":
             oprD_run(PROJECT_NAME, extra_config=extra_config)
             PDC_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
+            snippy_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "novaseq":
             logger.info(f"Running novaseq for project {PROJECT_NAME}")
