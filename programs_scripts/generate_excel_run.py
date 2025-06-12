@@ -293,13 +293,16 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             if file.endswith(".pdf"):
                 os.remove(os.path.join(PDF_OUTPUT_PATH, file))
 
-    df = pd.read_excel(excel_file, sheet_name="Extended_resistome_clean", index_col="Isolate ID")
+    df = pd.read_excel(excel_file, sheet_name="Basic_resistome_clean", index_col="Isolate ID")
 
     styles = getSampleStyleSheet()
     title_style = styles['Title']
     subtitle_style = styles['Heading2']
     section_style = styles['Heading3']
     normal_style = styles['BodyText']
+
+    # Color #234356 #26878b
+
     small_style = ParagraphStyle(
         name="SmallText",
         parent=normal_style,
@@ -317,7 +320,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             self.canv.drawImage(LOGO_ARPBIG, A4[0]-4*cm, A4[1] - 2.5*cm, width=2.5*cm, height=1.6*cm, preserveAspectRatio=True, mask='auto')
             # Título centrado
             self.canv.setFont('Helvetica-Bold', 12)
-            self.canv.drawCentredString(A4[0]/2, A4[1] - 1.3*cm, "Pseudomonas Aeruginosa Resistance Explorer")
+            self.canv.drawCentredString(A4[0]/2, A4[1] - 1.3*cm, "<i>Pseudomonas aeruginosa<i> Resistome EXplorer")
             # Subtítulo debajo del título
             self.canv.setFont('Helvetica', 8)
             self.canv.drawCentredString(A4[0]/2, A4[1] - 2.0*cm, "RESISTANCE REPORT: GENOMIC RESISTOME ANALYSIS")
@@ -342,7 +345,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
                 yield lst[i:i+n]
             
         # Iterate columns starting with PA example PA4225_pchF  get the part after _ type it in cursiva y entre parentesis el valor, solo quiero una columna
-        mutational_results = []
+        mutational_results = {}
         for col in row.index:
             if col.startswith("PA") and col not in ["PA4110_ampC", "PA0958"]:
                 value = row.get(col, "")
@@ -351,34 +354,42 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
                     gene_name = col.split("_")[-1]
                     if gene_name == "":
                         gene_name = col.split("_")[-2]
-
-                    mutational_results.append(Paragraph(f"<i>{gene_name}</i> ({str(value)})", small_style))
-
+                    # Key is lower case of gene_name
+                    mutational_results[gene_name.lower()] = Paragraph(f"<i>{gene_name}</i> ({str(value)})", small_style)
+                    
             if col == "oprD_reference-strain":
                 # Si es oprD_reference-strain, lo añadimos al final
                 continue
             if col == "oprD" and value != "WT" and value != "":
                 # Si es oprD y no es WT, lo añadimos al final
-                mutational_results.append(Paragraph(f"<i>oprD</i> ({value})", small_style))
-        mutational_rows = list(chunk_list(mutational_results, 3))
+                mutational_results["oprD"] = Paragraph(f"<i>oprD</i> ({value})", small_style)
+        
+        # Order by key in mutational_results
+        mutational_results = {k: v for k, v in sorted(mutational_results.items(), key=lambda item: item[0])}
+        as_list = []
+        for key, value in mutational_results.items():
+           as_list.append(value)
+                
+        # Divide en chunks de 3 columnas
+        mutational_rows = list(chunk_list(as_list, 3))
 
         data = [
             # Sección MLST
             [Paragraph("<b>Sequence Type</b>", normal_style), "", ""],
-            ["", "ST", row.get("ST", "")],
-            ["", "MLST allelic profile", Paragraph(row.get("MLST allelic profile", ""))],
+            [Paragraph("<b>ST</b>"), row.get("ST", "")],
+            [Paragraph("<b>MLST allelic profile</b>"), Paragraph(row.get("MLST allelic profile", ""))],
 
             # Sección PDC
             [Paragraph("<b>PDC</b>", normal_style), "", ""],
-            ["",  Paragraph("Aminoacid substitutions (vs PDC-1)"), Paragraph(aminoacid_substitutions)],
-            ["",  Paragraph("PDC variant (RefSeq protein ID)"), Paragraph(pdc_variant)],
+            [Paragraph("<b>Aminoacid substitutions (vs PDC-1)</b>"), Paragraph(aminoacid_substitutions)],
+            [Paragraph("<b>PDC variant (RefSeq protein ID)</b>"), Paragraph(pdc_variant)],
 
             # Sección Resistome adquirido
             [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), "", ""],
-            ["",  Paragraph("Beta-lactamases"), Paragraph(row.get("Acquired beta-lactamases", ""))],
-            ["",  Paragraph("AMEs"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
-            ["",  Paragraph("Quinolones resistance genes"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
-            ["",  Paragraph("Other resistance genes"), Paragraph(row.get("Other acquired resistance genes", ""))],
+            [Paragraph("<b>Beta-lactamases</b>"), Paragraph(row.get("Acquired beta-lactamases", ""))],
+            [Paragraph("<b>AMEs</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
+            [Paragraph("<b>Quinolones resistance genes</b>"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
+            [Paragraph("<b>Other resistance genes</b>"), Paragraph(row.get("Other acquired resistance genes", ""))],
 
             # Sección Resistome mutacional
             [Paragraph("<b>Mutational resistome</b>", normal_style), "", ""],
@@ -392,7 +403,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             data += ["", "", ""]
                     
         # Define la tabla con spans
-        table = Table(data, colWidths=[5.2*cm, 6*cm, 6*cm])
+        table = Table(data, colWidths=[5.2*cm, 6*cm])
 
         # Merged cells y estilos
         style = TableStyle([
@@ -401,10 +412,10 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             ('SPAN', (0,6), (2,6)),  # Horizontally acquired resistome
             ('SPAN', (0,11), (2,11)), # Mutational resistome
 
-            ('BACKGROUND', (0,0), (2,0), colors.HexColor("#e6f2ff")), # azul claro para cabecera
-            ('BACKGROUND', (0,3), (2,3), colors.HexColor("#e6f2ff")),
-            ('BACKGROUND', (0,6), (2,6), colors.HexColor("#e6f2ff")),
-            ('BACKGROUND', (0,11), (2,11), colors.HexColor("#e6f2ff")),
+            ('BACKGROUND', (0,0), (2,0), colors.HexColor("#9bd1d3")), # azul claro para cabecera
+            ('BACKGROUND', (0,3), (2,3), colors.HexColor("#9bd1d3")),
+            ('BACKGROUND', (0,6), (2,6), colors.HexColor("#9bd1d3")),
+            ('BACKGROUND', (0,11), (2,11), colors.HexColor("#9bd1d3")),
 
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('FONTSIZE', (0,0), (-1,-1), 9),

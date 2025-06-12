@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
                              "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "snippy", "PDC", "novaseq", "projects", "unzip"]
+                             "all_sequence", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -40,6 +40,10 @@ if __name__ == "__main__":
     parser.add_argument('--keep_output', action='store_true', help='Keep the output of the program')
     parser.add_argument('--clean_output', action='store_true', help='Clean the output of the program')
     parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
+
+    # Optional arguments for specific operations
+    parser.add_argument('--protein', action='store_true', 
+                        help='Use protein sequences instead of nucleotide sequences for PDC')
     args = parser.parse_args()
 
 
@@ -48,7 +52,8 @@ if __name__ == "__main__":
         "keep_output": args.keep_output or not args.clean_output,
         "clean_output": args.clean_output,
         "log_level": args.log_level,
-        "file": args.file
+        "file": args.file,
+        "protein": args.protein
     }
 
     
@@ -168,15 +173,18 @@ if __name__ == "__main__":
                     logger.info(f"Unzipping {file}")
                     execute_command(["gunzip", file])
 
-        elif operation == "all_sequence":
+        elif operation == "all_sequence" or operation == "analyze":
             logger.info(f"Running all for project {PROJECT_NAME}")
-            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, generate_excel")
+            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, generate_excel, generate_pdf")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
             oprD_run(PROJECT_NAME, extra_config=extra_config)
             PDC_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
+            snippy_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
+            generate_pdf_from_excel(PROJECT_NAME, extra_config=extra_config)
+
         elif operation == "novaseq":
             logger.info(f"Running novaseq for project {PROJECT_NAME}")
             novaseq_run(PROJECT_NAME, extra_config=extra_config)

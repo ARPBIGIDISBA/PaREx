@@ -165,8 +165,9 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
         extra_config["nucleotide"] = True
         extra_config["protein"] = False
     
-    if extra_config["nucleotide"]:
-        extra_config["protein"] = False
+    
+    if "nucleotide" not in extra_config.keys():
+        extra_config["nucleotide"] = False
 
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:
