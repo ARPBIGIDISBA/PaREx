@@ -54,7 +54,7 @@ def filter_output(data, ignore_list):
             coverage = (alignment_length / ref_seq_length) * 100
             phenotypes = ', '.join(seq_info['phenotypes'])
             #logh keys seq_info
-            logger.info("Gene: %s identity %2.f. (%s, %s) %s %s", name, identity, start_pos, end_pos, identity, coverage)
+            logger.debug("Gene: %s identity %2.f. (%s, %s) %s %s", name, identity, start_pos, end_pos, identity, coverage)
             line = f"{name};{identity};{coverage};{start_pos};{end_pos};{ref_seq_length};{coverage};{seq_info['ref_id']};{seq_info['query_id']};"
             line += f"{seq_info['query_start_pos']};{seq_info['query_end_pos']};{seq_info['ref_acc']};{seq_info['grade']};{phenotypes}\n"
 

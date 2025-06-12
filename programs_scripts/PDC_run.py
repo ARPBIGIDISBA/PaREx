@@ -134,6 +134,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
+                    logger.debug("No hits found for %s", name)
                     return {"name": name, "differences": ["error"], "bit_score": 0, 
                             "gaps": 100, "identity": 0}
                 
@@ -165,9 +166,10 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
         extra_config["nucleotide"] = True
         extra_config["protein"] = False
     
-    
-    if "nucleotide" not in extra_config.keys():
-        extra_config["nucleotide"] = False
+    if extra_config["protein"] == False:
+        extra_config["nucleotide"] = True
+    elif extra_config["nucleotide"] == False:
+        extra_config["protein"] = True
 
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:

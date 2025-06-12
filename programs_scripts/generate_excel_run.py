@@ -14,6 +14,7 @@ from modules.general_functions import configure_logs, init_configs
 import glob
 import pandas as pd
 import re
+import datetime
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -306,8 +307,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
     small_style = ParagraphStyle(
         name="SmallText",
         parent=normal_style,
-        fontSize=8,         # Cambia el tamaño aquí
-        leading=8.5,        # Leading: separación entre líneas, suele ser 1.2x fontSize
+        fontSize=10,         # Cambia el tamaño aquí
     )
         
     class PDFDocTemplate(SimpleDocTemplate):
@@ -316,17 +316,32 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             self.canv.saveState()
             # LOGO ARPBIG (izquierda)
             self.canv.drawImage(LOGO_PAREX, cm-1.5*cm, A4[1] - 3.5*cm, width=9*cm, height=4*cm, preserveAspectRatio=True, mask='auto')
-            # LOGO parex (derecha)
-            self.canv.drawImage(LOGO_ARPBIG, A4[0]-4*cm, A4[1] - 2.5*cm, width=2.5*cm, height=1.6*cm, preserveAspectRatio=True, mask='auto')
+            
             # Título centrado
-            self.canv.setFont('Helvetica-Bold', 12)
-            self.canv.drawCentredString(A4[0]/2, A4[1] - 1.3*cm, "<i>Pseudomonas aeruginosa<i> Resistome EXplorer")
-            # Subtítulo debajo del título
-            self.canv.setFont('Helvetica', 8)
-            self.canv.drawCentredString(A4[0]/2, A4[1] - 2.0*cm, "RESISTANCE REPORT: GENOMIC RESISTOME ANALYSIS")
+            x = A4[0]/2 - 80  # Ajusta para centrar todo el texto
+            y = A4[1] - 1.3*cm
+            font_size = 16
+            self.canv.setFont("Times-BoldItalic", font_size)
+            self.canv.drawString(x, y, "Pseudomonas aeruginosa")
+            width_bold = self.canv.stringWidth("Pseudomonas aeruginosa", "Times-Bold", font_size)
+            self.canv.setFont("Times-Bold", font_size)
+            self.canv.drawString(x + width_bold, y, " Resistome EXplorer")
+
+            # LOGO arpbig (abajo izquierda)
+            self.canv.drawImage(
+                    LOGO_ARPBIG,
+                    x=1*cm,              # Margen izquierdo
+                    y=2*cm,              # Margen inferior
+                    width=5.5*cm,
+                    height=2.6*cm,
+                    preserveAspectRatio=True,
+                    mask='auto'
+                )
             # Pie de página
             self.canv.setFont('Helvetica', 8)
             self.canv.drawRightString(A4[0] - cm, 1.2 * cm, f"Page {self.page}")
+            self.canv.setFont('Helvetica', 8)
+            self.canv.drawRightString(6*cm, 1.2 * cm, f"Generated at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             self.canv.restoreState()
 
     def get_isolate_table(row):
@@ -338,15 +353,11 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
                 
         if aminoacid_substitutions and isinstance(aminoacid_substitutions, str):
             aminoacid_substitutions = aminoacid_substitutions.replace(",", ",")
-
-        def chunk_list(lst, n):
-            """Divide lst en chunks de tamaño n"""
-            for i in range(0, len(lst), n):
-                yield lst[i:i+n]
             
         # Iterate columns starting with PA example PA4225_pchF  get the part after _ type it in cursiva y entre parentesis el valor, solo quiero una columna
         mutational_results = {}
         for col in row.index:
+            
             if col.startswith("PA") and col not in ["PA4110_ampC", "PA0958"]:
                 value = row.get(col, "")
                 if value != "":
@@ -355,75 +366,78 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
                     if gene_name == "":
                         gene_name = col.split("_")[-2]
                     # Key is lower case of gene_name
-                    mutational_results[gene_name.lower()] = Paragraph(f"<i>{gene_name}</i> ({str(value)})", small_style)
+                    mutational_results[gene_name.lower()] = f"<i>{gene_name}</i> ({str(value)})"
                     
             if col == "oprD_reference-strain":
-                # Si es oprD_reference-strain, lo añadimos al final
+                # Si es oprD_reference-strain se añade
                 continue
-            if col == "oprD" and value != "WT" and value != "":
-                # Si es oprD y no es WT, lo añadimos al final
-                mutational_results["oprD"] = Paragraph(f"<i>oprD</i> ({value})", small_style)
+            if col=="oprD":
+                value = row.get(col, "")
+                if value != "WT" and value != "":
+                    # Si es oprD y no es WT, lo añadimos al final
+                    oprD_reference = row.get("oprD_reference-strain", "")
+                    if oprD_reference:
+                        value = f"{value} [{oprD_reference}]"
+                    mutational_results["oprD"] = f"<i>oprD</i> ({value} )"
         
         # Order by key in mutational_results
         mutational_results = {k: v for k, v in sorted(mutational_results.items(), key=lambda item: item[0])}
-        as_list = []
+        mutational_list = []
         for key, value in mutational_results.items():
-           as_list.append(value)
-                
-        # Divide en chunks de 3 columnas
-        mutational_rows = list(chunk_list(as_list, 3))
-
+           mutational_list.append(value)
+  
         data = [
             # Sección MLST
-            [Paragraph("<b>Sequence Type</b>", normal_style), "", ""],
+            [Paragraph("<b>Sequence Type</b>", normal_style), ""],
             [Paragraph("<b>ST</b>"), row.get("ST", "")],
             [Paragraph("<b>MLST allelic profile</b>"), Paragraph(row.get("MLST allelic profile", ""))],
 
             # Sección PDC
-            [Paragraph("<b>PDC</b>", normal_style), "", ""],
+            [Paragraph("<b>PDC</b>", normal_style), ""],
             [Paragraph("<b>Aminoacid substitutions (vs PDC-1)</b>"), Paragraph(aminoacid_substitutions)],
             [Paragraph("<b>PDC variant (RefSeq protein ID)</b>"), Paragraph(pdc_variant)],
 
             # Sección Resistome adquirido
-            [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), "", ""],
+            [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), ""],
             [Paragraph("<b>Beta-lactamases</b>"), Paragraph(row.get("Acquired beta-lactamases", ""))],
             [Paragraph("<b>AMEs</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
             [Paragraph("<b>Quinolones resistance genes</b>"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
             [Paragraph("<b>Other resistance genes</b>"), Paragraph(row.get("Other acquired resistance genes", ""))],
 
             # Sección Resistome mutacional
-            [Paragraph("<b>Mutational resistome</b>", normal_style), "", ""],
+            [Paragraph("<b>Mutational resistome</b>", normal_style), ""],
         ]
 
 
         # Añade todas las filas mutacionales
-        if mutational_rows:
-            data += mutational_rows
+        if mutational_list:
+            data.append([Paragraph(", ".join(mutational_list), small_style), ""])
         else:
-            data += ["", "", ""]
+            data += ["", ""]
                     
         # Define la tabla con spans
-        table = Table(data, colWidths=[5.2*cm, 6*cm])
+        table = Table(data, colWidths=[5.2*cm, 12*cm])
 
         # Merged cells y estilos
         style = TableStyle([
-            ('SPAN', (0,0), (2,0)),  # Sequence Type
-            ('SPAN', (0,3), (2,3)),  # PDC
-            ('SPAN', (0,6), (2,6)),  # Horizontally acquired resistome
-            ('SPAN', (0,11), (2,11)), # Mutational resistome
-
-            ('BACKGROUND', (0,0), (2,0), colors.HexColor("#9bd1d3")), # azul claro para cabecera
-            ('BACKGROUND', (0,3), (2,3), colors.HexColor("#9bd1d3")),
-            ('BACKGROUND', (0,6), (2,6), colors.HexColor("#9bd1d3")),
-            ('BACKGROUND', (0,11), (2,11), colors.HexColor("#9bd1d3")),
+            ('SPAN', (0,0), (1,0)),  # Sequence Type
+            ('SPAN', (0,3), (1,3)),  # PDC
+            ('SPAN', (0,6), (1,6)),  # Horizontally acquired resistome
+            ('SPAN', (0,11), (1,11)), # Mutational resistome
+            ('SPAN', (0,12), (1,12)), # Mutational value
+            
+            ('BACKGROUND', (0,0), (1,0), colors.HexColor("#9bd1d3")), # azul claro para cabecera
+            ('BACKGROUND', (0,3), (1,3), colors.HexColor("#9bd1d3")),
+            ('BACKGROUND', (0,6), (1,6), colors.HexColor("#9bd1d3")),
+            ('BACKGROUND', (0,11), (1,11), colors.HexColor("#9bd1d3")),
 
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('FONTSIZE', (0,0), (-1,-1), 9),
             ('GRID', (0,0), (-1,-1), 0.25, colors.grey),
-            ('LEFTPADDING', (0,0), (-1,-1), 3),
-            ('RIGHTPADDING', (0,0), (-1,-1), 3),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 2),
-            ('TOPPADDING', (0,0), (-1,-1), 2),
+            ('LEFTPADDING', (0,0), (-1,-1), 8),
+            ('RIGHTPADDING', (0,0), (-1,-1), 8),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
         ])
         table.setStyle(style)
         return table
