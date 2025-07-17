@@ -92,7 +92,7 @@ if __name__ == "__main__":
             os.makedirs(os.path.join(project_path, f"FASTQ_{PROJECT_NAME}"), exist_ok=True)
             os.makedirs(os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}"), exist_ok=True)
             with open(os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}"), 'w') as file:
-                pass 
+                pass
         elif operation == "projects":
             logger.info("Listing projects")
             # List folder name in PROJECTS_PATH
