@@ -162,14 +162,18 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     if direct_file is None and extra_config["file"] is not None:
         direct_file = extra_config["file"]
 
-    if "nucleotide" not in extra_config.keys() and "protein" not in extra_config.keys():
-        extra_config["nucleotide"] = True
+    if "nucleotide" not in extra_config.keys():
+        extra_config["nucleotide"] = False
+    if "protein" not in extra_config.keys():
         extra_config["protein"] = False
-    
-    if extra_config["protein"] == False:
+
+    if extra_config["nucleotide"] and extra_config["protein"]:
+        logger.error("You can not use both nucleotide and protein at the same time")
+        sys.exit(1)
+    if not extra_config["nucleotide"] and not extra_config["protein"]:
+        logger.warning("You are not using nucleotide or protein, defaulting to nucleotide")
         extra_config["nucleotide"] = True
-    elif extra_config["nucleotide"] == False:
-        extra_config["protein"] = True
+
 
     # Read command line arguments, sample list and config file  or direct file
     if not direct_file:

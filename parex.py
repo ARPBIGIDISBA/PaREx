@@ -56,7 +56,6 @@ if __name__ == "__main__":
         "protein": args.protein
     }
 
-    
     PROJECT_NAME = args.PROJECT_NAME
     OPERATIONS = args.operation.split(",")
     
