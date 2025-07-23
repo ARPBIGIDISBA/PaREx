@@ -348,6 +348,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
 
     else:
         logger.error("PDC analysis finished but no results found")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')

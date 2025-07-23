@@ -10,12 +10,9 @@ import argparse
 import logging
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
-import pysam
-import csv
 import re
 import pandas as pd
 import traceback
-import openpyxl
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -207,7 +204,7 @@ def process_output(vcf_path, sample_name, output_path):
                             results.append(row)
                             csv_writer.writerow(row)
 
-def combined_excel_files(samples, output_path):
+def combined_excel_files(samples, output_path, generate_full_hyperresistome=False):
     # Set paths and files
     output_dir = os.path.join(output_path, "processed")
     csv_output = os.path.join(output_path, "combined_snippy.xlsx")
@@ -277,16 +274,18 @@ def combined_excel_files(samples, output_path):
         dataframes['Basic_resistome'].to_excel(writer, sheet_name='Basic_resistome', index=True)
         dataframes['Basic_resistome_clean'].to_excel(writer, sheet_name='Basic_resistome_clean', index=True)
     logger.info("Saving the file %s", csv_output)  
-    if os.path.exists(csv_output_full):
-        os.remove(csv_output_full)
 
-    with pd.ExcelWriter(csv_output_full, engine='openpyxl') as writer:
-        for name, df in dataframes.items():
-            df.to_excel(writer, sheet_name=name, index=True)
-    logger.info("Saving the file full hyperresistome %s", csv_output_full)  
+    if generate_full_hyperresistome:
+        if os.path.exists(csv_output_full):
+            os.remove(csv_output_full)
+
+        with pd.ExcelWriter(csv_output_full, engine='openpyxl') as writer:
+            for name, df in dataframes.items():
+                df.to_excel(writer, sheet_name=name, index=True)
+        logger.info("Saving the file full hyperresistome %s", csv_output_full)  
         
 
-def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": True}):
+def snippy_run(project_name, only_output=False,  config=config, extra_config={"force": False, "keep_output": True, "file": None, "add_full_hyperresistome": False}):
     '''
         this function is used to apply the Trimmomatic program to the fastq.gz files
 
@@ -369,7 +368,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
             logger.info("Snippy process for %s finished", sample_name)
             process_output(VCF_FILE, sample_name, OUTPUT_PATH)
 
-    combined_excel_files(samples, OUTPUT_PATH)
+    combined_excel_files(samples, OUTPUT_PATH, generate_full_hyperresistome=extra_config["add_full_hyperresistome"])
 
     if not extra_config["keep_output"]:
         os.system(f"rm -r {OUTPUT_PATH}/output")
@@ -382,8 +381,9 @@ if __name__ == "__main__":
     parser.add_argument('--parse-output', action='store_true', help='Set the flag to not execute but only process output files')
     parser.add_argument('--json-config', type=str, help='Json file in the config directory', default=None)
     parser.add_argument('--force', action='store_true', help='Force the execution of the program')
-    parser.add_argument('--keep_output', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--keep-output', action='store_true', help='Force the execution of the program')
     parser.add_argument('--file', type=str, help='Direct file to process', default=None)
+    parser.add_argument('--add-full-hyperresistome', action='store_true', help='Add the full hyperresistome to the output')
     args = parser.parse_args()
     PROJECT_NAME = args.PROJECT_NAME
     if args.json_config:
@@ -391,4 +391,4 @@ if __name__ == "__main__":
 
     configure_logs(PROJECT_NAME, "snippy", config)
     logger = logging.getLogger(__name__)
-    snippy_run(PROJECT_NAME, args.parse_output, config, extra_config={"force": args.force, "keep_output": args.keep_output, "file": args.file})
+    snippy_run(PROJECT_NAME, args.parse_output, config, extra_config={"force": args.force, "keep_output": args.keep_output, "file": args.file, "add_full_hyperresistome": args.add_full_hyperresistome})

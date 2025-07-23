@@ -16,7 +16,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'program
 from programs_scripts.modules.general_functions import read_config, check_project, execute_command
 from programs_scripts.trimmomatic_run import trimmomatic_run
 from programs_scripts.SPAdes_run import SPAdes_run
-from programs_scripts.bowtie_run import bowtie_run
 from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
+                             "SPAdes", "resfinder", "oprD", "mlst", 
                              "all_sequence", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
@@ -40,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--keep_output', action='store_true', help='Keep the output of the program')
     parser.add_argument('--clean_output', action='store_true', help='Clean the output of the program')
     parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
+    parser.add_argument('--add-full-hyperresistome', action='store_true', help='Add full hyperresistome to the output')
 
     # Optional arguments for specific operations
     parser.add_argument('--protein', action='store_true', 
@@ -53,7 +53,8 @@ if __name__ == "__main__":
         "clean_output": args.clean_output,
         "log_level": args.log_level,
         "file": args.file,
-        "protein": args.protein
+        "protein": args.protein,
+        "add_full_hyperresistome": args.add_full_hyperresistome
     }
 
     
@@ -141,10 +142,6 @@ if __name__ == "__main__":
         elif operation == "SPAdes":
             logger.info(f"Running SPAdes for project {PROJECT_NAME}")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
-        elif operation == "bowtie":
-            logger.info(f"Running bowtie for project {PROJECT_NAME}")
-            reference = args.reference
-            bowtie_run(PROJECT_NAME, reference, extra_config=extra_config)
         elif operation == "resfinder":
             logger.info(f"Running resfinder for project {PROJECT_NAME}")
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
