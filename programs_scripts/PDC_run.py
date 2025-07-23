@@ -18,7 +18,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "PDC.json", required_keys=["TBLASTN_OPTIONS", "PROTEIN_PATH"])
+config = init_configs(script_directory, "PDC.json", required_keys=["TBLASTN_OPTIONS"])
 
 def get_differences(hsps, name, gaps = 0):
         if hsps == -1:
@@ -179,12 +179,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     
     PROJECTS_PATH = config["PROJECTS_PATH"]
     TBLASTN_OPTIONS = config['TBLASTN_OPTIONS']
-    PROTEIN_PATH = config["PROTEIN_PATH"]
 
-    # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
-    files_protein = os.listdir(PROTEIN_PATH)
-    # Get only files with extension .fasta
-    files_protein = [file for file in files_protein if file.endswith(".fasta")]
     
     # Create project directory in case it is not created, read files and create output directory
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
@@ -192,6 +187,25 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     SPADES_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "denovo_assemblies_SPAdes")
     OUTPUT_PATH =  os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "PDC_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
+
+
+    # Read PDC Database
+    PDC_DATABASE_PATH = os.path.join(config['DATABASE_PATH'], 'PDC', 'PDCs_seq')
+
+    # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
+    files_protein = os.listdir(PDC_DATABASE_PATH)
+    # Get only files with extension .fasta
+    files_protein = [file for file in files_protein if file.endswith(".fasta")]
+    pattern = r"(PDC-\d+)"
+    # Usar re.search para encontrar el patrón
+    files = []    
+    for name in files_protein:
+        match = re.search(pattern, name)                        
+        pdc_name = match.group(0) if match else None
+        files.append([name, pdc_name])
+        
+    # sort files by pdc_name
+    files = sorted(files, key=lambda x: int(x[1].split("-")[1]))
 
     results_data = [
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
@@ -228,16 +242,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 "path": ""
             }
             
-            pattern = r"(PDC-\d+)"
-            # Usar re.search para encontrar el patrón
-            files = []    
-            for name in files_protein:
-                match = re.search(pattern, name)                        
-                pdc_name = match.group(0) if match else None
-                files.append([name, pdc_name])
-                
-            # sort files by pdc_name
-            files = sorted(files, key=lambda x: int(x[1].split("-")[1]))
+            
             
             for index, file in enumerate(files):
                 file, name = files[index]
@@ -250,7 +255,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     continue
                 
                 logger.debug("Processing sample %s", name)
-                file = os.path.join(PROTEIN_PATH, file)
+                file = os.path.join(PDC_DATABASE_PATH, file)
                 logger.debug("Using protein file: %s", file)
                 
                 output_file = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")

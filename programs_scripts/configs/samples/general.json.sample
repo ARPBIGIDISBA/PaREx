@@ -1,4 +1,4 @@
 {
-    "PROJECTS_PATH": "/wgs/microbiologia/Projects",
-    "REFERENCE_PATH": "/wgs/microbiologia/Reference4alignment"
+    "PROJECTS_PATH": "Path to projects/Projects",
+    "DATABASE_PATH": "Path to database/parex-databases"
 }

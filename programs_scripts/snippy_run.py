@@ -167,7 +167,7 @@ def process_output(vcf_path, sample_name, output_path):
         csv_writer.writerow(['locus', 'genes', 'P.', 'changes', 'filtered_mutations', 'C.'])
 
         vcf_file = pysam.VariantFile(vcf_path)
-        path = config.get("POLYMORPHISMS")
+        path = os.path.join(config.get("DATABASE_PATH"), "snippy", config.get("POLYMORPHISMS"))
         filter_dict = read_data_from_file(path)
 
         # Construir mapping: locus -> filtro
@@ -209,7 +209,7 @@ def combined_excel_files(samples, output_path, generate_full_hyperresistome=Fals
     output_dir = os.path.join(output_path, "processed")
     csv_output = os.path.join(output_path, "combined_snippy.xlsx")
     csv_output_full = os.path.join(output_path, "combined_snippy_full.xlsx")
-    path = config.get("POLYMORPHISMS")
+    path = os.path.join(config.get("DATABASE_PATH"), "snippy", config.get("POLYMORPHISMS"))
 
     # Define tabs to filter by 
     filter = read_data_from_file(path)
@@ -319,7 +319,8 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
 
     # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
     SNIPPY_OPTIONS = config['SNIPPY_OPTIONS']
-    SNIPPY_REFERENCE = config['REFERENCE']
+    SNIPPY_REFERENCE = os.path.join(config['DATABASE_PATH'], 'snippy', config['REFERENCE'])
+    
     if not os.path.exists(SNIPPY_REFERENCE):
         logger.error("The reference file does not exist check snippy.json file")
         logger.error(f"This file does not exist:{SNIPPY_REFERENCE}")
