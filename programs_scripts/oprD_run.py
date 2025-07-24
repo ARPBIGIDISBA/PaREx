@@ -18,6 +18,7 @@ script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "oprD.json", required_keys=["BLAST_OPTIONS", "BLASTN_OPTIONS"])
 
+
 def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
         if hsps == -1:
             return []
@@ -33,7 +34,7 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             m = m.upper()
             h = h.upper()
 
-            if q =="-":
+            if q == "-":
                 if not qstate:
                     qstate = True
                     if nucleotide_protein == "nucleotide":
@@ -68,6 +69,7 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
         logger.info("Differences %s %s",name,",".join(differences))
         return differences
 
+
 def read_output(json_file):
     try:
         data = json.load(open(json_file))['BlastOutput2'][0]['report']
@@ -76,6 +78,7 @@ def read_output(json_file):
         logger.error(e)
         data = None
     return data
+
 
 def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
     protein_data = read_output(json_file)
@@ -95,40 +98,46 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
             query_len = result["query_len"]
             
             if nucleotide_protein == "nucleotide":
-                # sequence in N contigs check manually  
                 if len(result["hits"]) > 0:
-                    if len(result["hits"]) == 1:
-                        hit = result["hits"][0]
-                        title = hit["description"][0]["title"]
-                        logger.debug("%s Hit: %s", name, title)
-                        bit_score = 0
-                        
-                        gaps = 100000
-                        best_hsps = None
+                    if len(result["hits"]) > 1:
+                        logger.warning("%s has multiple contigs (%d hits)", name, len(result["hits"]))
+                    best_hsps = None
+                    bit_score = -1
+                    identity = -1
+                    gaps = -1
+                    query_from = 1
+                    query_to = query_len
+
+                    for hit in result["hits"]:
                         for hsps in hit["hsps"]:
-                            gaps = hsps["gaps"]
-                            identity = hsps["identity"]/hsps["align_len"]*100
-                            query_from = hsps["query_from"]
-                            query_to = hsps["query_to"]
-                            
                             if hsps["bit_score"] > bit_score:
                                 bit_score = hsps["bit_score"]
                                 best_hsps = hsps
-                            if query_from > 1 or query_to < query_len:
-                                return {"gaps": -1, "bit_score": bit_score, "identity": -1, "hsps": [], 
-                                        "differences": f"Not complete ({query_from}-{query_to})" }
-                        return {"gaps": gaps, "bit_score": bit_score, "identity": identity, "hsps": best_hsps, "differences":"" }
-                    else:
-                        # 1326 o 1332 we use this bitscore
-                        max_bit_score = -1
-                        for hit in result["hits"]:
-                            hsps = hit["hsps"]
-                            
+                                identity = hsps["identity"]/hsps["align_len"]*100
+                                gaps = hsps["gaps"]
+                                query_from = hsps["query_from"]
+                                query_to = hsps["query_to"]
 
-                        return {"gaps": -1, "bit_score": 1, "identity": -1, "hsps": [], "differences": f"sequence in {len(result['hits'])} contigs check manually" }
+                    if best_hsps:
+                        if query_from > 1 or query_to < query_len:
+                            return {
+                                "gaps": -1,
+                                "bit_score": bit_score,
+                                "identity": -1,
+                                "hsps": [],
+                                "differences": f"Not complete ({query_from}-{query_to})"
+                            }
+                        return {
+                            "gaps": gaps,
+                            "bit_score": bit_score,
+                            "identity": identity,
+                            "hsps": best_hsps,
+                            "differences": ""
+                        }
                 else:
                     logger.debug("No hits found for %s", name)
                     return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
+                
             elif nucleotide_protein == "protein":
                 best_match = {
                     "bit_score": 0,
@@ -150,10 +159,11 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                 else:
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
-                
+                    
             else:
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
+
 
 def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False, extra_config= {"force": False, "keep-output": False}):
     ''' 
@@ -349,6 +359,8 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerows(results_data)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
