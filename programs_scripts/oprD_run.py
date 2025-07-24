@@ -16,7 +16,7 @@ from modules.general_functions import configure_logs, init_configs
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "oprD.json", required_keys=["BLAST_OPTIONS", "BLASTN_OPTIONS", "NUCLEOTIDE_PATH", "PROTEIN_PATH"])
+config = init_configs(script_directory, "oprD.json", required_keys=["BLAST_OPTIONS", "BLASTN_OPTIONS"])
 
 def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
         if hsps == -1:
@@ -181,8 +181,8 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
     PROJECTS_PATH = config["PROJECTS_PATH"]
     BLAST_OPTIONS = config['BLAST_OPTIONS']
     BLASTN_OPTIONS = config['BLASTN_OPTIONS']
-    NUCLEOTIDE_PATH = config["NUCLEOTIDE_PATH"]
-    PROTEIN_PATH = config["PROTEIN_PATH"]
+    NUCLEOTIDE_PATH = os.path.join(config['DATABASE_PATH'], 'oprD', 'nucleotide')
+    PROTEIN_PATH = os.path.join(config['DATABASE_PATH'], 'oprD', 'protein')
 
     # we iterate over the files in the nucleotide path and the search the associate protein file in the protein path
     # Filter only files finishing in .fasta
@@ -293,7 +293,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                 logger.warning(results)
                 results_data.append([sample_name, results["differences"], max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll en nucleatido!!!")
+                logger.info("This is a Wild Type (WT). No gaps in nucleotide")
                 logger.info("***********************************************")  
                 results_data.append([sample_name, "WT", max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
@@ -331,7 +331,7 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
                         
                         results = analize_sample(output_file_protein, max_bitscore['name'], "protein")
                         if results["gaps"] == 0 and results["identity"] == 100:
-                            logger.info("This is a Wild Type (WT) sample. No gaps Rock and Roll en proteina!!!")
+                            logger.info("This is a Wild Type (WT). No gaps in protein")
                             results_data.append([sample_name, "WT", results["name"],  results["bit_score"], results["gaps"], results["identity"]])
                         else:
                             result = [sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]]

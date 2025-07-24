@@ -119,14 +119,14 @@ def init_configs(script_directory, config_json=None, required_keys=[]):
             the general values of the general.json file
     '''
     general_config = os.path.join(script_directory, os.path.join("configs","general.json"))
-    config_general = read_config(general_config, ["PROJECTS_PATH", "REFERENCE_PATH"])
+    config_general = read_config(general_config, ["PROJECTS_PATH", "DATABASE_PATH"])
     if config_json:
         default_config_json = os.path.join(script_directory, os.path.join("configs", config_json))
         config = read_config(default_config_json, required_keys=required_keys)
     else:
         config = {}
     config["PROJECTS_PATH"] = config_general["PROJECTS_PATH"]
-    config["REFERENCE_PATH"] = config_general["REFERENCE_PATH"]
+    config["DATABASE_PATH"] = config_general["DATABASE_PATH"]
     return config
 
 

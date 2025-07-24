@@ -1,5 +1,5 @@
 {
-    "RESFINDER_PATH": "/home/mbonet/microbiologia/Programs/resfinder/src/resfinder",
+    "RESFINDER_PATH": "resfinder/src/resfinder",
     "RESFINDER_OPTIONS": [
         "--acquired",
         "--point"
@@ -12,6 +12,7 @@
         "blaOXA-396",
         "blaOXA-494",
         "aph(3')-IIb",
+        "crpP",
         "tmexD2",
         "catB7",
         "fosA",
