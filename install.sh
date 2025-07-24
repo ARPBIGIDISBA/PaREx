@@ -3,6 +3,13 @@
 # Directorio de instalación por defecto
 # INSTALL_DIR=/root/code/Programs
 
+# Si no se proporciona un argumento, salir y pedirlo
+if [ -z "$1" ]; then
+    echo "❌ Debes indicar un directorio de instalación como argumento."
+    echo "Uso: $0 /ruta/al/directorio"
+    exit 1
+fi
+
 # Si se proporciona un argumento, usarlo como directorio de instalación
 if [ ! -z "$1" ]; then
     INSTALL_DIR=$1
