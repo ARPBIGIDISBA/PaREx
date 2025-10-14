@@ -1,0 +1,7 @@
+cgelib==0.7.5
+openpyxl==3.1.5
+pandas
+pysam==0.22.1
+reportlab==4.4.1
+resfinder
+XlsxWriter==3.2.2
