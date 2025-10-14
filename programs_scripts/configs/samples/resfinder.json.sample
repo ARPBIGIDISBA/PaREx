@@ -5,19 +5,20 @@
         "--point"
     ],
     "INTRINSIC_PAER_GENES": [
-        "blaPAO",
+       "blaPAO",
         "blaOXA-50",
         "blaOXA-488",
+        "blaOXA-486",
+        "blaOXA-485",
         "blaOXA-395",
         "blaOXA-396",
         "blaOXA-494",
         "aph(3')-IIb",
-        "crpP",
         "tmexD2",
         "catB7",
         "fosA",
-        "TOprJ3",
+        "crpP",
         "tmexC3",
-        "OXA-485"
+        "toprJ3"
     ]
 }

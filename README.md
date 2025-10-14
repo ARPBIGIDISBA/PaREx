@@ -1,50 +1,19 @@
 
-# Bacterial Resistance Analysis Project
+# *Pa*REx: an open‑source pipeline for the automated analysis of *Pseudomonas aeruginosa* resistomes from whole‑genome sequences
 
-This project is a Python pipeline designed to perform genomic and antimicrobial resistance analysis on *Pseudomonas aeruginosa* samples. It includes FASTQ file processing, de novo assembly, alignment, resistance phenotype identification, and report generation.
+The *Pseudomonas aeruginosa* Resistome Explorer (*Pa*REx) is an open-source Python-based customizable pipeline that has been specifically designed for the automated analysis of *P. aeruginosa* resistomes from Illumina® paired-end reads. *Pa*REx uses different open-source bioinformatics tools, software and publicly available databases along with custom-built databases, scripts and tools and is composed by two main components the PaREx pipeline and the PaREx databases.
 
-## Code Structure
-
-- **programs_scripts/**: Contains specific scripts for each step of the pipeline.
-- **programs_scripts/configs/**: Configuration files in `.json` format necessary for running the scripts. Also includes `.json.sample` example files.
-- **execute_pipelines**: Run with `python execute_pipelines.py PROJECT_NAME "commands"`
-
-## Generated Folders
-- **logs/**: Folder where logs generated during execution are stored.
-- **PROJECTS/**: Folder to store project-related data, it is the base to create and add the FASTQ files for input data
-
-
-## References for alignent
-- **REFERENCE4ALIGNMENT/**: Folder where alignment reference files are stored.
-There is a repository which this project uses the [References4alignment](https://github.com/matiasbonet/References4alignment) repository as the primary source of references for data alignment. This repository contains key information and useful tools that complement the functionality of this project, ensuring consistency and accuracy in the results. Feel free to explore it to better understand the dependencies and how the references are utilized in this context.
-
-## Input Files
-
-The project is designed to handle a variety of input file formats, ensuring flexibility and compatibility with different sequencing workflows:
-
-- **FASTQ Files**: Raw sequencing reads in FASTQ format are the primary input for processing workflows. These files typically contain paired-end reads (`R1` and `R2`) generated from Illumina or similar platforms.
-
-- **NovaSeq Files**: High-throughput NovaSeq files are supported, allowing seamless integration with modern sequencing technologies. It converts in the output into FASTQ files R1/R2
-
-- **De Novo Assembly Files**: For workflows that bypass raw read processing, preassembled de novo files can be directly utilized. This is particularly useful for tools and analyses that focus on assembled genomes, reducing the computational overhead of preprocessing.
-
-This multi-format compatibility enables the project to adapt to different experimental setups, whether working with raw sequencing data or preassembled genomes, enhancing its usability and flexibility across genomic research pipelines.
-
-## Installation Requirements
+## Requirements
 - Python 3.8 or higher
-- Python packages:
-  - `pandas`
-  - `openpyxl`
-  - `pysam`
-  - Other packages listed in `requirements.txt`
+- Other packages listed in `requirements.txt`
 
-## Installation
+## Installation of *Pa*REx custom-built scripts and tools
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/project.git
-   cd project
+   git clone https://github.com/yourusername/project.git  CAMBIAR POR: https://github.com/ARPBIG/PaREx.git
+   cd parex
    ```
 
 2. Install dependencies:
@@ -53,20 +22,71 @@ This multi-format compatibility enables the project to adapt to different experi
    pip install -r requirements.txt
    ```
 
-3. Configure the `.json` files in the `configs/` folder. If `.json` files are missing, the program will automatically generate them from the `.json.sample` files. However, you need to adjust program URLs as required.
+## Installation of *Pa*REx custom-built databases
 
-## Configuration
+There is a repository including all custom-built databases [parex-databases](https://github.com/matiasbonet/References4alignment  CAMBIAR POR: https://github.com/ARPBIG/parex-databases.git). 
 
-Each `.json` configuration file contains parameters needed for different steps in the pipeline. Be sure to customize the values to suit your requirements before running the program.
+ ```bash
+   cd ..
+   git clone https://github.com/yourusername/project.git  CAMBIAR POR: https://github.com/ARPBIG/parex-databases.git
+   cd parex
+   ```
+
+## Installation of third-party bioinformatic tools, software and databases 
+
+You can use the install.sh:  
+
+   ```bash
+   chmod 755 install.sh
+   sh install.sh 
+   ```
+
+
+OR alternatively you can install them by your own: 
+
+
+1. **Trimmomatic**
+   - Download and extract from the official source:
+     ```bash
+     wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
+     unzip Trimmomatic-0.39.zip
+     ```
+
+2. **SPAdes**
+   - Download and extract the Linux version from the official source:
+     ```bash
+     CAMBIAR URL! :  wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
+     tar -xzf SPAdes-3.15.3-Linux.tar.gz
+     ```
+
+3. **Snippy**
+   - Install Snippy by cloning its GitHub repository:
+     ```bash
+     git clone https://github.com/tseemann/snippy.git
+     ```
+
+4. **MLST**
+   - MLST requires a specific download setup based on system. Instructions are available at its [official source](https://github.com/tseemann/mlst).
+   - *Pa*REx validation was performed with the *P. aeruginosa* database available on November 2024.
+
+5. **Resfinder**
+   - Resfinder requires a specific download setup based on system. Instructions are available at its [official source](https://bitbucket.org/genomicepidemiology/resfinder.git)
+   - *Pa*REx uses the version 2.1.0 of the resfinder database.
+     
+
+## Configuration 
+
+Configure the `.json` files in the `programs_scripts/configs/` folder. 
+If `.json` files are missing, you need to create them from the provided `.json.sample` files. 
+You need to adjust the paths for the following configuration files: 
 
 ### Configuration Files
 
-- **general.json**: Contains global settings, such as paths to projects and reference files.
-- **trimmomatic.json**, **snippy.json**, etc.: Specific configurations for each tool used in the pipeline.
+- **general.json**: Contains global settings, including the path to the projects and to PaREx databases.
+- **trimmomatic.json**, **SPAdes.json**, **snippy.json**, **mlst.json**, **resfinder.json**: Specific configurations for each third-party tool used in the pipeline.
 
-If the `.json` files do not exist, you can create them automatically from the provided `.json.sample` files. The program will generate a warning and create the necessary files.
 
-## Usage
+## *Pa*REx general usage  --> INTRODUCIR create_project, create_sample_list, novaseq, trimmomatic, resistome, single file! 
 
 ### Running the Complete Pipeline
 
@@ -108,47 +128,35 @@ This script to automate the filtering and post-processing of Snippy outputs. The
 
 ## Logs
 
-Log files are stored in the `logs/` folder. They are automatically generated with each run and saved in the `Logs/` subdirectory within each project.
-
-## Required Programs
-
-Below are the required programs along with installation instructions:
-
-1. **Trimmomatic**
-   - Download and unzip from the official source:
-     ```bash
-     wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
-     unzip Trimmomatic-0.39.zip
-     ```
-
-2. **SPAdes**
-   - Download and extract the Linux version from the official website:
-     ```bash
-     wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
-     tar -xzf SPAdes-3.15.3-Linux.tar.gz
-     ```
-
-3. **Bowtie2**
-   - Install with the following command (for Debian/Ubuntu systems):
-     ```bash
-     sudo apt install bowtie2
-     ```
-
-4. **Resfinder**
-   - Resfinder can be cloned from its repository (link may need verification):
-     ```bash
-     git clone https://bitbucket.org/genomicepidemiology/resfinder.git
-     ```
-
-5. **MLST**
-   - MLST requires a specific download setup based on system. Instructions are available at its [official source](https://github.com/tseemann/mlst).
-
-6. **Snippy**
-   - Install Snippy by cloning its GitHub repository:
-     ```bash
-     git clone https://github.com/tseemann/snippy.git
-     ```
 
 ## Contact
 
-For questions or issues, open an *issue* in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)
+For questions or issues, open an *issue*
+
+## Code Structure
+
+- **programs_scripts/**: Contains specific scripts for each step of the pipeline.
+- **programs_scripts/configs/**: Configuration files in `.json` format necessary for running the scripts. Also includes `.json.sample` example files.
+- **execute_pipelines**: Run with `python execute_pipelines.py PROJECT_NAME "commands"`
+
+## Generated Folders
+- **logs/**: Folder where logs generated during execution are stored.
+- **PROJECTS/**: Folder to store project-related data, it is the base to create and add the FASTQ files for input data
+
+
+## Input Files
+
+The project is designed to handle a variety of input file formats, ensuring flexibility and compatibility with different sequencing workflows:
+
+- **FASTQ Files**: Raw sequencing reads in FASTQ format are the primary input for processing workflows. These files typically contain paired-end reads (`R1` and `R2`) generated from Illumina or similar platforms.
+
+- **NovaSeq Files**: High-throughput NovaSeq files are supported, allowing seamless integration with modern sequencing technologies. It converts in the output into FASTQ files R1/R2
+
+- **De Novo Assembly Files**: For workflows that bypass raw read processing, preassembled de novo files can be directly utilized. This is particularly useful for tools and analyses that focus on assembled genomes, reducing the computational overhead of preprocessing.
+
+This multi-format compatibility enables the project to adapt to different experimental setups, whether working with raw sequencing data or preassembled genomes, enhancing its usability and flexibility across genomic research pipelines.
+
+
+Log files are stored in the `logs/` folder. They are automatically generated with each run and saved in the `Logs/` subdirectory within each project.
+
+ in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)
