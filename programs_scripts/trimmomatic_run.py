@@ -101,22 +101,34 @@ def trimmomatic_run(project_name, config=config, extra_config={"force": False, "
                         logger.info(f"Unzip file {new_file_path}")
                     
 
-                # Mover los unpairs para futura calidad un directorio
+                # Remove the unpaired files or move them to a different folder
                 UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
-                os.makedirs(UNPAIRED_PATH, exist_ok=True)
-                logger.info(f"Unpaired files will be stored in {UNPAIRED_PATH}")
-                for suffix in ["1U", "2U"]:
+                for sufix in ["1U", "2U"]:
+                    # Borrar los ficheros
                     if zipped:
-                        old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{suffix}.fastq.gz")
-                        new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}_trim_{suffix}.fastq.gz")
+                        file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{sufix}.fastq.gz")
                     else:
-                        old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{suffix}.fastq")
-                        new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}_trim_{suffix}.fastq")
+                        file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{sufix}.fastq")
+                    if os.path.exists(file_path) and not extra_config["keep_output"]:
+                        os.remove(file_path)      
+                        logger.info(f"Deleting unpaired file {file_path}")
 
-                    shutil.move(old_file_path, new_file_path)
-                    logger.info(f"Storing unpaired file {new_file_path}")
-                    if os.path.exists(old_file_path) and not extra_config["keep_output"]:
-                        os.remove(old_file_path)      
+                if extra_config["keep_output"]:
+                    UNPAIRED_PATH = os.path.join(OUTPUT_PATH, "UNPAIRED")
+                    os.makedirs(UNPAIRED_PATH, exist_ok=True)
+                    logger.info(f"Unpaired files will be stored in {UNPAIRED_PATH}")
+                    for suffix in ["1U", "2U"]:
+                        if zipped:
+                            old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{suffix}.fastq.gz")
+                            new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}_trim_{suffix}.fastq.gz")
+                        else:
+                            old_file_path = os.path.join(OUTPUT_PATH, f"{sample_name}_trim_{suffix}.fastq")
+                            new_file_path = os.path.join(UNPAIRED_PATH, f"{sample_name}_trim_{suffix}.fastq")
+
+                        shutil.move(old_file_path, new_file_path)
+                        logger.info(f"Storing unpaired file {new_file_path}")
+                        if os.path.exists(old_file_path) and not extra_config["keep_output"]:
+                            os.remove(old_file_path)      
 
             else:
                 logger.error("There is an error in Trimmomatic execution, check the log files")
