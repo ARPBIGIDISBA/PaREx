@@ -1,5 +1,5 @@
 {
-    "RESFINDER_PATH": "resfinder/src/resfinder",
+    "RESFINDER_PATH": "Path to programs/resfinder/src/resfinder",
     "RESFINDER_OPTIONS": [
         "--acquired",
         "--point"
