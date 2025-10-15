@@ -72,6 +72,9 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
 
             def check_if_exist(row, list):
                 for sample in list:
+                    # if blaOXA-XXX check without the number (future add more generic way to do it)
+                    if gene.startswith("blaOXA") and sample["name"].startswith("blaOXA") and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
+                        return False
 
                     if row["name"]==sample["name"] and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
                         return False
