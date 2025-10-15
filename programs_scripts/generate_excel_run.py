@@ -23,6 +23,13 @@ config = init_configs(script_directory)
 
 
 def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=";"):
+    ''' 
+        Reads a CSV file and returns a DataFrame with the specified columns.
+        If columns is ["all"], returns all columns.
+        The sample_id_col is renamed to "STRAIN ID" and set as index.
+        If the file does not exist or there is an error, returns None.
+        The delimiter is used to read the CSV file.
+    '''
     if not os.path.exists(csv_path):
         logger.debug(f"File not found {csv_path}")
         logger.debug("Execute first the analysis")
@@ -46,17 +53,30 @@ def read_csv_results(csv_path, columns,  sample_id_col="sample_name", delimiter=
 
 
 def process_resfinder_samples(resfinder_path, sample_id_col="name"):
-    # Crear una lista vacía para almacenar las filas del DataFrame
+    '''
+        Processes all the resfinder results in the given path and returns a DataFrame with the results.
+        The sample_id_col is used to identify the sample name in the resfinder files.
+        The function looks for files ending with "*fullcoverage.csv" in the given path.
+        The resulting DataFrame has the following columns:
+            - STRAIN ID
+            - beta
+            - aminoglycoside
+            - fluoroquinolones
+            - other
+        Each column contains a list of genes found in that category, separated by commas.
+        If no results are found, returns None.
+    '''
+    # Create an empty list to store the rows of the DataFrame
     rows = []
     for file in glob.glob(os.path.join(resfinder_path, "*fullcoverage.csv")):
         sample_name = os.path.basename(file).replace(".fullcoverage.csv", "")
-        # Lee el archivo como DataFrame
+        # Read the file as a DataFrame
         df = pd.read_csv(file, delimiter=";")
-        # Asegúrate de que la columna `sample_id_col` y `phenotypes` existen
+        # Ensure that the `sample_id_col` and `phenotypes` columns exist
         if sample_id_col in df.columns and 'phenotypes' in df.columns:
-            df["phenotypes"] = df["phenotypes"].fillna("").str.split(",")  # Divide en listas
-            
-            # Inicializa la estructura de datos para este sample
+            df["phenotypes"] = df["phenotypes"].fillna("").str.split(",")  # Split into lists
+
+            # Initialize the data structure for this sample
             sample_data = {
                 "STRAIN ID": sample_name,
                 "beta": [],
@@ -81,14 +101,15 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                     
                 return True
 
-            # Clasifica los genes por categorías
+            # Classify genes by categories
             for _, row in df.iterrows():
                 gene = row[sample_id_col]
-                phenotypes = [p.strip() for p in row["phenotypes"]]  # Elimina espacios en blanco
+                phenotypes = [p.strip() for p in row["phenotypes"]]  # Remove whitespace
                 # Identity only 2 decimal places
                 identity = f"{float(row['identity'].replace(',', '.')):.2f}" if row['identity'] is not None else ""
                 
-                # Categorización de acuerdo a los fenotipos
+                # Categorization based on phenotypes and gene names
+                # Avoid duplicates based on gene name and positions
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
                     if check_if_exist(row, added_aminoglycoside):
                         added_aminoglycoside.append(row)
@@ -122,14 +143,14 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                         added_other.append(row)
                         sample_data["other"].append(f"{gene} ({identity}%)")
 
-            # Añadir la fila a la lista de filas
+            # Add the row to the list of rows
             rows.append(sample_data)
 
-    # Si no se encontraron resultados, devolver None
+    # If no results were found, return None
     if not rows:
         return None
 
-    # Crear el DataFrame directamente desde la lista de filas
+    # Create the DataFrame directly from the list of rows
     resfinder_df = pd.DataFrame(rows)
     resfinder_df.set_index("STRAIN ID", inplace=True)
     
@@ -145,19 +166,18 @@ def reorder_columns(df, moving_cols, ref_col):
         """
         cols = list(df.columns)
 
-        # Quita las columnas PDC si ya están
+        # Remove PDC columns if they already exist
         for col in moving_cols:
             if col in cols:
                 cols.remove(col)
 
-        # Busca la posición de la columna de referencia
+        # Find the position of the reference column
         if ref_col in cols:
             idx = cols.index(ref_col)
-            # Inserta las columnas después, manteniendo orden
-            for col in reversed(moving_cols):  # reversed para que queden en el orden correcto
+            # Insert the columns after, maintaining order
+            for col in reversed(moving_cols):  # reversed to keep the correct order
                 cols.insert(idx + 1, col)
 
-        # Reorder the columns
         df = df.reindex(columns=cols)
         return df
 
@@ -194,7 +214,7 @@ def rename_columns(df):
     resto = [col for col in df.columns if col not in primeras]
     df = df.reindex(columns=primeras + resto)      
 
-    # Ordenar PDC after P4A110_ampc 
+    # Sort PDC after P4A110_ampc
     pdc_cols = ["aminoacid substitutions (vs PDC-1)", "PDC variant (RefSeq protein ID)"]
     ref_col = "PA4110_ampC"
     df = reorder_columns(df, pdc_cols, ref_col)
@@ -203,8 +223,8 @@ def rename_columns(df):
     oprD_cols = ["oprD", "oprD_reference-strain"]
     df = reorder_columns(df, oprD_cols, ref_col)
 
-    # Reordenamos oprD	oprD_reference-strain lo mas cercano a PA0958
-    # Primero eliminamos column del fichero _oprD
+    # Reorder oprD oprD_reference-strain to be closest to PA0958
+    # First remove column from _oprD file
     if "_oprD" in df.columns:
         df = df.drop(columns=["_oprD"])
 
@@ -274,6 +294,12 @@ def generate_excel_run(project_name, config=config, extra_config=None):
 
 
 def generate_pdf_from_excel(project_name, config=config, extra_config=None):
+    '''
+        Generates a PDF file for each isolate in the excel file.
+        The PDF file contains a table with the results of the isolate.
+        The PDF file is saved in the OUTPUT_PATH/PDF_results/ folder.
+    '''
+
     import os
     import pandas as pd
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, PageBreak, Paragraph, Spacer, Image
@@ -306,18 +332,18 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
     normal_style = styles['BodyText']
 
     # Color #234356 #26878b
-
     small_style = ParagraphStyle(
         name="SmallText",
         parent=normal_style,
-        fontSize=10,         # Cambia el tamaño aquí
+        fontSize=10,
     )
         
     class PDFDocTemplate(SimpleDocTemplate):
+
         def afterPage(self):
-            # Cabecera de logos + título en cada página
+            # Logo header and footer for each page
             self.canv.saveState()
-            # LOGO ARPBIG (izquierda)
+            # LOGO ARPBIG (left)
             self.canv.drawImage(LOGO_PAREX, cm-1.5*cm, A4[1] - 3.5*cm, width=9*cm, height=4*cm, preserveAspectRatio=True, mask='auto')
             
             # Título centrado
@@ -330,17 +356,17 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             self.canv.setFont("Times-Bold", font_size)
             self.canv.drawString(x + width_bold, y, " Resistome EXplorer")
 
-            # LOGO arpbig (abajo izquierda)
+            # LOGO ARPBIG (bottom left)
             self.canv.drawImage(
                     LOGO_ARPBIG,
-                    x=1*cm,              # Margen izquierdo
-                    y=2*cm,              # Margen inferior
+                    x=1*cm,              # Left margin
+                    y=2*cm,              # Bottom margin
                     width=5.5*cm,
                     height=2.6*cm,
                     preserveAspectRatio=True,
                     mask='auto'
                 )
-            # Pie de página
+            # Footer
             self.canv.setFont('Helvetica', 8)
             self.canv.drawRightString(A4[0] - cm, 1.2 * cm, f"Page {self.page}")
             self.canv.setFont('Helvetica', 8)
@@ -350,7 +376,6 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
     def get_isolate_table(row):
         # Replace all the NaN values with empty strings
         row = row.fillna("")
-        # Tabla con merged cells para las secciones
         pdc_variant = row.get("PDC variant (RefSeq protein ID)", "")
         aminoacid_substitutions = row.get("aminoacid substitutions (vs PDC-1)", "")
                 
@@ -372,12 +397,12 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
                     mutational_results[gene_name.lower()] = f"<i>{gene_name}</i> ({str(value)})"
                     
             if col == "oprD_reference-strain":
-                # Si es oprD_reference-strain se añade
+                # If it is oprD_reference-strain, it is added
                 continue
             if col=="oprD":
                 value = row.get(col, "")
                 if value != "WT" and value != "":
-                    # Si es oprD y no es WT, lo añadimos al final
+                    # If it is oprD and not WT, we add it at the end
                     oprD_reference = row.get("oprD_reference-strain", "")
                     if oprD_reference:
                         value = f"{value} [{oprD_reference}]"
@@ -390,38 +415,37 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
            mutational_list.append(value)
   
         data = [
-            # Sección MLST
+            # Section MLST
             [Paragraph("<b>Sequence Type</b>", normal_style), ""],
             [Paragraph("<b>ST</b>"), row.get("ST", "")],
             [Paragraph("<b>MLST allelic profile</b>"), Paragraph(row.get("MLST allelic profile", ""))],
 
-            # Sección PDC
+            # Section PDC
             [Paragraph("<b>PDC</b>", normal_style), ""],
             [Paragraph("<b>Aminoacid substitutions (vs PDC-1)</b>"), Paragraph(aminoacid_substitutions.replace(",", ", "))],
             [Paragraph("<b>PDC variant (RefSeq protein ID)</b>"), Paragraph(pdc_variant)],
 
-            # Sección Resistome adquirido
+            # Section adquired resistome
             [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), ""],
             [Paragraph("<b>Beta-lactamases</b>"), Paragraph(row.get("Acquired beta-lactamases", ""))],
             [Paragraph("<b>AMEs</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
             [Paragraph("<b>Quinolones resistance genes</b>"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
             [Paragraph("<b>Other resistance genes</b>"), Paragraph(row.get("Other acquired resistance genes", ""))],
 
-            # Sección Resistome mutacional
+            # Section mutational resistome
             [Paragraph("<b>Mutational resistome</b>", normal_style), ""],
         ]
 
 
-        # Añade todas las filas mutacionales
         if mutational_list:
             data.append([Paragraph(", ".join(mutational_list), small_style), ""])
         else:
             data += ["", ""]
                     
-        # Define la tabla con spans
         table = Table(data, colWidths=[5.2*cm, 12*cm])
 
-        # Merged cells y estilos
+        COLORS_LIGHT_BLUE = colors.HexColor("#9bd1d3")
+        # Merged cells y styles
         style = TableStyle([
             ('SPAN', (0,0), (1,0)),  # Sequence Type
             ('SPAN', (0,3), (1,3)),  # PDC
@@ -429,10 +453,10 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             ('SPAN', (0,11), (1,11)), # Mutational resistome
             ('SPAN', (0,12), (1,12)), # Mutational value
             
-            ('BACKGROUND', (0,0), (1,0), colors.HexColor("#9bd1d3")), # azul claro para cabecera
-            ('BACKGROUND', (0,3), (1,3), colors.HexColor("#9bd1d3")),
-            ('BACKGROUND', (0,6), (1,6), colors.HexColor("#9bd1d3")),
-            ('BACKGROUND', (0,11), (1,11), colors.HexColor("#9bd1d3")),
+            ('BACKGROUND', (0,0), (1,0), COLORS_LIGHT_BLUE),
+            ('BACKGROUND', (0,3), (1,3), COLORS_LIGHT_BLUE),
+            ('BACKGROUND', (0,6), (1,6), COLORS_LIGHT_BLUE),
+            ('BACKGROUND', (0,11), (1,11), COLORS_LIGHT_BLUE),
 
             ('VALIGN', (0,0), (-1,-1), 'TOP'),
             ('FONTSIZE', (0,0), (-1,-1), 9),
