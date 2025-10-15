@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 if __name__ == "__main__":
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
                              "SPAdes", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
+                             "resistome", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -170,7 +170,7 @@ if __name__ == "__main__":
                     logger.info(f"Unzipping {file}")
                     execute_command(["gunzip", file])
 
-        elif operation == "all_sequence" or operation == "analyze":
+        elif operation == "resistome" or operation == "analyze":
             logger.info(f"Running all for project {PROJECT_NAME}")
             logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, generate_excel, generate_pdf")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)

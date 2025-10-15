@@ -98,7 +98,7 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                 elif gene.startswith("bla"):
                     if check_if_exist(row, added_beta):
                         # Check if there another column starting with "blaOXA" or "blaOXA-XXX" keep the one with lowers number in XXX is number
-                        if gene.startswith("blaOXA") and any(added_gene["name"].startswith("blaOXA") for added_gene in added_beta):
+                        if gene.startswith("blaOXA") and any(added_gene["name"].startswith("blaOXA")  for added_gene in added_beta):
                             # Check if the number is lower
                             if re.search(r"blaOXA-(\d+)", gene):
                                 current_number = int(re.search(r"blaOXA-(\d+)", gene).group(1))

@@ -3,22 +3,5 @@
     "RESFINDER_OPTIONS": [
         "--acquired",
         "--point"
-    ],
-    "INTRINSIC_PAER_GENES": [
-       "blaPAO",
-        "blaOXA-50",
-        "blaOXA-488",
-        "blaOXA-486",
-        "blaOXA-485",
-        "blaOXA-395",
-        "blaOXA-396",
-        "blaOXA-494",
-        "aph(3')-IIb",
-        "tmexD2",
-        "catB7",
-        "fosA",
-        "crpP",
-        "tmexC3",
-        "toprJ3"
     ]
 }
