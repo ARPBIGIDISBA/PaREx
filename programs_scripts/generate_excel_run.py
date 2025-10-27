@@ -354,7 +354,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             self.canv.drawString(x, y, "Pseudomonas aeruginosa")
             width_bold = self.canv.stringWidth("Pseudomonas aeruginosa", "Times-Bold", font_size)
             self.canv.setFont("Times-Bold", font_size)
-            self.canv.drawString(x + width_bold, y, " Resistome EXplorer")
+            self.canv.drawString(x + width_bold, y, " Resistome Explorer")
 
             # LOGO ARPBIG (bottom left)
             self.canv.drawImage(
