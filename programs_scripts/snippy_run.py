@@ -27,7 +27,7 @@ amino_acids = {
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
     'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
     'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup',
-    "?": "?"
+    'Ter':'Stop', "?": "", "ext": ""
 }
 
 def update_dataframe(df, sample_name, name, value):
@@ -80,7 +80,7 @@ def translate_amino_acid(value, value_c=""):
             return [value]
         elif value.find("*") > 0:
             value = value.replace("p.","").replace("*","Stop")
-            letter = amino_acids.get(value[0:3].capitalize(), None)
+            letter = amino_acids.get(value[0:3].capitalize(), value[0:3])
             value = f"{letter}{value[3:]}"
             return [value]
         elif value.find("?")>0:
@@ -99,9 +99,9 @@ def translate_amino_acid(value, value_c=""):
                         number = int(part[0])
                     if part[1]:
                         if number is None:
-                            previous.append(amino_acids.get(part[1].capitalize(), None))
+                            previous.append(amino_acids.get(part[1].capitalize(), part[1]))
                         else:
-                            after.append(amino_acids.get(part[1].capitalize(), None))
+                            after.append(amino_acids.get(part[1].capitalize(), part[1]))
 
                 result = []
                 for index,part in enumerate(previous):

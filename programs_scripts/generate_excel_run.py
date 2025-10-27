@@ -196,7 +196,7 @@ def rename_columns(df):
         "sequence_type": "ST",
         "alleles": "MLST allelic profile",
         "beta": "Acquired beta-lactamases",
-        "aminoglycoside": "Acquired aminoglycoside modifying enzymes",
+        "aminoglycoside": "Acquired aminoglycoside resistance genes",
         "fluoroquinolones": "Acquired quinolones resistance genes",
         "other": "Other acquired resistance genes",
         "oprD_REFERENCE": "oprD_reference-strain",
@@ -428,7 +428,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             # Section adquired resistome
             [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), ""],
             [Paragraph("<b>Beta-lactamases</b>"), Paragraph(row.get("Acquired beta-lactamases", ""))],
-            [Paragraph("<b>AMEs</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
+            [Paragraph("<b>Aminoglycosides resistance genes</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
             [Paragraph("<b>Quinolones resistance genes</b>"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
             [Paragraph("<b>Other resistance genes</b>"), Paragraph(row.get("Other acquired resistance genes", ""))],
 
