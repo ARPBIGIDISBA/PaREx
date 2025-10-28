@@ -14,6 +14,8 @@ import csv
 import re
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
+from typing import List, Tuple, Optional
+
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -141,6 +143,82 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
             else:
                 logger.error("type must be nucleotide or protein")
                 sys.exit(1)
+
+def _parse_del(token: str) -> Optional[Tuple[int, int, str, str]]:
+    """
+    Devuelve (ini_pos, fin_pos, ini_AA, fin_AA) si es borrado, si no None.
+    Acepta: "G229-", "G229-Y230del"
+    """
+    s = token.strip()
+
+    m1 = re.fullmatch(r'([A-Z])(\d+)-', s)
+    if m1:
+        aa, p = m1.group(1), int(m1.group(2))
+        return (p, p, aa, aa)
+
+    m2 = re.fullmatch(r'([A-Z])(\d+)-([A-Z])(\d+)del', s)
+    if m2:
+        aa1, p1, aa2, p2 = m2.group(1), int(m2.group(2)), m2.group(3), int(m2.group(4))
+        if p2 < p1:
+            p1, p2, aa1, aa2 = p2, p1, aa2, aa1
+        return (p1, p2, aa1, aa2)
+
+    return None
+
+def _fmt_del(p1: int, p2: int, aa1: str, aa2: str) -> str:
+    return f"{aa1}{p1}del" if p1 == p2 else f"{aa1}{p1}-{aa2}{p2}del"
+
+def merge_deletions_preserve(items: List[str]) -> List[str]:
+    """
+    Funde borrados consecutivos/solapados en un solo rango.
+    Mantiene en la lista todo lo demás sin tocar.
+    Reemplaza el primer elemento del run por el rango mergeado y elimina el resto del run.
+    """
+    out = items[:]  # copia para modificar por índice
+    run_active = False
+    run_start_idx = None
+    run_p1 = run_p2 = None
+    run_aa1 = run_aa2 = None
+
+    for i, tok in enumerate(items):
+        parsed = _parse_del(tok)
+        if parsed:
+            p1, p2, aa1, aa2 = parsed
+
+            if not run_active:
+                # iniciar run
+                run_active = True
+                run_start_idx = i
+                run_p1, run_p2 = p1, p2
+                run_aa1, run_aa2 = aa1, aa2
+                # el primer token se reemplazará al cerrar el run
+            else:
+                # ¿continúa/solapa?
+                if p1 <= run_p2 + 1:
+                    # extender
+                    if p2 > run_p2:
+                        run_p2, run_aa2 = p2, aa2
+                    out[i] = None  # eliminar este token, quedará absorbido
+                else:
+                    # cerrar run anterior y abrir otro
+                    out[run_start_idx] = _fmt_del(run_p1, run_p2, run_aa1, run_aa2)
+                    run_start_idx = i
+                    run_p1, run_p2 = p1, p2
+                    run_aa1, run_aa2 = aa1, aa2
+        else:
+            # token no-borrado: cerrar run si estaba abierto
+            if run_active:
+                out[run_start_idx] = _fmt_del(run_p1, run_p2, run_aa1, run_aa2)
+                run_active = False
+                run_start_idx = None
+            # dejar tok tal cual
+
+    # fin de lista: cerrar run si quedó abierto
+    if run_active:
+        out[run_start_idx] = _fmt_del(run_p1, run_p2, run_aa1, run_aa2)
+
+    # limpiar eliminados
+    return [t for t in out if t not in (None, "")]
 
 def PDC_run(project_name, config=config, direct_file = None, extra_config={"force": False, "keep_output": True}):
     ''' 
@@ -329,14 +407,18 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 else:
                     logger.error("PDC failed assembly failed on sample %s", sample_name)
 
+            differences = PDC1.get("differences", [])
+            logger.info("PDC-1 differences %s", ",".join(differences))
+            merged_differences = merge_deletions_preserve(differences)
+            logger.info("PDC-1 merged differences %s", ",".join(merged_differences))
+            PDC1["differences"] = merged_differences
+            
             if max_bitscore["gaps"] == -1:
                 logger.warning("PDC failed assembly failed on sample %s", sample_name)
                 results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
-            
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
                 logger.info("***********************************************")  
                 results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-            #elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
             else:
                 results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
