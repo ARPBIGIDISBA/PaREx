@@ -27,7 +27,7 @@ amino_acids = {
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
     'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
     'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup',
-    'Ter':'Stop', "?": "", "ext": ""
+    'Ter':'Stop', "?": "", "ext": "", "*":"Stop"
 }
 
 def update_dataframe(df, sample_name, name, value):
@@ -47,14 +47,18 @@ def update_dataframe(df, sample_name, name, value):
         df.loc[sample_name, name] = value
 
 def translate_amino_acid(value, value_c=""):
-    # Remove p. select three letters before number and after number translate "p.Asp104Glu"
-
+    for key, translate in amino_acids.items():
+        # Replace all the ocurrencies of the key in the string by its corresponding value
+        value = value.replace(key, translate)
+        
     try:
         if value.find("del") > 0 or value.find("ins") > 0:
             value = value.replace("p.", "")
             # Check if it is a deletion
+            logger.info("Processing deletion or insertion %s", value)
             if value.find("del") > 0:
                 replace = "del"
+
             if value.find("ins") > 0:
                 replace = value[value.find("ins"):]
 
@@ -62,10 +66,11 @@ def translate_amino_acid(value, value_c=""):
             values = value.split("_")
             result = []
             for value in values:
-                deletion = re.findall(r'([A-Za-z]{3})(\d+)', value)
+                deletion = re.findall(r'([A-Za-z]{1})(\d+)', value)
                 deletion = deletion[0]
-                value = f"{amino_acids.get(deletion[0].capitalize(), None)}{deletion[1]}"
+                value = f"{amino_acids.get(deletion[0].capitalize(), deletion[0])}{deletion[1]}"
                 result.append(value)
+            
             return ["_".join(result)+replace]
 
         elif value.find("fs") > 0:
@@ -78,42 +83,10 @@ def translate_amino_acid(value, value_c=""):
             elif value.find("dup") > 0:
                 value = f"nt{value}"
             return [value]
-        elif value.find("*") > 0:
-            value = value.replace("p.","").replace("*","Stop")
-            letter = amino_acids.get(value[0:3].capitalize(), value[0:3])
-            value = f"{letter}{value[3:]}"
-            return [value]
-        elif value.find("?")>0:
-            # Review with carla
+        else:
             value = value.replace("p.","")
             return [value]
-        else:
-            parts = re.findall(r'(\d+)|([A-Za-z]{3}|\?)', value)
-            if parts:
-
-                previous = []
-                after = []
-                number = None
-                for index, part in enumerate(parts):
-                    if part[0]:
-                        number = int(part[0])
-                    if part[1]:
-                        if number is None:
-                            previous.append(amino_acids.get(part[1].capitalize(), part[1]))
-                        else:
-                            after.append(amino_acids.get(part[1].capitalize(), part[1]))
-
-                result = []
-                for index,part in enumerate(previous):
-                    result.append(f"{previous[index]}{number}{after[index]}")
-                    number+=1
-                if len(result)>2:
-                    result = [result[0], result[-1]]
-
-                return result
-            else:
-                print("No match found", value)
-                return value
+        
     except Exception as e:
         traceback.print_exc()
         import sys
@@ -310,8 +283,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     else:
         samples = [direct_file]
 
-    logger.info("Samples to process %s", samples)
-
+    logger.debug("Samples to process %s", samples)
 
     # Parametros de configuración de este script
     PROJECTS_PATH = config['PROJECTS_PATH']

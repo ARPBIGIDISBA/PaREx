@@ -408,9 +408,9 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     logger.error("PDC failed assembly failed on sample %s", sample_name)
 
             differences = PDC1.get("differences", [])
-            logger.info("PDC-1 differences %s", ",".join(differences))
+            logger.debug("PDC-1 differences %s", ",".join(differences))
             merged_differences = merge_deletions_preserve(differences)
-            logger.info("PDC-1 merged differences %s", ",".join(merged_differences))
+            logger.debug("PDC-1 merged differences %s", ",".join(merged_differences))
             PDC1["differences"] = merged_differences
             
             if max_bitscore["gaps"] == -1:
