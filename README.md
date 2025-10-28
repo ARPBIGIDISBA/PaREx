@@ -1,4 +1,4 @@
-
+ 
 # *Pa*REx: an open‑source pipeline for the automated analysis of *Pseudomonas aeruginosa* resistomes from whole‑genome sequences
 
 The *Pseudomonas aeruginosa* Resistome Explorer (*Pa*REx) is an open-source Python-based customizable pipeline that has been specifically designed for the automated analysis of *P. aeruginosa* resistomes from Illumina® paired-end reads. *Pa*REx uses different open-source bioinformatics tools, software and publicly available databases along with custom-built databases, scripts and tools and is composed by two main components the PaREx pipeline and the PaREx databases.
@@ -115,7 +115,7 @@ where project_name is the name of the project (which will be created in the `PRO
 First command will be to create the project structure:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME create_project
+python parex.py PROJECT_NAME create_project
 ```
 
 Then you add you sample FASTQ files to the `samples/` folder within the created project directory with the PROJECT_NAME as specified above.
@@ -123,13 +123,13 @@ Then you add you sample FASTQ files to the `samples/` folder within the created 
 Then, you can create the sample list automatically with the following command:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME create_sample_list
+python parex.py PROJECT_NAME create_sample_list
 ```
 
 Finally, you can run the desired operations, in this case resistome analysis:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME resistome
+python parex.py PROJECT_NAME resistome
 ```
 
 ### Optional Arguments
@@ -145,25 +145,25 @@ You can also specify optional arguments:
 you can add **trimmomatic** to the process of resistome analysis:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME trimomatic,resistome
+python parex.py PROJECT_NAME trimomatic,resistome
 ```
 
 You can also unzip the files if you have them in `.gz` to speed up the process:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME unzip,resistome
+python parex.py PROJECT_NAME unzip,resistome
 ```
 
 You can also run the analysis from NovaSeq files:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME novaseq,resistome
+python parex.py PROJECT_NAME novaseq,resistome
 ```
 
 Or you can you can run all together:
 
 ```bash
-python execute_pipeline.py PROJECT_NAME novaseq,trimmomatic,resistome
+python parex.py PROJECT_NAME novaseq,trimmomatic,resistome
 
 ```
 

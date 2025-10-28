@@ -90,16 +90,15 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             added_beta = []
             added_other = []
 
-            def check_if_exist(row, list):
-                for sample in list:
+            def check_if_exist(row, existing_list):
+                for sample in existing_list:
                     # if blaOXA-XXX check without the number (future add more generic way to do it)
-                    if gene.startswith("blaOXA") and sample["name"].startswith("blaOXA") and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
-                        return False
-
-                    if row["name"]==sample["name"] and row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
-                        return False
-                    
-                return True
+                    if row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
+                        # Check if identity is bigger than the existing one
+                        if float(row['identity'].replace(',', '.')) > float(sample['identity'].replace(',', '.')):
+                            return True, existing_list
+                        return False, existing_list
+                return True, existing_list
 
             # Classify genes by categories
             for _, row in df.iterrows():
@@ -111,35 +110,25 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                 # Categorization based on phenotypes and gene names
                 # Avoid duplicates based on gene name and positions
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
-                    if check_if_exist(row, added_aminoglycoside):
+                    exist_check, added_aminoglycoside = check_if_exist(row, added_aminoglycoside)
+                    if exist_check:
                         added_aminoglycoside.append(row)
                         sample_data["aminoglycoside"].append(f"{gene} ({identity}%)")
-
+                    
                 elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
-                    if check_if_exist(row, added_fluoroquinolones):
+                    exist_check, added_fluoroquinolones = check_if_exist(row, added_fluoroquinolones)
+                    if exist_check:
                         added_fluoroquinolones.append(row)
                         sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
                 elif gene.startswith("bla"):
-                    if check_if_exist(row, added_beta):
-                        # Check if there another column starting with "blaOXA" or "blaOXA-XXX" keep the one with lowers number in XXX is number
-                        if gene.startswith("blaOXA") and any(added_gene["name"].startswith("blaOXA")  for added_gene in added_beta):
-                            # Check if the number is lower
-                            if re.search(r"blaOXA-(\d+)", gene):
-                                current_number = int(re.search(r"blaOXA-(\d+)", gene).group(1))
-                                for added_gene in added_beta:
-                                    if added_gene["name"].startswith("blaOXA") and re.search(r"blaOXA-(\d+)", added_gene["name"]):
-                                        added_number = int(re.search(r"blaOXA-(\d+)", added_gene["name"]).group(1))
-                                        if current_number < added_number:
-                                            # Replace the gene
-                                            sample_data["beta"].remove(f"{added_gene['name']} ({identity}%)")
-                                            added_beta.remove(added_gene)
-                                            added_beta.append(row)
-                                            break
-                        else:
-                            added_beta.append(row)
+                    exist_check, added_beta = check_if_exist(row, added_beta)
+                    if exist_check:
+                        added_beta.append(row)
                         sample_data["beta"].append(f"{gene} ({identity}%)")
+                            
                 else:
-                    if check_if_exist(row, added_other):
+                    exist_check, added_other = check_if_exist(row, added_other)
+                    if exist_check:
                         added_other.append(row)
                         sample_data["other"].append(f"{gene} ({identity}%)")
 
@@ -196,7 +185,7 @@ def rename_columns(df):
         "sequence_type": "ST",
         "alleles": "MLST allelic profile",
         "beta": "Acquired beta-lactamases",
-        "aminoglycoside": "Acquired aminoglycoside modifying enzymes",
+        "aminoglycoside": "Acquired aminoglycoside resistance genes",
         "fluoroquinolones": "Acquired quinolones resistance genes",
         "other": "Other acquired resistance genes",
         "oprD_REFERENCE": "oprD_reference-strain",
@@ -354,7 +343,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             self.canv.drawString(x, y, "Pseudomonas aeruginosa")
             width_bold = self.canv.stringWidth("Pseudomonas aeruginosa", "Times-Bold", font_size)
             self.canv.setFont("Times-Bold", font_size)
-            self.canv.drawString(x + width_bold, y, " Resistome EXplorer")
+            self.canv.drawString(x + width_bold, y, " Resistome Explorer")
 
             # LOGO ARPBIG (bottom left)
             self.canv.drawImage(
@@ -428,7 +417,7 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             # Section adquired resistome
             [Paragraph("<b>Horizontally acquired resistome</b>", normal_style), ""],
             [Paragraph("<b>Beta-lactamases</b>"), Paragraph(row.get("Acquired beta-lactamases", ""))],
-            [Paragraph("<b>AMEs</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
+            [Paragraph("<b>Aminoglycosides resistance genes</b>"), Paragraph(row.get("Acquired aminoglycoside modifying enzymes", ""))],
             [Paragraph("<b>Quinolones resistance genes</b>"), Paragraph(row.get("Acquired quinolones resistance genes", ""))],
             [Paragraph("<b>Other resistance genes</b>"), Paragraph(row.get("Other acquired resistance genes", ""))],
 
