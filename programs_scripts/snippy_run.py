@@ -287,7 +287,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
 
     # Parametros de configuración de este script
     PROJECTS_PATH = config['PROJECTS_PATH']
-    SNIPPY_PATH = config['SNIPPY_PATH']
+    gi_PATH = config['SNIPPY_PATH']
 
     # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
     SNIPPY_OPTIONS = config['SNIPPY_OPTIONS']
