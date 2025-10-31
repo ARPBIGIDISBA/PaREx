@@ -93,10 +93,17 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             def check_if_exist(row, existing_list):
                 for sample in existing_list:
                     # if blaOXA-XXX check without the number (future add more generic way to do it)
-                    if row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
-                        # Check if identity is bigger than the existing one
-                        if float(row['identity'].replace(',', '.')) > float(sample['identity'].replace(',', '.')):
-                            return True, existing_list
+                    identity_row = float(row['identity'].replace(',', '.'))
+                    identity_sample = float(sample['identity'].replace(',', '.'))
+
+                    if row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]  and identity_row==identity_sample:
+                        # merge names for example blaOXA-50 and blaOXA-395 -> blaOXA-50, blaOXA-395
+                        existing_list.remove(sample)
+                        gene_existing = sample["gene_name"]
+                        gene_new = row["gene_name"]
+                        if gene_new not in gene_existing.split(", "):
+                            sample["gene_name"] = f"{gene_existing}, {gene_new}"
+                        existing_list.append(sample)
                         return False, existing_list
                 return True, existing_list
 
