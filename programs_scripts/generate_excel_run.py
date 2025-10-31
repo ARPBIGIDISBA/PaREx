@@ -90,22 +90,52 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             added_beta = []
             added_other = []
 
-            def check_if_exist(row, existing_list):
-                for sample in existing_list:
-                    # if blaOXA-XXX check without the number (future add more generic way to do it)
-                    identity_row = float(row['identity'].replace(',', '.'))
-                    identity_sample = float(sample['identity'].replace(',', '.'))
+            def check_if_exist(row, existing_list, existing_list_name=""):
+                '''
+                    Check if a gene already exists in the existing_list based on
+                    query_start_pos, query_end_pos and identity.
+                    If it exists, merge the names and return True.
+                    If not, return False.
+                '''
+                identity_row = float(row['identity'].replace(',', '.'))
 
-                    if row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]  and identity_row==identity_sample:
-                        # merge names for example blaOXA-50 and blaOXA-395 -> blaOXA-50, blaOXA-395
-                        existing_list.remove(sample)
-                        gene_existing = sample["gene_name"]
-                        gene_new = row["gene_name"]
-                        if gene_new not in gene_existing.split(", "):
-                            sample["gene_name"] = f"{gene_existing}, {gene_new}"
-                        existing_list.append(sample)
-                        return False, existing_list
-                return True, existing_list
+                for idx, sample in enumerate(existing_list):    
+                    identity_sample = float(sample['identity'].replace(',', '.'))
+                    logger.info(f"Checking gene: {row['name']} ({identity_row}%) against existing gene: {sample['name']} ({identity_sample}%)")
+
+                    if (
+                        row['query_start_pos'] == sample['query_start_pos'] and
+                        row['query_end_pos'] == sample['query_end_pos'] and
+                        identity_row == identity_sample):
+
+                        logger.info(f"Duplicate gene found: {row['name']} with positions {row['query_start_pos']}-{row['query_end_pos']} and identity {row['identity']}")
+                        removed_sample = existing_list.pop(idx) 
+                        gene_existing = removed_sample["name"]
+                        gene_new = row["name"]
+                        
+                        if gene_new not in gene_existing.split(" / "):
+                            logger.info(f"Merging gene names for sample {removed_sample['name']} and {row['name']}")
+                            new_name = f"{gene_existing} / {gene_new}"
+                            # Modify de existing_list_name to include both genes
+                            for element in existing_list_name:
+                                if element == f"{gene_existing} ({identity_row}%)":
+                                    print(f"Removing {element} from existing_list_name")
+                                    existing_list_name.remove(element)
+                                    existing_list_name.append(f"{new_name} ({identity_row}%)")
+                                    break
+
+                            removed_sample["name"] = new_name
+                            
+                        existing_list.append(removed_sample)
+                        print("Merged sample:", existing_list_name)
+                        
+                        # Devolvemos False e inmediatamente salimos (comportamiento original)
+                        return existing_list, existing_list_name
+                        
+                # Si el bucle termina sin coincidencia, retornamos True
+                existing_list_name.append(f"{row['name']} ({identity_row}%)")
+                existing_list.append(row)
+                return existing_list, existing_list_name
 
             # Classify genes by categories
             for _, row in df.iterrows():
@@ -117,27 +147,14 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
                 # Categorization based on phenotypes and gene names
                 # Avoid duplicates based on gene name and positions
                 if any(phenotype in ["tobramycin", "gentamycin", "amikacin", "aph", "aad"] for phenotype in phenotypes):
-                    exist_check, added_aminoglycoside = check_if_exist(row, added_aminoglycoside)
-                    if exist_check:
-                        added_aminoglycoside.append(row)
-                        sample_data["aminoglycoside"].append(f"{gene} ({identity}%)")
-                    
+                    added_aminoglycoside, sample_data["aminoglycoside"] = check_if_exist(row, added_aminoglycoside, sample_data["aminoglycoside"])
                 elif any(phenotype in ["fluoroquinolones", "ciprofloxacin"] for phenotype in phenotypes):
-                    exist_check, added_fluoroquinolones = check_if_exist(row, added_fluoroquinolones)
-                    if exist_check:
-                        added_fluoroquinolones.append(row)
-                        sample_data["fluoroquinolones"].append(f"{gene} ({identity}%)")
+                    added_fluoroquinolones, sample_data["fluoroquinolones"] = check_if_exist(row, added_fluoroquinolones, sample_data["fluoroquinolones"])
                 elif gene.startswith("bla"):
-                    exist_check, added_beta = check_if_exist(row, added_beta)
-                    if exist_check:
-                        added_beta.append(row)
-                        sample_data["beta"].append(f"{gene} ({identity}%)")
-                            
+                    added_beta, sample_data["beta"] = check_if_exist(row, added_beta, sample_data["beta"])
+                    
                 else:
-                    exist_check, added_other = check_if_exist(row, added_other)
-                    if exist_check:
-                        added_other.append(row)
-                        sample_data["other"].append(f"{gene} ({identity}%)")
+                    added_other, sample_data["other"] = check_if_exist(row, added_other, sample_data["other"])
 
             # Add the row to the list of rows
             rows.append(sample_data)
@@ -243,11 +260,15 @@ def generate_excel_run(project_name, config=config, extra_config=None):
                     "mlst": {
                         "path": os.path.join(OUTPUT_PATH, "mlst_results", f"{project_name}_mlst_results.csv"),
                         "columns": ["sequence_type", "alleles" ]
+                    },
+                    "genes_absence": {
+                        "path": os.path.join(OUTPUT_PATH, "gene_absence_results", f"{project_name}_gene_absence_results.csv"),
+                        "columns": ["all"]
                     }
                 }
 
     sample_results = {name: read_csv_results(value["path"], value["columns"]) for name, value in csv_files.items()}
-
+    
     resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results", "csv_samples")
     resfinder_samples = process_resfinder_samples(resfinder_path)
     sample_results['resfinder'] = resfinder_samples
@@ -275,7 +296,16 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy = df_snippy.set_index("STRAIN ID")
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
             dfs[sheet] = df_snippy
-            
+            # Replace values based on th results from gene absence
+            for index, row in dfs[sheet].iterrows():
+                for gene in csv_files["genes_absence"]["columns"]:
+                    if gene != "all" and gene in dfs[sheet].columns:
+                        value = row[gene]
+                        if pd.isna(value):
+                            continue
+                        if "Deleted" in value:
+                            dfs[sheet].at[index, gene] = "Deleted"
+
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             for sheet in dfs:
                 df = rename_columns(dfs[sheet])
@@ -478,7 +508,6 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
         logger.info(f"PDF generated: {pdf_file}")
 
     return pdf_file
-
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
 {
-    "BLAST_OPTIONS": ["-evalue", "10"],
-    "BLASTN_OPTIONS": ["-evalue", "10", "-matrix", "BLOSUM62"]
+    "BLAST_OPTIONS": ["-evalue", "10"]
 }

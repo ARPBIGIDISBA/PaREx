@@ -5,165 +5,17 @@ More details: https://creativecommons.org/licenses/by-nc/4.0/"
 This script is used to run the oprD program to align the reads with a reference file
 """
 import os
-import sys
 import argparse
 import logging
-import json
 import csv
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
+from modules.blast_functions import get_differences, analize_sample
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "oprD.json", required_keys=["BLAST_OPTIONS", "BLASTN_OPTIONS"])
-
-
-def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
-        if hsps == -1:
-            return []
-        qseq = hsps["qseq"]
-        midline = hsps["midline"]
-        hseq = hsps["hseq"]
-        differences = []
-        qstate = False
-        hstate = False
-        mstate = False
-        for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
-            q = q.upper()
-            m = m.upper()
-            h = h.upper()
-
-            if q == "-":
-                if not qstate:
-                    qstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}ins{gaps}")
-                    else:
-                        differences.append(f"X{i+1}{h}")
-            else:
-                qstate = False
-            if h =="-":
-                if not hstate:
-                    hstate = True
-                    if nucleotide_protein == "nucleotide":
-                        differences.append(f"nt{i}del{gaps}")
-                    else:
-                        differences.append(f"{q}{i+1}X")
-            else:
-                hstate = False
-                
-            # solo miramos para protein
-            if nucleotide_protein == "protein":
-                if h=='*':
-                    if not mstate:
-                        hstate = True
-                        differences.append(f"{q}{i+1}X")
-                elif m==" " or m=="+":
-                    if not mstate:
-                        hstate = True
-                        differences.append(f"{q}{i+1}{h}")
-                else:
-                    hstate = False
-
-        logger.info("Differences %s %s",name,",".join(differences))
-        return differences
-
-
-def read_output(json_file):
-    try:
-        data = json.load(open(json_file))['BlastOutput2'][0]['report']
-    except Exception as e:
-        logger.error("Error reading json file %s", json_file)
-        logger.error(e)
-        data = None
-    return data
-
-
-def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
-    protein_data = read_output(json_file)
-    
-    logger.debug("Program: %s version %s",protein_data['program'], protein_data['version'])
-    params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
-    logger.debug("Params used: %s", params_str)
-
-    for key, value in protein_data["results"].items():
-        for result in value:
-            logger.debug("Result of %s key %s", result["query_title"], key)
-            if len(result["hits"]) > 1:
-                logger.debug("Number of hits: %s", len(result["hits"]))
-            stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
-            logger.debug("Stats: %s", stats_str)
-                
-            query_len = result["query_len"]
-            
-            if nucleotide_protein == "nucleotide":
-                if len(result["hits"]) > 0:
-                    if len(result["hits"]) > 1:
-                        logger.warning("%s has multiple contigs (%d hits)", name, len(result["hits"]))
-                    best_hsps = None
-                    bit_score = -1
-                    identity = -1
-                    gaps = -1
-                    query_from = 1
-                    query_to = query_len
-
-                    for hit in result["hits"]:
-                        for hsps in hit["hsps"]:
-                            if hsps["bit_score"] > bit_score:
-                                bit_score = hsps["bit_score"]
-                                best_hsps = hsps
-                                identity = hsps["identity"]/hsps["align_len"]*100
-                                gaps = hsps["gaps"]
-                                query_from = hsps["query_from"]
-                                query_to = hsps["query_to"]
-
-                    if best_hsps:
-                        if query_from > 1 or query_to < query_len:
-                            return {
-                                "gaps": -1,
-                                "bit_score": bit_score,
-                                "identity": -1,
-                                "hsps": [],
-                                "differences": f"Not complete ({query_from}-{query_to})"
-                            }
-                        return {
-                            "gaps": gaps,
-                            "bit_score": bit_score,
-                            "identity": identity,
-                            "hsps": best_hsps,
-                            "differences": ""
-                        }
-                else:
-                    logger.debug("No hits found for %s", name)
-                    return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
-                
-            elif nucleotide_protein == "protein":
-                best_match = {
-                    "bit_score": 0,
-                    "hsps": None
-                }
-                if len(result["hits"]) > 0:
-                    for hit in result["hits"]:
-                        title = hit["description"][0]["title"]
-                        logger.debug(f"Title :{title}")
-                        for hsps in hit["hsps"]:
-                            bit_score = hsps["bit_score"]
-                            if bit_score >= best_match["bit_score"]:
-                                best_match["bit_score"] = bit_score
-                                best_match["hsps"] = hsps
-                                best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
-                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "protein")
-                    return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
-                            "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
-                else:
-                    return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
-                            "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
-                    
-            else:
-                logger.error("type must be nucleotide or protein")
-                sys.exit(1)
-
 
 def oprD_run(project_name, config=config, only_output = False, direct_file = None, normal_output = False, extra_config= {"force": False, "keep-output": False}):
     ''' 
