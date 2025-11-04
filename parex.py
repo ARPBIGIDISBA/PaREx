@@ -17,6 +17,7 @@ from programs_scripts.modules.general_functions import read_config, check_projec
 from programs_scripts.trimmomatic_run import trimmomatic_run
 from programs_scripts.SPAdes_run import SPAdes_run
 from programs_scripts.resfinder_run import resfinder_run
+from programs_scripts.gene_absence_run import gene_absence_run
 from programs_scripts.oprD_run import oprD_run
 from programs_scripts.mlst_run import mlst_run
 from programs_scripts.snippy_run import snippy_run
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
-                             "SPAdes", "resfinder", "oprD", "mlst", 
+                             "SPAdes", "resfinder", "oprD", "mlst", "gene_absence", 
                              "resistome", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
@@ -148,6 +149,9 @@ if __name__ == "__main__":
         elif operation == "oprD":
             logger.info(f"Running oprD for project {PROJECT_NAME}")
             oprD_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "gene_absence":
+            logger.info(f"Running gene_absence for project {PROJECT_NAME}")
+            gene_absence_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
             mlst_run(PROJECT_NAME, extra_config=extra_config)

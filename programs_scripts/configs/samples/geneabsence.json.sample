@@ -1,0 +1,3 @@
+{
+    "BLAST_OPTIONS": ["-evalue", "10"]
+}
