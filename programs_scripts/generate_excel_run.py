@@ -93,6 +93,8 @@ def process_resfinder_samples(resfinder_path, sample_id_col="name"):
             def check_if_exist(row, existing_list):
                 for sample in existing_list:
                     # if blaOXA-XXX check without the number (future add more generic way to do it)
+                    identity_row = float(row['identity'].replace(',', '.'))
+                    identity_sample = float(sample['identity'].replace(',', '.'))
                     if row["query_start_pos"]==sample["query_start_pos"] and row["query_end_pos"]==sample["query_end_pos"]:
                         # Check if identity is bigger than the existing one
                         if float(row['identity'].replace(',', '.')) > float(sample['identity'].replace(',', '.')):
