@@ -1,4 +1,4 @@
 {
-    "TRIMMOMATIC_JAR_PATH": "/wgs/microbiologia/Programs/Trimmomatic-0.39/trimmomatic-0.39.jar",
-    "TRIMMOMATIC_OPTIONS": ["LEADING:3", "TRAILING:3", "SLIDINGWINDOW:4:15", "MINLEN:36"]
+    "TRIMMOMATIC_JAR_PATH": "path to programs/Programs/Trimmomatic-0.39/trimmomatic-0.39.jar",
+    "TRIMMOMATIC_OPTIONS": ["LEADING:10", "TRAILING:15", "SLIDINGWINDOW:4:20", "MINLEN:100"]
 }

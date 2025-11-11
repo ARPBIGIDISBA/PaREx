@@ -128,7 +128,7 @@ if __name__ == "__main__":
         config = init_configs(script_directory, f"{args.json_config}.json", required_keys=["MLST_PATH", "MLST_OPTIONS"])
 
     # Start the python logging variable to generate a file
-    configure_logs(project_name, "oprD", config)
+    configure_logs(project_name, "mlst", config)
 
     logger = logging.getLogger(__name__)
 

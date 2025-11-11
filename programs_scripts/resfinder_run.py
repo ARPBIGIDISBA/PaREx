@@ -16,7 +16,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
-config = init_configs(script_directory, "resfinder.json", required_keys=["RESFINDER_PATH", "RESFINDER_OPTIONS", "INTRINSIC_PAER_GENES"])
+config = init_configs(script_directory, "resfinder.json", required_keys=["RESFINDER_PATH", "RESFINDER_OPTIONS"])
 
 
 def print_metadata(data):
@@ -34,18 +34,31 @@ def print_metadata(data):
     logger.info("**********************")
 
 
-def filter_output(data, ignore_list):
+def filter_output(data):
     '''
         This function is used to filter the output of the resfinder program 
         and generate csv output clean
     '''
+    
+    # Read from parex-dabase the intrinsic genes of P. aeruginosa
+    IGNORE_GENES = []
+    IGNORE_GENES_PATH = os.path.join(config['DATABASE_PATH'], 'resfinder', 'INTRINSIC_PAER_GENES.txt')
+    if os.path.exists(IGNORE_GENES_PATH):
+        with open(IGNORE_GENES_PATH) as file:
+            for line in file:
+                if line.strip() and not line.startswith("#"):
+                    IGNORE_GENES.append(line.strip())
+    else:
+        logger.warning("File not found: %s", IGNORE_GENES_PATH)
+        logger.warning("No intrinsic genes will be filtered")
+
     csv_fullcoverage = "name;identity;coverage;ref_start_pos;ref_end_pos;ref_seq_lenght;coverage;ref_id;query_id;query_start_pos;query_end_pos;ref_acc;grade;phenotypes\n"
     csv_partialcoverage = csv_fullcoverage
     posible = False
     full = False
     for seq_key, seq_info in data["seq_regions"].items():
         name = seq_info["name"]
-        if name not in ignore_list:
+        if name not in IGNORE_GENES:
             alignment_length = seq_info["alignment_length"]
             ref_seq_length = seq_info["ref_seq_length"]
             identity = seq_info["identity"]
@@ -91,6 +104,8 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
             config dict (dict): readed from Path  is resfinder.json
 
         results:
+            It generates the output files in the project directory
+            It generates a summary excel file with the results of all the samples
             
 
     '''
@@ -159,7 +174,7 @@ def resfinder_run(project_name, config=config, only_output=False, direct_file = 
                 with open(output_json) as json_file:
                     data = json.load(json_file)
                     logger.info("Resfinder results for sample %s", sample_name)
-                    csv_fullcoverage, csv_partialcoverage = filter_output(data, config["INTRINSIC_PAER_GENES"])
+                    csv_fullcoverage, csv_partialcoverage = filter_output(data)
                     os.makedirs(os.path.join(OUTPUT_PATH,"csv_samples"), exist_ok=True)
                     if csv_fullcoverage:
                         with open(os.path.join(OUTPUT_PATH, "csv_samples", f"{sample_name}.fullcoverage.csv"), "w") as file:

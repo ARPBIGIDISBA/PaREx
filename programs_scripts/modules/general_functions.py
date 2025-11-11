@@ -81,7 +81,7 @@ def read_args(project_name, config):
         logger.error("Check the correct spelling of the project name")
         exit(1)
 
-
+    
 # Execute a command and log the output
 def execute_command(command):
     try:
@@ -119,14 +119,14 @@ def init_configs(script_directory, config_json=None, required_keys=[]):
             the general values of the general.json file
     '''
     general_config = os.path.join(script_directory, os.path.join("configs","general.json"))
-    config_general = read_config(general_config, ["PROJECTS_PATH", "REFERENCE_PATH"])
+    config_general = read_config(general_config, ["PROJECTS_PATH", "DATABASE_PATH"])
     if config_json:
         default_config_json = os.path.join(script_directory, os.path.join("configs", config_json))
         config = read_config(default_config_json, required_keys=required_keys)
     else:
         config = {}
     config["PROJECTS_PATH"] = config_general["PROJECTS_PATH"]
-    config["REFERENCE_PATH"] = config_general["REFERENCE_PATH"]
+    config["DATABASE_PATH"] = config_general["DATABASE_PATH"]
     return config
 
 
@@ -153,3 +153,33 @@ def configure_logs(project_name, script_name, config, log_mode="w", log_level="I
         ]
     )
     logger.info(f"Log file created: {log_file}")
+
+
+def get_spades_file(sample_name, direct_file=False, SPADES_FILES_PATH=""):
+    """ This function is used to get the SPAdes file for a sample
+    return SPADES_FILE, sample_name, execute
+    1. If direct_file is True, the sample_name is the path to the file
+    2. If direct_file is False, the sample_name is the name of the sample
+       and the SPADES file is in the SPADES_FILES_PATH with the name
+       {sample_name}.SPAdes.denovoassembly.fasta    
+    3. The function returns the SPADES_FILE path, the sample_name and
+         a boolean execute indicating if the file exists
+
+    """
+    if direct_file:
+        SPADES_FILE = sample_name
+        sample_name = os.path.basename(sample_name)
+        sample_name = sample_name[0:-len(".fasta")]
+    else:
+        sample_name = sample_name.strip()
+        logger.debug("Processing sample %s", sample_name)
+        SPADES_FILE = os.path.join(SPADES_FILES_PATH, f"{sample_name}.SPAdes.denovoassembly.fasta")
+
+    logger.debug("Using SPAdes file: %s", SPADES_FILE)
+    execute = True
+    if not os.path.exists(SPADES_FILE):
+        execute = False
+        logger.error("You have to run first the SPades process or use a difect file --file path_to_file")
+        logger.error("This file does not exist: %s", SPADES_FILE)
+
+    return SPADES_FILE, sample_name, execute

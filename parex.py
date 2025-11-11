@@ -13,13 +13,15 @@ import glob
 # Add path Scripts to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'programs_scripts')))
 
+
 from programs_scripts.modules.general_functions import read_config, check_project, execute_command
 from programs_scripts.trimmomatic_run import trimmomatic_run
 from programs_scripts.SPAdes_run import SPAdes_run
-from programs_scripts.bowtie_run import bowtie_run
 from programs_scripts.resfinder_run import resfinder_run
 from programs_scripts.oprD_run import oprD_run
+from programs_scripts.piuAD import piuAD_run
 from programs_scripts.mlst_run import mlst_run
+from programs_scripts.gene_absence_run import gene_absence_run
 from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run, generate_pdf_from_excel
@@ -28,9 +30,9 @@ from programs_scripts.novaseq_run import novaseq_run
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
-                             "SPAdes", "bowtie", "resfinder", "oprD", "mlst", 
-                             "all_sequence", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
+    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list","resistome", "trimmomatic", "unzip", "novaseq", "projects",
+                             "SPAdes", "resfinder", "oprD", "mlst", "gene_absence", "piuAD",
+                              "analyze", "snippy", "PDC", "generate_excel", "generate_pdf"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -40,12 +42,20 @@ if __name__ == "__main__":
     parser.add_argument('--keep_output', action='store_true', help='Keep the output of the program')
     parser.add_argument('--clean_output', action='store_true', help='Clean the output of the program')
     parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
+    parser.add_argument('--add-full-hyperresistome', action='store_true', help='Add full hyperresistome to the output')
 
     # Optional arguments for specific operations
     parser.add_argument('--protein', action='store_true', 
                         help='Use protein sequences instead of nucleotide sequences for PDC')
-    args = parser.parse_args()
+    
+    # ADD TEXT FOR THE --help
+    help_text = """
+     `python parex.py list projects` \n
+    this extra operation list all projects in the PROJECTS_PATH
+    """
+    parser.epilog = help_text
 
+    args = parser.parse_args()
 
     extra_config = {
         "force": args.force,
@@ -53,7 +63,8 @@ if __name__ == "__main__":
         "clean_output": args.clean_output,
         "log_level": args.log_level,
         "file": args.file,
-        "protein": args.protein
+        "protein": args.protein,
+        "add_full_hyperresistome": args.add_full_hyperresistome
     }
 
     PROJECT_NAME = args.PROJECT_NAME
@@ -91,7 +102,7 @@ if __name__ == "__main__":
             os.makedirs(os.path.join(project_path, f"FASTQ_{PROJECT_NAME}"), exist_ok=True)
             os.makedirs(os.path.join(project_path, f"ANALYSIS_{PROJECT_NAME}"), exist_ok=True)
             with open(os.path.join(project_path, f"SAMPLES_LIST_{PROJECT_NAME}"), 'w') as file:
-                pass 
+                pass
         elif operation == "projects":
             logger.info("Listing projects")
             # List folder name in PROJECTS_PATH
@@ -140,16 +151,19 @@ if __name__ == "__main__":
         elif operation == "SPAdes":
             logger.info(f"Running SPAdes for project {PROJECT_NAME}")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
-        elif operation == "bowtie":
-            logger.info(f"Running bowtie for project {PROJECT_NAME}")
-            reference = args.reference
-            bowtie_run(PROJECT_NAME, reference, extra_config=extra_config)
         elif operation == "resfinder":
             logger.info(f"Running resfinder for project {PROJECT_NAME}")
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
         elif operation == "oprD":
             logger.info(f"Running oprD for project {PROJECT_NAME}")
             oprD_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "gene_absence":
+            logger.info(f"Running gene_absence for project {PROJECT_NAME}")
+            gene_absence_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "piuAD":
+            logger.info(f"Running piuAD for project {PROJECT_NAME}")
+            piuAD_run(PROJECT_NAME, extra_config=extra_config)
+
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
             mlst_run(PROJECT_NAME, extra_config=extra_config)
@@ -172,7 +186,7 @@ if __name__ == "__main__":
                     logger.info(f"Unzipping {file}")
                     execute_command(["gunzip", file])
 
-        elif operation == "all_sequence" or operation == "analyze":
+        elif operation == "resistome" or operation == "analyze":
             logger.info(f"Running all for project {PROJECT_NAME}")
             logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, generate_excel, generate_pdf")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
@@ -189,7 +203,7 @@ if __name__ == "__main__":
             novaseq_run(PROJECT_NAME, extra_config=extra_config)
         else:
             logger.warning("Operation not found %s", operation)
-            logger.info("Operations available: create_project")
+            logger.info("Operations available: %s", " \n ".join(OPERATIONS_DEVELOPED))
     
     
     # reference = args.REFERENCE    

@@ -4,7 +4,5 @@
         "10",
         "-matrix",
         "BLOSUM62"
-    ],
-    "PROTEIN_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/protein",
-    "PDC1_PATH": "/home/mbonet/microbiologia/Reference4alignment/PDC/PDC1.fasta"
+    ]
 }
