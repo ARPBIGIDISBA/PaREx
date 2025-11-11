@@ -148,14 +148,13 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
             logger.info("Final piuAD Analysis sample %s", sample_name)
             logger.debug("***********************************************")
             logger.info("Max bit score %s against %s", max_bitscore["value"], max_bitscore["name"])
-            piuAD = "A"
+            piuAD = "deleted"
             if max_bitscore["name"].startswith("piuD"):
                 piuAD = "D"
-
-                max_bitscore["gaps"]  
+            elif max_bitscore["name"].startswith("piuA"):
+                piuAD = "A"
             
             if max_bitscore["gaps"] == -1:
-
                 logger.warning("piuAD failed assembly failed on sample %s", sample_name)
                 logger.warning(results)
                 results_data.append([sample_name, piuAD, results["differences"], results["gaps"], results["identity"]])

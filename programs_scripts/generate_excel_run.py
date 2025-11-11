@@ -286,8 +286,9 @@ def add_piuAD_results(PIUAD_PATH, combined_df):
         Position in the DataFrame: after PA4514. search in combineted_df columns for PA4514 and insert 
         before it the columns piuA/D and piuA/D_REFERENCE
     '''
+    
+    piuAD_samples = read_csv_results(PIUAD_PATH, ["piuA/D", "piuA/D_REFERENCE"])
 
-    piuAD_samples = read_csv_results(PIUAD_PATH, ["all"])
     if piuAD_samples is not None:
         # For each STRAIN ID in combined_df, check if it exists in piuAD_samples and add the columns or replace them if exist
         for strain_id in combined_df.index:
@@ -301,7 +302,6 @@ def add_piuAD_results(PIUAD_PATH, combined_df):
                         combined_df.at[strain_id, col] = f"{piuAD_samples.at[strain_id, col]} ({combined_df.at[strain_id, col]})"
                     else:
                         combined_df.at[strain_id, col] = piuAD_samples.at[strain_id, col]
-
     return combined_df
 
 def generate_excel_run(project_name, config=config, extra_config=None):
@@ -350,8 +350,6 @@ def generate_excel_run(project_name, config=config, extra_config=None):
         dfs = {}
         for sheet in sheets:
             df_snippy = pd.read_excel(snippy_csv, sheet_name=sheet)
-            
-            
             df_snippy.rename(columns={"sample_name": "STRAIN ID"}, inplace=True)
             df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].astype(str).str.strip().str.replace('"', '')
             df_snippy = df_snippy.set_index("STRAIN ID")
