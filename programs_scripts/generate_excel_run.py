@@ -259,7 +259,6 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df):
         "PA2019": "PA2019_mexX",
         "PA2018": "PA2018_mexY",
         "PA2023": "PA2023_galU",
-        "PA4514": "PA4514_piuA",
         "PA4522": "PA4522_ampD",
     }
     
@@ -280,7 +279,31 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df):
                         combined_df.at[strain_id, col] = genes_absence_samples.at[strain_id, col]  
 
     return combined_df
-    
+
+def add_piuAD_results(PIUAD_PATH, combined_df):
+    ''' Add column piuA/D and piuA/D_REFERENCE to the combined DataFrame from the piuAD results file.
+        If the piuAD results already exist in the combined DataFrame, they are replaced.
+        Position in the DataFrame: after PA4514. search in combineted_df columns for PA4514 and insert 
+        before it the columns piuA/D and piuA/D_REFERENCE
+    '''
+
+    piuAD_samples = read_csv_results(PIUAD_PATH, ["all"])
+    if piuAD_samples is not None:
+        # For each STRAIN ID in combined_df, check if it exists in piuAD_samples and add the columns or replace them if exist
+        for strain_id in combined_df.index:
+            if strain_id in piuAD_samples.index:
+                for col in piuAD_samples.columns:
+                    if col not in combined_df.columns:
+                        combined_df[col] = ""  # crea la columna si falta
+                        
+                    if combined_df.at[strain_id, col] and pd.notna(combined_df.at[strain_id, col]) and combined_df.at[strain_id, col] != "" \
+                        and piuAD_samples.at[strain_id, col] and pd.notna(piuAD_samples.at[strain_id, col]) and piuAD_samples.at[strain_id, col] != "":
+                        combined_df.at[strain_id, col] = f"{piuAD_samples.at[strain_id, col]} ({combined_df.at[strain_id, col]})"
+                    else:
+                        combined_df.at[strain_id, col] = piuAD_samples.at[strain_id, col]
+
+    return combined_df
+
 def generate_excel_run(project_name, config=config, extra_config=None):
     PROJECTS_PATH = config["PROJECTS_PATH"]
     OUTPUT_PATH = os.path.join(PROJECTS_PATH, project_name, f"ANALYSIS_{project_name}", "")
@@ -306,11 +329,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     resfinder_path = os.path.join(OUTPUT_PATH, "resfinder_results", "csv_samples")
     resfinder_samples = process_resfinder_samples(resfinder_path)
     sample_results['resfinder'] = resfinder_samples
-
-
-
-    
-    
+      
     # Remove None values from sample_results
     concat = []
     # Concatenate all the DataFrames by the index (STRAIN ID)
@@ -320,10 +339,9 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     
     combined_df = pd.concat(concat, axis=1)
     output_file = os.path.join(OUTPUT_PATH, f"{project_name}_summary.xlsx")
-
     
     GENE_ABSENCE_PATH = os.path.join(OUTPUT_PATH, "gene_absence_results", f"{project_name}_gene_absence_results.csv")
-    
+    PIUAD_PATH = os.path.join(OUTPUT_PATH, "piuAD_results", f"{project_name}_piuAD_results.csv")
 
     # SNIPPY Section
     snippy_csv = os.path.join(OUTPUT_PATH, "snippy_results", f"combined_snippy.xlsx")
@@ -339,6 +357,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy = df_snippy.set_index("STRAIN ID")
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
             df_snippy = add_gene_absence_results(GENE_ABSENCE_PATH, df_snippy)
+            df_snippy = add_piuAD_results(PIUAD_PATH, df_snippy)
             dfs[sheet] = df_snippy
             
 
@@ -351,6 +370,7 @@ def generate_excel_run(project_name, config=config, extra_config=None):
         ## Add to combined_df the index of the samples
         combined_df = rename_columns(combined_df)
         combined_df = add_gene_absence_results(GENE_ABSENCE_PATH, combined_df)
+        combined_df = add_piuAD_results(PIUAD_PATH, combined_df)
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")
@@ -386,7 +406,14 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             if file.endswith(".pdf"):
                 os.remove(os.path.join(PDF_OUTPUT_PATH, file))
 
-    df = pd.read_excel(excel_file, sheet_name="Basic_resistome_clean", index_col="Isolate ID")
+    # Check if sheet_name Basic_resistome_clean exists
+    xls = pd.ExcelFile(excel_file)
+    tab_name = "Basic_resistome_clean"
+    if tab_name not in xls.sheet_names:
+        logger.warning(f"Sheet 'Basic_resistome_clean' not found in the excel file {excel_file}. Please generate the excel file with snippy results first.")
+        tab_name="Summary"
+
+    df = pd.read_excel(excel_file, sheet_name=tab_name, index_col="Isolate ID")
 
     styles = getSampleStyleSheet()
     title_style = styles['Title']

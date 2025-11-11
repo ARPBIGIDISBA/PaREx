@@ -13,13 +13,15 @@ import glob
 # Add path Scripts to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'programs_scripts')))
 
+
 from programs_scripts.modules.general_functions import read_config, check_project, execute_command
 from programs_scripts.trimmomatic_run import trimmomatic_run
 from programs_scripts.SPAdes_run import SPAdes_run
 from programs_scripts.resfinder_run import resfinder_run
-from programs_scripts.gene_absence_run import gene_absence_run
 from programs_scripts.oprD_run import oprD_run
+from programs_scripts.piuAD import piuAD_run
 from programs_scripts.mlst_run import mlst_run
+from programs_scripts.gene_absence_run import gene_absence_run
 from programs_scripts.snippy_run import snippy_run
 from programs_scripts.PDC_run import PDC_run
 from programs_scripts.generate_excel_run import generate_excel_run, generate_pdf_from_excel
@@ -28,9 +30,9 @@ from programs_scripts.novaseq_run import novaseq_run
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list", "generate_excel", "generate_pdf", "trimmomatic",
-                             "SPAdes", "resfinder", "oprD", "mlst", "gene_absence", 
-                             "resistome", "analyze", "snippy", "PDC", "novaseq", "projects", "unzip"]
+    OPERATIONS_DEVELOPED = ["create_project", "create_sample_list","resistome", "trimmomatic", "unzip", "novaseq", "projects",
+                             "SPAdes", "resfinder", "oprD", "mlst", "gene_absence", "piuAD",
+                              "analyze", "snippy", "PDC", "generate_excel", "generate_pdf"]
     
     parser = argparse.ArgumentParser(description='Execute pipeline scripts.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
@@ -46,7 +48,6 @@ if __name__ == "__main__":
     parser.add_argument('--protein', action='store_true', 
                         help='Use protein sequences instead of nucleotide sequences for PDC')
     args = parser.parse_args()
-
 
     extra_config = {
         "force": args.force,
@@ -152,6 +153,10 @@ if __name__ == "__main__":
         elif operation == "gene_absence":
             logger.info(f"Running gene_absence for project {PROJECT_NAME}")
             gene_absence_run(PROJECT_NAME, extra_config=extra_config)
+        elif operation == "piuAD":
+            logger.info(f"Running piuAD for project {PROJECT_NAME}")
+            piuAD_run(PROJECT_NAME, extra_config=extra_config)
+
         elif operation == "mlst":
             logger.info(f"Running mlst for project {PROJECT_NAME}")
             mlst_run(PROJECT_NAME, extra_config=extra_config)
@@ -191,7 +196,7 @@ if __name__ == "__main__":
             novaseq_run(PROJECT_NAME, extra_config=extra_config)
         else:
             logger.warning("Operation not found %s", operation)
-            logger.info("Operations available: create_project")
+            logger.info("Operations available: %s", " \n ".join(OPERATIONS_DEVELOPED))
     
     
     # reference = args.REFERENCE    

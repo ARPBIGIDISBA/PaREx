@@ -81,7 +81,7 @@ def read_args(project_name, config):
         logger.error("Check the correct spelling of the project name")
         exit(1)
 
-
+    
 # Execute a command and log the output
 def execute_command(command):
     try:

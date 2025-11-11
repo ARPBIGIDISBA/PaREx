@@ -55,7 +55,6 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
         test = f.endswith(".fasta")
         if test:
             name = f[0:-len(".fasta")]
-            print(name)
             EXTRA_PATH = os.path.join(FASTA_PATH, name+"_extra")
             output = {
                 "name": name,
@@ -67,7 +66,7 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
                         name_extra = ef[0:-len(".fasta")]
                         output["extra"].append(name_extra)
             GENES_STUDY.append(output)
-
+    
     
     # Create project directory in case it is not created, read files and create output directory
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
@@ -113,7 +112,8 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
                     gaps = results["gaps"]
                     bit_score = results["bit_score"]
                     identity = results["identity"]
-                    if gaps == -1:
+                    differences = results["differences"]
+                    if differences == "deleted":
                         row.append("Deleted")
                         #analize extra files
                         for extra in gene["extra"]:
@@ -127,8 +127,8 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
                                 logger.debug("***********************************************")
                                 results_extra = analize_sample(output_file_extra, extra, "nucleotide")
 
-                                gaps_extra = results_extra["gaps"]
-                                if gaps_extra == -1:
+                                differences = results_extra["differences"]
+                                if differences == "deleted":
                                     row.append("Deleted")
                                 else:
                                     row.append("")
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         config = init_configs(script_directory, f"{args.json_config}.json")
 
     # Start the python logging variable to generate a file
-    configure_logs(project_name, "oprD", config, log_level=args.log_level)
+    configure_logs(project_name, "gene_absense", config, log_level=args.log_level)
 
     logger = logging.getLogger(__name__)
 

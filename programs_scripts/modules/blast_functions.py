@@ -56,7 +56,6 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             else:
                 hstate = False
 
-    logger.info("Differences %s %s",name,",".join(differences))
     return differences
 
 
@@ -113,8 +112,13 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                                 gaps = hsps["gaps"]
                                 query_from = hsps["query_from"]
                                 query_to = hsps["query_to"]
-
+                                align_len=hsps["align_len"]
+                                cover = align_len/query_len*100
                     if best_hsps:
+                        
+                        if cover<90:
+                            return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
+
                         if query_from > 1 or query_to < query_len:
                             return {
                                 "gaps": -1,
@@ -137,22 +141,30 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
             elif nucleotide_protein == "protein":
                 best_match = {
                     "bit_score": 0,
-                    "hsps": None
+                    "hsps": None,
+                    "identity": 0,
+                    "cover": 0,
+                    "differences": []
+
                 }
                 if len(result["hits"]) > 0:
                     for hit in result["hits"]:
                         title = hit["description"][0]["title"]
-                        logger.debug(f"Title :{title}")
                         for hsps in hit["hsps"]:
                             bit_score = hsps["bit_score"]
                             if bit_score >= best_match["bit_score"]:
                                 best_match["bit_score"] = bit_score
                                 best_match["hsps"] = hsps
                                 best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
+                                best_match["cover"] = hsps["align_len"]/result["query_len"]*100
+                    if best_match["identity"]<90:
+                        return {"gaps":  best_match["hsps"]["gaps"], "bit_score": best_match["bit_score"] , "identity": best_match["identity"], "hsps": [], "differences": ["deleted"]}
+                    
                     differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "protein")
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
+                    differences = ["deleted"]
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                     
@@ -195,11 +207,11 @@ def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLA
             else:
                 command = "blastn"
             if normal_output:
-                command_protein = [command, "-query", query_file, "-subject", SPADES_FILE, "-out", outputfile.replace(".json", "")] + BLAST_OPTIONS
+                command_full = [command, "-query", query_file, "-subject", SPADES_FILE, "-out", outputfile.replace(".json", "")] + BLAST_OPTIONS
             else:
-                command_protein = [command, "-query", query_file, "-subject", SPADES_FILE, "-out", outputfile, "-outfmt", "15"] + BLAST_OPTIONS
+                command_full = [command, "-query", query_file, "-subject", SPADES_FILE, "-out", outputfile, "-outfmt", "15"] + BLAST_OPTIONS
 
-            logger.debug("Command line: %s", ' '.join(command_protein))
+            logger.debug("Command line: %s", ' '.join(command_full))
 
             if only_output and not normal_output:
                 if os.path.exists(outputfile):
@@ -209,7 +221,7 @@ def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLA
                     logger.error("You have to run first the process")
                     result = False
             else:
-                result = execute_command(command_protein)
+                result = execute_command(command_full)
             
             return result
         else:
