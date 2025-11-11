@@ -180,6 +180,7 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
                     logger.debug("***********************************************")
                     
                     results = analize_sample(output_file_protein, max_bitscore['name'], "protein")
+
                     if results["gaps"] == 0 and results["identity"] == 100:
                         logger.info("This is a Wild Type (WT). No gaps in protein")
                         results_data.append([sample_name, piuAD, "WT", results["gaps"], results["identity"]])
