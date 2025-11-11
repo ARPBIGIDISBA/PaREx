@@ -15,134 +15,13 @@ import re
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 from typing import List, Tuple, Optional
+from modules.blast_functions import analize_sample, get_differences
 
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
 script_directory = os.path.dirname(script_path)
 config = init_configs(script_directory, "PDC.json", required_keys=["TBLASTN_OPTIONS"])
-
-def get_differences(hsps, name, gaps = 0):
-        if hsps == -1:
-            return []
-        qseq = hsps["qseq"]
-        midline = hsps["midline"]
-        hseq = hsps["hseq"]
-        differences = []
-        qstate = False
-        hstate = False
-        mstate = False
-        for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
-            if q =="-":
-                if not qstate:
-                    qstate = True
-                    # differences.append(f"X{i+1}{h}")
-            else:
-                qstate = False
-            if h == "-":
-                if not hstate:
-                    hstate = True
-                    # differences.append(f"{q}{i+1}X")
-            else:
-                hstate = False
-                
-            if m ==" ":
-                if not mstate:
-                    hstate = True
-                    differences.append(f"{q}{i+1}{h}")
-            elif m =="+":
-                if not mstate:
-                    hstate = True
-                    differences.append(f"{q}{i+1}{h}")
-            else:
-                hstate = False
-
-        logger.debug("Differences %s %s",name,",".join(differences))
-        return differences
-
-def read_output(json_file):
-    try:
-        data = json.load(open(json_file))['BlastOutput2'][0]['report']
-    except json.decoder.JSONDecodeError as e:
-        logger.error("Error decoding JSON: %s", e)
-        logger.error("File %s is empty or not a valid JSON file", json_file)
-        data = {}
-    return data
-
-def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
-    protein_data = read_output(json_file)
-    if not protein_data:
-        logger.error("Error reading json file %s", json_file)
-        # Remove the file if it is empty
-        os.remove(json_file)
-        return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
-    logger.debug("Program: %s version %s",protein_data['program'], protein_data['version'])
-    params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
-    logger.debug("Params used: %s", params_str)
-
-    for key, value in protein_data["results"].items():
-        for result in value:
-            logger.debug("Result of %s key %s", result["query_title"], key)
-            if len(result["hits"]) > 1:
-                logger.debug("Number of hits: %s", len(result["hits"]))
-            stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
-            logger.debug("Stats: %s", stats_str)
-                
-            query_len = result["query_len"]
-            
-            if nucleotide_protein == "nucleotide":
-                # sequence in N contigs check manually  
-                if len(result["hits"]) > 0:
-                    if len(result["hits"]) == 1:
-                        hit = result["hits"][0]
-                        title = hit["description"][0]["title"]
-                        logger.debug("%s Hit: %s", name, title)
-                        bit_score = 0
-                        gaps = 100000
-                        best_hsps = None
-                        for hsps in hit["hsps"]:
-                            gaps = hsps["gaps"]
-                            identity = hsps["identity"]/hsps["align_len"]*100
-                            query_from = hsps["query_from"]
-                            query_to = hsps["query_to"]
-                            
-                            if hsps["bit_score"] > bit_score:
-                                bit_score = hsps["bit_score"]
-                                best_hsps = hsps
-                            if query_from > 1 or query_to < query_len:
-                                return {"gaps": -1, "bit_score": bit_score, "identity": -1, "hsps": [], 
-                                        "differences": f"Not complete ({query_from}-{query_to})" }
-                        return {"gaps": gaps, "bit_score": bit_score, "identity": identity, "hsps": best_hsps, "differences":"" }
-                    else:
-                        return {"gaps": -1, "bit_score": 10, "identity": -1, "hsps": [], "differences": f"sequence in {len(result['hits'])} contigs check manually" }
-                else:
-                    logger.debug("No hits found for %s", name)
-                    return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
-            elif nucleotide_protein == "protein":
-                best_match = {
-                    "bit_score": 0,
-                    "hsps": None
-                }
-                if len(result["hits"]) > 0:
-                    for hit in result["hits"]:
-                        title = hit["description"][0]["title"]
-                        for hsps in hit["hsps"]:
-                            bit_score = hsps["bit_score"]
-                            if bit_score >= best_match["bit_score"]:
-                                best_match["bit_score"] = bit_score
-                                best_match["hsps"] = hsps
-                                best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
-                    differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"])
-                    return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
-                            "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
-                else:
-                    logger.debug("No hits found for %s", name)
-                    return {"name": name, "differences": ["error"], "bit_score": 0, 
-                            "gaps": 100, "identity": 0}
-                
-            else:
-                logger.error("type must be nucleotide or protein")
-                sys.exit(1)
 
 def _parse_del(token: str) -> Optional[Tuple[int, int, str, str]]:
     """
@@ -168,7 +47,7 @@ def _parse_del(token: str) -> Optional[Tuple[int, int, str, str]]:
 def _fmt_del(p1: int, p2: int, aa1: str, aa2: str) -> str:
     return f"{aa1}{p1}del" if p1 == p2 else f"{aa1}{p1}-{aa2}{p2}del"
 
-def merge_deletions_preserve(items: List[str]) -> List[str]:
+def merge_deletions_preserve(items: List[str]) -> List[str]: 
     """
     Funde borrados consecutivos/solapados en un solo rango.
     Mantiene en la lista todo lo demás sin tocar.
@@ -325,9 +204,9 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             for index, file in enumerate(files):
                 file, name = files[index]
 
-                # if index !=0 and index <220:
-                #     logger.debug("Skipping file %s with index %s", file, index)
-                #     continue
+                if index !=0 and index >0:
+                    # logger.warning("Skipping file %s with index %s", file, index)
+                    continue
                 
                 if file.find(".fasta") == -1:
                     continue
@@ -364,7 +243,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     results = analize_sample(output_file, name, "protein")
                     
                     logger.debug("***********************************************")
-                    logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
+                    logger.debug("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
                     logger.debug("***********************************************")
                     
                     gaps = results["gaps"]
@@ -462,3 +341,132 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     PDC_run(project_name, config, args.file, extra_config={"force": args.force, "keep_output": args.keep_output, "protein": args.protein, "nucleotide": args.nucleotide, "file": args.file})    
+
+
+
+
+# # To delete, only to check differences function with new blast parser
+# def get_differences2(hsps, name, gaps = 0):
+#         if hsps == -1:
+#             return []
+#         qseq = hsps["qseq"]
+#         midline = hsps["midline"]
+#         hseq = hsps["hseq"]
+#         differences = []
+#         qstate = False
+#         hstate = False
+#         mstate = False
+#         for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
+#             if q =="-":
+#                 if not qstate:
+#                     qstate = True
+#                     # differences.append(f"X{i+1}{h}")
+#             else:
+#                 qstate = False
+#             if h == "-":
+#                 if not hstate:
+#                     hstate = True
+#                     # differences.append(f"{q}{i+1}X")
+#             else:
+#                 hstate = False
+                
+#             if m ==" ":
+#                 if not mstate:
+#                     hstate = True
+#                     differences.append(f"{q}{i+1}{h}")
+#             elif m =="+":
+#                 if not mstate:
+#                     hstate = True
+#                     differences.append(f"{q}{i+1}{h}")
+#             else:
+#                 hstate = False
+
+#         logger.debug("Differences %s %s",name,",".join(differences))
+#         return differences
+
+# # To delete, only to check differences function with new blast parser
+# def read_output(json_file):
+#     try:
+#         data = json.load(open(json_file))['BlastOutput2'][0]['report']
+#     except json.decoder.JSONDecodeError as e:
+#         logger.error("Error decoding JSON: %s", e)
+#         logger.error("File %s is empty or not a valid JSON file", json_file)
+#         data = {}
+#     return data
+
+# # To delete, only to check differences function with new blast parser
+# def analize_sample2(json_file, name, nucleotide_protein = "nucleotide"):
+#     protein_data = read_output(json_file)
+#     if not protein_data:
+#         logger.error("Error reading json file %s", json_file)
+#         # Remove the file if it is empty
+#         os.remove(json_file)
+#         return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
+#     logger.debug("Program: %s version %s",protein_data['program'], protein_data['version'])
+#     params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
+#     logger.debug("Params used: %s", params_str)
+
+#     for key, value in protein_data["results"].items():
+#         for result in value:
+#             logger.debug("Result of %s key %s", result["query_title"], key)
+#             if len(result["hits"]) > 1:
+#                 logger.debug("Number of hits: %s", len(result["hits"]))
+#             stats_str = ', '.join(f"{k}: {v}" for k, v in result["stat"].items())
+#             logger.debug("Stats: %s", stats_str)
+                
+#             query_len = result["query_len"]
+            
+#             if nucleotide_protein == "nucleotide":
+#                 # sequence in N contigs check manually  
+#                 if len(result["hits"]) > 0:
+#                     if len(result["hits"]) == 1:
+#                         hit = result["hits"][0]
+#                         title = hit["description"][0]["title"]
+#                         logger.debug("%s Hit: %s", name, title)
+#                         bit_score = 0
+#                         gaps = 100000
+#                         best_hsps = None
+#                         for hsps in hit["hsps"]:
+#                             gaps = hsps["gaps"]
+#                             identity = hsps["identity"]/hsps["align_len"]*100
+#                             query_from = hsps["query_from"]
+#                             query_to = hsps["query_to"]
+                            
+#                             if hsps["bit_score"] > bit_score:
+#                                 bit_score = hsps["bit_score"]
+#                                 best_hsps = hsps
+#                             if query_from > 1 or query_to < query_len:
+#                                 return {"gaps": -1, "bit_score": bit_score, "identity": -1, "hsps": [], 
+#                                         "differences": f"Not complete ({query_from}-{query_to})" }
+#                         return {"gaps": gaps, "bit_score": bit_score, "identity": identity, "hsps": best_hsps, "differences":"" }
+#                     else:
+#                         return {"gaps": -1, "bit_score": 10, "identity": -1, "hsps": [], "differences": f"sequence in {len(result['hits'])} contigs check manually" }
+#                 else:
+#                     logger.debug("No hits found for %s", name)
+#                     return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
+#             elif nucleotide_protein == "protein":
+#                 best_match = {
+#                     "bit_score": 0,
+#                     "hsps": None
+#                 }
+#                 if len(result["hits"]) > 0:
+#                     for hit in result["hits"]:
+#                         title = hit["description"][0]["title"]
+#                         for hsps in hit["hsps"]:
+#                             bit_score = hsps["bit_score"]
+#                             if bit_score >= best_match["bit_score"]:
+#                                 best_match["bit_score"] = bit_score
+#                                 best_match["hsps"] = hsps
+#                                 best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
+#                     differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"])
+#                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
+#                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
+#                 else:
+
+#                     logger.debug("No hits found for %s", name)
+#                     return {"name": name, "differences": ["error"], "bit_score": 0, 
+#                             "gaps": 100, "identity": 0}
+                
+#             else:
+#                 logger.error("type must be nucleotide or protein")
+#                 sys.exit(1)

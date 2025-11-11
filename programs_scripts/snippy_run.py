@@ -224,18 +224,23 @@ def combined_excel_files(samples, output_path, generate_full_hyperresistome=Fals
                 gene = row['genes']
                 changes = row.get('changes', '')
                 filtered_mutations = row.get('filtered_mutations', '')
+                
                 colname = f"{locus}_{gene}"
                 if locus in loci and colname in dataframes[filter_name].columns:
                     # cambios
                     prev = dataframes[filter_name].at[sample_name, colname] if sample_name in dataframes[filter_name].index else ''
+                    # Quiero ordenar los cambios y el prev para que siempre salgan igual segun el numero primero de la lista
                     parts = [str(x) for x in [changes, prev] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
-                    val = ",".join(parts)
+                    # Is the parts that must be sorted
+                    sorted_parts = sorted(parts, key=lambda x: [int(re.findall(r'\d+', part)[0]) for part in x.split(',') if re.findall(r'\d+', part)])
+                    val = ",".join(sorted_parts)
+                    
                     dataframes[filter_name].at[sample_name, colname] = val
-
                     # clean
                     prev_clean = dataframes[f"{filter_name}_clean"].at[sample_name, colname] if sample_name in dataframes[f"{filter_name}_clean"].index else ''
                     parts_clean = [str(x) for x in [filtered_mutations, prev_clean] if not (pd.isna(x) or x in ['', 'nan', 'NaN'])]
-                    val_clean = ",".join(parts_clean)
+                    sorted_parts_clean = sorted(parts_clean, key=lambda x: [int(re.findall(r'\d+', part)[0]) for part in x.split(',') if re.findall(r'\d+', part)])
+                    val_clean = ",".join(sorted_parts_clean)
                     dataframes[f"{filter_name}_clean"].at[sample_name, colname] = val_clean
                 
     if os.path.exists(csv_output):
@@ -287,7 +292,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
 
     # Parametros de configuración de este script
     PROJECTS_PATH = config['PROJECTS_PATH']
-    gi_PATH = config['SNIPPY_PATH']
+    SNIPPY_PATH = config['SNIPPY_PATH']
 
     # Aqui puedes añadir opciones a trimomatic http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/TrimmomaticManual_V0.32.pdf
     SNIPPY_OPTIONS = config['SNIPPY_OPTIONS']

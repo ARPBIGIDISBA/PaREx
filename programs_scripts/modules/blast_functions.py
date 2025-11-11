@@ -12,6 +12,7 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
     """
     if hsps == -1 or "qseq" not in hsps or "hseq" not in hsps or "midline" not in hsps:
         return []
+    
     qseq = hsps["qseq"]
     midline = hsps["midline"]
     hseq = hsps["hseq"]
@@ -19,27 +20,31 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
     qstate = False
     hstate = False
     mstate = False
+    query_from = hsps.get("query_from", 1)
     for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
         q = q.upper()
         m = m.upper()
         h = h.upper()
-
+        if query_from>1:
+            index = i + query_from -1
+        else:
+            index = i
         if q == "-":
             if not qstate:
                 qstate = True
                 if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{i}ins{gaps}")
+                    differences.append(f"nt{index}ins{gaps}")
                 else:
-                    differences.append(f"X{i+1}{h}")
+                    differences.append(f"X{index+1}{h}")
         else:
             qstate = False
         if h =="-":
             if not hstate:
                 hstate = True
                 if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{i}del{gaps}")
+                    differences.append(f"nt{index}del{gaps}")
                 else:
-                    differences.append(f"{q}{i+1}X")
+                    differences.append(f"{q}{index+1}X")
         else:
             hstate = False
             
@@ -48,11 +53,11 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             if h=='*':
                 if not mstate:
                     hstate = True
-                    differences.append(f"{q}{i+1}X")
+                    differences.append(f"{q}{index+1}X")
             elif m==" " or m=="+":
                 if not mstate:
                     hstate = True
-                    differences.append(f"{q}{i+1}{h}")
+                    differences.append(f"{q}{index+1}{h}")
             else:
                 hstate = False
 
@@ -70,7 +75,7 @@ def read_output(json_file):
     return data
 
 
-def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
+def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_limit=90):
     """
     This function is used to analyze the sample using the provided json file
     """
@@ -81,7 +86,6 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
     logger.debug("Program: %s version %s",protein_data['program'], protein_data['version'])
     params_str = ', '.join(f"{k}: {v}" for k, v in protein_data["params"].items())
     logger.debug("Params used: %s", params_str)
-
     for key, value in protein_data["results"].items():
         for result in value:
             logger.debug("Result of %s key %s", result["query_title"], key)
@@ -115,8 +119,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                                 align_len=hsps["align_len"]
                                 cover = align_len/query_len*100
                     if best_hsps:
-                        
-                        if cover<90:
+                        if cover<cover_limit:
                             return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
 
                         if query_from > 1 or query_to < query_len:
@@ -149,7 +152,6 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                 }
                 if len(result["hits"]) > 0:
                     for hit in result["hits"]:
-                        title = hit["description"][0]["title"]
                         for hsps in hit["hsps"]:
                             bit_score = hsps["bit_score"]
                             if bit_score >= best_match["bit_score"]:
@@ -157,7 +159,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide"):
                                 best_match["hsps"] = hsps
                                 best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
                                 best_match["cover"] = hsps["align_len"]/result["query_len"]*100
-                    if best_match["identity"]<90:
+                    if best_match["cover"]<cover_limit:
                         return {"gaps":  best_match["hsps"]["gaps"], "bit_score": best_match["bit_score"] , "identity": best_match["identity"], "hsps": [], "differences": ["deleted"]}
                     
                     differences = get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "protein")

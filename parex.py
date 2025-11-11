@@ -47,6 +47,14 @@ if __name__ == "__main__":
     # Optional arguments for specific operations
     parser.add_argument('--protein', action='store_true', 
                         help='Use protein sequences instead of nucleotide sequences for PDC')
+    
+    # ADD TEXT FOR THE --help
+    help_text = """
+     `python parex.py list projects` \n
+    this extra operation list all projects in the PROJECTS_PATH
+    """
+    parser.epilog = help_text
+
     args = parser.parse_args()
 
     extra_config = {
