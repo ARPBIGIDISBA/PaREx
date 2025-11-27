@@ -8,12 +8,9 @@ This script is used to generate an excel file with the results of the pipeline
 import os
 import argparse
 import logging
-import csv
-from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 import glob
 import pandas as pd
-import re
 import datetime
 
 logger = logging.getLogger(__name__)
@@ -247,7 +244,7 @@ def rename_columns(df):
 
     return df
 
-def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df):
+def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df, snippy_run=False):
     '''
         Adds gene absence results to the combined DataFrame.
         If the gene absence results already exist in the combined DataFrame, they are replaced.
@@ -283,29 +280,45 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df):
 
     return combined_df
 
-def add_piuAD_results(PIUAD_PATH, combined_df):
+def add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False):
     ''' Add column piuA/D and piuA/D_REFERENCE to the combined DataFrame from the piuAD results file.
         If the piuAD results already exist in the combined DataFrame, they are replaced.
         Position in the DataFrame: after PA4514. search in combineted_df columns for PA4514 and insert 
         before it the columns piuA/D and piuA/D_REFERENCE
     '''
     
-    piuAD_samples = read_csv_results(PIUAD_PATH, ["piuA/D", "piuA/D_REFERENCE"])
+    piuAD_columns = ["piuA/D", "piuA/D_REFERENCE"]
+    piuAD_samples = read_csv_results(PIUAD_PATH, piuAD_columns)
     
     if piuAD_samples is not None:
+        
+        #Insert columns in pandas DataFrame if exist after PA4514_piuA
+        df_cols = list(combined_df.columns)
+        if "PA4514_piuA" in df_cols:
+            pa4514_index = df_cols.index("PA4514_piuA")
+        else:
+            if snippy_run:
+                return combined_df  # If snippy run and PA4514_piuA not found, skip
+            
+            pa4514_index = len(df_cols)  # If not found, append at the end
+        for col in reversed(piuAD_columns):
+            if col not in df_cols:
+                df_cols.insert(pa4514_index, col)
+        combined_df = combined_df.reindex(columns=df_cols)
+    
         # For each STRAIN ID in combined_df, check if it exists in piuAD_samples and add the columns or replace them if exist
         for strain_id in combined_df.index:
             if strain_id in piuAD_samples.index:
                 for col in piuAD_samples.columns:
-                    if col not in combined_df.columns:
-                        combined_df[col] = ""  # crea la columna si falta
-                        
                     if combined_df.at[strain_id, col] and pd.notna(combined_df.at[strain_id, col]) and combined_df.at[strain_id, col] != "" \
                         and piuAD_samples.at[strain_id, col] and pd.notna(piuAD_samples.at[strain_id, col]) and piuAD_samples.at[strain_id, col] != "":
                         combined_df.at[strain_id, col] = f"{piuAD_samples.at[strain_id, col]} ({combined_df.at[strain_id, col]})"
                     else:
                         combined_df.at[strain_id, col] = piuAD_samples.at[strain_id, col]
+
+
     return combined_df
+
 
 def generate_excel_run(project_name, config=config, extra_config=None):
     PROJECTS_PATH = config["PROJECTS_PATH"]
@@ -357,8 +370,8 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy['STRAIN ID'] = df_snippy['STRAIN ID'].astype(str).str.strip().str.replace('"', '')
             df_snippy = df_snippy.set_index("STRAIN ID")
             df_snippy = pd.concat([combined_df, df_snippy], axis=1)
-            df_snippy = add_gene_absence_results(GENE_ABSENCE_PATH, df_snippy)
-            df_snippy = add_piuAD_results(PIUAD_PATH, df_snippy)
+            df_snippy = add_gene_absence_results(GENE_ABSENCE_PATH, df_snippy, snippy_run=True)
+            df_snippy = add_piuAD_results(PIUAD_PATH, df_snippy, snippy_run=True)
             dfs[sheet] = df_snippy
 
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
@@ -369,8 +382,8 @@ def generate_excel_run(project_name, config=config, extra_config=None):
     else:
         ## Add to combined_df the index of the samples
         combined_df = rename_columns(combined_df)
-        combined_df = add_gene_absence_results(GENE_ABSENCE_PATH, combined_df)
-        combined_df = add_piuAD_results(PIUAD_PATH, combined_df)
+        combined_df = add_gene_absence_results(GENE_ABSENCE_PATH, combined_df, snippy_run=False)
+        combined_df = add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False)
         combined_df.to_excel(output_file, sheet_name="Summary", index=True)
 
     logger.info(f"Results written to {output_file}")

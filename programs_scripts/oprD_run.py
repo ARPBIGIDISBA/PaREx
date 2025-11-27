@@ -213,7 +213,6 @@ def oprD_run(project_name, config=config, only_output = False, direct_file = Non
         writer.writerows(results_data)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
