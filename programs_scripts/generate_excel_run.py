@@ -254,7 +254,7 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df, snippy_run=False):
     if genes_absence_samples is None:
         return combined_df
     
-    columns_mappinº = {
+    columns_mapping = {
         "PA2020": "PA2020_mexZ",
         "PA2019": "PA2019_mexX",
         "PA2018": "PA2018_mexY",
@@ -299,8 +299,8 @@ def add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False):
         else:
             if snippy_run:
                 return combined_df  # If snippy run and PA4514_piuA not found, skip
-            
             pa4514_index = len(df_cols)  # If not found, append at the end
+
         for col in reversed(piuAD_columns):
             if col not in df_cols:
                 df_cols.insert(pa4514_index, col)
