@@ -196,6 +196,8 @@ if __name__ == "__main__":
             PDC_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
             snippy_run(PROJECT_NAME, extra_config=extra_config)
+            gene_absence_run(PROJECT_NAME, extra_config=extra_config)
+            piuAD_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
             generate_pdf_from_excel(PROJECT_NAME, extra_config=extra_config)
 

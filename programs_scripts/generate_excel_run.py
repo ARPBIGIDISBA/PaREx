@@ -254,6 +254,9 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df):
     '''
     
     genes_absence_samples = read_csv_results(GENE_ABSENCE_PATH, ["all"])
+    if genes_absence_samples is None:
+        return combined_df
+    
     columns_mapping = {
         "PA2020": "PA2020_mexZ",
         "PA2019": "PA2019_mexX",
@@ -288,7 +291,7 @@ def add_piuAD_results(PIUAD_PATH, combined_df):
     '''
     
     piuAD_samples = read_csv_results(PIUAD_PATH, ["piuA/D", "piuA/D_REFERENCE"])
-
+    
     if piuAD_samples is not None:
         # For each STRAIN ID in combined_df, check if it exists in piuAD_samples and add the columns or replace them if exist
         for strain_id in combined_df.index:

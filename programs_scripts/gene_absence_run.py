@@ -11,7 +11,7 @@ import csv
 from modules.general_functions import read_args
 from modules.general_functions import configure_logs, init_configs
 from modules.general_functions import get_spades_file
-from modules.blast_functions import get_differences, analize_sample, run_blast 
+from modules.blast_functions import analize_sample, run_blast 
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
