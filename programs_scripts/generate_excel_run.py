@@ -254,7 +254,7 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df, snippy_run=False):
     if genes_absence_samples is None:
         return combined_df
     
-    columns_mapping = {
+    columns_mappinº = {
         "PA2020": "PA2020_mexZ",
         "PA2019": "PA2019_mexX",
         "PA2018": "PA2018_mexY",
@@ -304,6 +304,7 @@ def add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False):
         for col in reversed(piuAD_columns):
             if col not in df_cols:
                 df_cols.insert(pa4514_index, col)
+        
         combined_df = combined_df.reindex(columns=df_cols)
     
         # For each STRAIN ID in combined_df, check if it exists in piuAD_samples and add the columns or replace them if exist

@@ -52,12 +52,12 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
         "fasta_filename": "PA4514_piuA.fasta",
         "name": "piuA",
         "locus_tag": "PA4514",
-        "result": "A"
+        "result": "piuA"
     }, {
         "fasta_filename": "PALES_48941_piuD.fasta",
         "name": "piuD",
         "locus_tag": "PALES_48941",
-        "result": "D"
+        "result": "piuD"
     }]
 
     # Create project directory in case it is not created, read files and create output directory
@@ -150,18 +150,18 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
             logger.info("Max bit score %s against %s", max_bitscore["value"], max_bitscore["name"])
             piuAD = "deleted"
             if max_bitscore["name"].startswith("piuD"):
-                piuAD = "D"
+                piuAD = "piuD"
             elif max_bitscore["name"].startswith("piuA"):
-                piuAD = "A"
+                piuAD = "piuA"
             
             if max_bitscore["gaps"] == -1:
                 logger.warning("piuAD failed assembly failed on sample %s", sample_name)
                 logger.warning(results)
-                results_data.append([sample_name, piuAD, results["differences"], results["gaps"], results["identity"]])
+                results_data.append([sample_name, results["differences"], piuAD, results["gaps"], results["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
                 logger.info("This is a Wild Type (WT). No gaps in nucleotide")
                 logger.info("***********************************************")  
-                results_data.append([sample_name, piuAD, "WT", max_bitscore["gaps"], max_bitscore["identity"]])
+                results_data.append([sample_name, "WT", piuAD, max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
                 logger.info("Analyse the differences in protein")
                 logger.debug("***********************************************")
@@ -183,16 +183,16 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
 
                     if results["gaps"] == 0 and results["identity"] == 100:
                         logger.info("This is a Wild Type (WT). No gaps in protein")
-                        results_data.append([sample_name, piuAD, "WT", results["gaps"], results["identity"]])
+                        results_data.append([sample_name, "WT", piuAD, results["gaps"], results["identity"]])
                     else:
-                        result = [sample_name, piuAD, ",".join(results["differences"]), results["gaps"], results["identity"]]
+                        result = [sample_name, ",".join(results["differences"]), piuAD,  results["gaps"], results["identity"]]
                         results_data.append(result)
                 else:
                     if not normal_output and not only_output:
                         logger.error("piuAD failed assembly failed on sample %s", sample_name)
             else:
                 differences = get_differences(max_bitscore["hsps"],  max_bitscore["name"], max_bitscore["gaps"], "nucleotide")
-                results_data.append([sample_name, piuAD, ",".join(differences), max_bitscore["gaps"], max_bitscore["identity"]])    
+                results_data.append([sample_name, ",".join(differences), piuAD, max_bitscore["gaps"], max_bitscore["identity"]])    
                 
     # Crear y escribir en el archivo CSV usando punto y coma como delimitador
     filename = os.path.join(OUTPUT_PATH, f"{project_name}_piuAD_results.csv")
