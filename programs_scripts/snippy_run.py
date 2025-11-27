@@ -83,10 +83,37 @@ def translate_amino_acid(value, value_c=""):
             elif value.find("dup") > 0:
                 value = f"nt{value}"
             return [value]
-        else:
+        elif value.find("?")>0:
+            # Review with carla
             value = value.replace("p.","")
             return [value]
-        
+        else:
+            parts = re.findall(r'(\d+)|([A-Za-z]{1}|\?)', value)
+            if parts:
+
+                previous = []
+                after = []
+                number = None
+                for index, part in enumerate(parts):
+                    if part[0]:
+                        number = int(part[0])
+                    if part[1]:
+                        if number is None:
+                            previous.append(part[1])
+                        else:
+                            after.append(part[1])
+
+                result = []
+                for index,part in enumerate(previous):
+                    result.append(f"{previous[index]}{number}{after[index]}")
+                    number+=1
+                if len(result)>2:
+                    result = [result[0], result[-1]]
+
+                return result
+            else:
+                print("No match found", value)
+                return value
     except Exception as e:
         traceback.print_exc()
         import sys
