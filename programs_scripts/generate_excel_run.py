@@ -296,6 +296,7 @@ def add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False):
         df_cols = list(combined_df.columns)
         if "PA4514_piuA" in df_cols:
             pa4514_index = df_cols.index("PA4514_piuA")
+            df_cols.remove("PA4514_piuA")
         else:
             if snippy_run:
                 return combined_df  # If snippy run and PA4514_piuA not found, skip
@@ -489,7 +490,6 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
         # Iterate columns starting with PA example PA4225_pchF  get the part after _ type it in cursiva y entre parentesis el valor, solo quiero una columna
         mutational_results = {}
         for col in row.index:
-            
             if col.startswith("PA") and col not in ["PA4110_ampC", "PA0958"]:
                 value = row.get(col, "")
                 if value != "":
@@ -503,6 +503,10 @@ def generate_pdf_from_excel(project_name, config=config, extra_config=None):
             if col == "oprD_reference-strain":
                 # If it is oprD_reference-strain, it is added
                 continue
+            if col == "piuA/D_REFERENCE":
+                continue
+            if col == "piuA/D":
+                mutational_results["piuA/D"] = f"<i>{col}</i> ({row.get('piuA/D_REFERENCE', '')})"
             if col=="oprD":
                 value = row.get(col, "")
                 if value != "WT" and value != "":
