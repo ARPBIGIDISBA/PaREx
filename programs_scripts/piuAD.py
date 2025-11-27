@@ -156,8 +156,8 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
             
             if max_bitscore["gaps"] == -1:
                 logger.warning("piuAD failed assembly failed on sample %s", sample_name)
-                logger.warning(results)
-                results_data.append([sample_name, results["differences"], piuAD, results["gaps"], results["identity"]])
+                logger.warning(max_bitscore)
+                results_data.append([sample_name, max_bitscore["differences"], piuAD, max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
                 logger.info("This is a Wild Type (WT). No gaps in nucleotide")
                 logger.info("***********************************************")  
