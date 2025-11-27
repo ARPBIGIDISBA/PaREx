@@ -360,7 +360,6 @@ def generate_excel_run(project_name, config=config, extra_config=None):
             df_snippy = add_gene_absence_results(GENE_ABSENCE_PATH, df_snippy)
             df_snippy = add_piuAD_results(PIUAD_PATH, df_snippy)
             dfs[sheet] = df_snippy
-            
 
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             for sheet in dfs:

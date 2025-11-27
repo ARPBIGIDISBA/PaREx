@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
         elif operation == "resistome" or operation == "analyze":
             logger.info(f"Running all for project {PROJECT_NAME}")
-            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, generate_excel, generate_pdf")
+            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, gene_absence, piuAD, generate_excel, generate_pdf")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
             oprD_run(PROJECT_NAME, extra_config=extra_config)
