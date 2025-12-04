@@ -106,9 +106,9 @@ def translate_amino_acid(value, value_c=""):
                 result = []
                 for index, part in enumerate(previous):
                     if index>=len(after):
-                        print("No match found", value, previous, after)
-                        break
-                    result.append(f"{previous[index]}{number}{after[index]}")
+                        result.append(f"{previous[index]}{number}")
+                    else:
+                        result.append(f"{previous[index]}{number}{after[index]}")
                     number+=1
                 if len(result)>2:
                     result = [result[0], result[-1]]
