@@ -88,9 +88,9 @@ def translate_amino_acid(value, value_c=""):
             value = value.replace("p.","")
             return [value]
         else:
+            value = value.replace("p.","")
             parts = re.findall(r'(\d+)|([A-Za-z]{1}|\?)', value)
             if parts:
-
                 previous = []
                 after = []
                 number = None
@@ -104,7 +104,7 @@ def translate_amino_acid(value, value_c=""):
                             after.append(part[1])
 
                 result = []
-                for index,part in enumerate(previous):
+                for index, part in enumerate(previous):
                     result.append(f"{previous[index]}{number}{after[index]}")
                     number+=1
                 if len(result)>2:
