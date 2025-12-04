@@ -334,6 +334,8 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
+    TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "FASTQ_Trimmomatic")
+
     OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "snippy_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
@@ -342,16 +344,38 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
         sample_name = sample_name.strip()
         logger.info("Processing %s", sample_name)
 
-        # Crear los paths de entrada y salida
-        input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
-        input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+        # Definir los ficheros de entrada 1 y 2 
+        input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+        input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+        execute = True
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
-            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
-            if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-                logger.error(f"The fastq.gz file for {sample_name} don't exist")
-                logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
+            logger.debug("You have to run first the trimmomatic process")
+            if not os.path.exists(input_r1_path):
+                execute = False
+                logger.debug("This file does not exist: %s", input_r1_path)
+            
+            if not os.path.exists(input_r2_path):
+                execute = False
+                logger.debug("This file does not exist: %s", input_r2_path)
+        
+        if not execute:
+            # Crear los paths de entrada y salida
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+            logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
+            if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                execute = True      
+            else:
+                input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
+                input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
+                logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
+                if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                    execute = True
+                else:
+                    logger.warning("Files used: %s %s", input_r1_path, input_r2_path)
+                    execute = False
 
+        
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")
