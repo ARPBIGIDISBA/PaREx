@@ -202,10 +202,10 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             
             for index, file in enumerate(files):
                 file, name = files[index]
-
-                if index !=0 and index >0:
-                    # logger.warning("Skipping file %s with index %s", file, index)
-                    continue
+                
+                # if index !=0 and index >0:
+                #     # logger.warning("Skipping file %s with index %s", file, index)
+                #     continue
                 
                 if file.find(".fasta") == -1:
                     continue
@@ -227,8 +227,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 
                 if extra_config["force"] or not os.path.exists(output_file):
                     logger.debug("Executing command: %s", " ".join(command_protein))
-                    result_pro = execute_command(command_protein)
-                    result = True
+                    result = execute_command(command_protein)
                 else:
                     if os.path.exists(output_file):
                         logger.debug("Output file %s already exists", output_file)
@@ -298,6 +297,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 logger.info("***********************************************")  
                 results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             else:
+                print(max_bitscore["name"])
                 results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
             # Crear y escribir en el archivo CSV usando punto y coma como delimitador
