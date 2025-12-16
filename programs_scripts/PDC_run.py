@@ -285,11 +285,9 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     logger.error("PDC failed assembly failed on sample %s", sample_name)
 
             differences = PDC1.get("differences", [])
-            logger.debug("PDC-1 differences %s", ",".join(differences))
             merged_differences = merge_deletions_preserve(differences)
             logger.debug("PDC-1 merged differences %s", ",".join(merged_differences))
             PDC1["differences"] = merged_differences
-            
             if max_bitscore["gaps"] == -1:
                 logger.warning("PDC failed assembly failed on sample %s", sample_name)
                 results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
@@ -297,8 +295,10 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 logger.info("***********************************************")  
                 results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             else:
-                print(max_bitscore["name"])
-                results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                if ",".join(PDC1["differences"]) == "deleted":
+                    results_data.append([sample_name, "deleted", "",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                else:
+                    results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
             # Crear y escribir en el archivo CSV usando punto y coma como delimitador
             filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")

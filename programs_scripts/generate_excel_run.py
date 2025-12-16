@@ -207,7 +207,7 @@ def rename_columns(df):
         "sequence_type": "ST",
         "alleles": "MLST allelic profile",
         "beta": "Acquired beta-lactamases",
-        "aminoglycoside": "Acquired aminoglycoside resistance genes",
+        "aminoglycoside": "Acquired aminoglycoside modifying enzymes",
         "fluoroquinolones": "Acquired quinolones resistance genes",
         "other": "Other acquired resistance genes",
         "oprD_REFERENCE": "oprD_reference-strain",
@@ -223,7 +223,6 @@ def rename_columns(df):
     primeras = ["ST", "MLST allelic profile", "Acquired beta-lactamases", "Acquired aminoglycoside modifying enzymes", "Acquired quinolones resistance genes", "Other acquired resistance genes"]  # las que quieras primero
     
     primeras_ok = [c for c in primeras if c in df.columns]
-
     resto = [col for col in df.columns if col not in primeras_ok]
     
     df = df.reindex(columns=primeras_ok + resto)      

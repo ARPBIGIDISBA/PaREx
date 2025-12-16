@@ -78,7 +78,7 @@ if __name__ == "__main__":
     
     if PROJECT_NAME != "list":
         check_project(project_path)
-        logging.basicConfig(level=args.log_level,
+        logging.basicConfig(level=args.log_level.upper(),
                         format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         handlers=[

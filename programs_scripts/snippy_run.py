@@ -26,8 +26,8 @@ amino_acids = {
     'Asp': 'D', 'Ile': 'I', 'Pro': 'P', 'Val': 'V',
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
     'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
-    'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup',
-    'Ter':'Stop', "?": "", "ext": "", "*":"Stop"
+    'fs':'fs', 'del':'del', 'ins':'ins', 'dup':'dup',
+    'Ter':'Ter', "?": "", "ext": "ext", "*":"Stop", "Stop":"Stop"
 }
 
 def update_dataframe(df, sample_name, name, value):
@@ -47,10 +47,11 @@ def update_dataframe(df, sample_name, name, value):
         df.loc[sample_name, name] = value
 
 def translate_amino_acid(value, value_c=""):
+
     for key, translate in amino_acids.items():
         # Replace all the ocurrencies of the key in the string by its corresponding value
         value = value.replace(key, translate)
-        
+    
     try:
         if value.find("del") > 0 or value.find("ins") > 0:
             value = value.replace("p.", "")
@@ -83,8 +84,10 @@ def translate_amino_acid(value, value_c=""):
             elif value.find("dup") > 0:
                 value = f"nt{value}"
             return [value]
-        elif value.find("?")>0:
+        elif value.find("?")>0 or value.find("ext")>0 or value.find("Stop")>0:
             # Review with carla
+            if value.find("extStop")>0:
+                value = value.replace("extStop", "ext")
             value = value.replace("p.","")
             return [value]
         else:
@@ -310,6 +313,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     direct_file = None
     if extra_config["file"] is not None:
         direct_file = extra_config["file"]
+        logger.debug("Direct file to process %s", direct_file)
     
     
     # Read command line arguments, sample list and config file  or direct file
@@ -344,8 +348,13 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
 
     for sample_name in samples:
         # Limpiar por si hay espacios en blanco
-        sample_name = sample_name.strip()
-        logger.info("Processing %s", sample_name)
+        if direct_file:
+            ORIGINAL_FILE = sample_name
+            sample_name = os.path.basename(sample_name)
+            sample_name = sample_name[0:-len(".fasta")]
+        else:
+            sample_name = sample_name.strip()
+            logger.info("Processing %s", sample_name)
 
         # Definir los ficheros de entrada 1 y 2 
         input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")

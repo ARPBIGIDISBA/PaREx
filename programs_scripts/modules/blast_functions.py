@@ -43,8 +43,9 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
                 hstate = True
                 if nucleotide_protein == "nucleotide":
                     differences.append(f"nt{index}del{gaps}")
-                else:
-                    differences.append(f"{q}{index+1}X")
+                # else:
+                #     print(f"{q}{index+1}X" )
+                #     # differences.append(f"{q}{index+1}X")
         else:
             hstate = False
             
