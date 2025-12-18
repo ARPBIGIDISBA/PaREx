@@ -56,7 +56,7 @@ def translate_amino_acid(value, value_c=""):
         if value.find("del") > 0 or value.find("ins") > 0:
             value = value.replace("p.", "")
             # Check if it is a deletion
-            logger.info("Processing deletion or insertion %s", value)
+            logger.debug("Processing deletion or insertion %s", value)
             if value.find("del") > 0:
                 replace = "del"
 

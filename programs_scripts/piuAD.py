@@ -87,7 +87,8 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
         execute = True
         if not os.path.exists(SPADES_FILE):
             execute = False
-            logger.error("You have to run first the SPades process or use a difect file --file path_to_file")
+            logger.error("Error in sample %s", sample_name)
+            logger.error("You have to run first the SPades process or use a direct file --file path_to_file")
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
@@ -128,7 +129,7 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
                     identity = results["identity"]
 
                     logger.debug("Gaps %s", gaps)
-                    logger.debug("Bit score %s", bit_score)                   
+                    logger.info("Bit score %s", bit_score)                   
                     
                     if bit_score > max_bitscore["value"]:
                         logger.debug("------------New max bit score %s", bit_score)
@@ -145,9 +146,9 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
                         logger.error("piuAD failed assembly failed on sample %s", sample_name)
             
             logger.debug("***********************************************")
-            logger.info("Final piuAD Analysis sample %s", sample_name)
+            logger.debug("Final piuAD Analysis sample %s", sample_name)
             logger.debug("***********************************************")
-            logger.info("Max bit score %s against %s", max_bitscore["value"], max_bitscore["name"])
+            logger.debug("Max bit score %s against %s", max_bitscore["value"], max_bitscore["name"])
             piuAD = "deleted"
             if max_bitscore["name"].startswith("piuD"):
                 piuAD = "piuD"
@@ -164,6 +165,7 @@ def piuAD_run(project_name, config=config, only_output = False, direct_file = No
                 results_data.append([sample_name, "WT", piuAD, max_bitscore["gaps"], max_bitscore["identity"]])
             elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] < 100:
                 logger.info("Analyse the differences in protein")
+                logger.info("Comparing to reference %s", max_bitscore['name'])
                 logger.debug("***********************************************")
 
                 file = os.path.join(PROTEIN_PATH, fast_file_compare["fasta_filename"])

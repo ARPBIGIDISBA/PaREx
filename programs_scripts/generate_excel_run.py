@@ -270,12 +270,12 @@ def add_gene_absence_results(GENE_ABSENCE_PATH, combined_df, snippy_run=False):
                 for col in genes_absence_samples.columns:
                     if col not in combined_df.columns:
                         combined_df[col] = ""  # crea la columna si falta
-                        
                     if combined_df.at[strain_id, col] and pd.notna(combined_df.at[strain_id, col]) and combined_df.at[strain_id, col] != "" \
                         and genes_absence_samples.at[strain_id, col] and pd.notna(genes_absence_samples.at[strain_id, col]) and genes_absence_samples.at[strain_id, col] != "":
                         combined_df.at[strain_id, col] = f"{genes_absence_samples.at[strain_id, col]} ({combined_df.at[strain_id, col]})"  
                     else:
-                        combined_df.at[strain_id, col] = genes_absence_samples.at[strain_id, col]  
+                        if genes_absence_samples.at[strain_id, col] != "" and  pd.notna(genes_absence_samples.at[strain_id, col]):
+                            combined_df.at[strain_id, col] = genes_absence_samples.at[strain_id, col]  
 
     return combined_df
 
@@ -315,7 +315,8 @@ def add_piuAD_results(PIUAD_PATH, combined_df, snippy_run=False):
                         and piuAD_samples.at[strain_id, col] and pd.notna(piuAD_samples.at[strain_id, col]) and piuAD_samples.at[strain_id, col] != "":
                         combined_df.at[strain_id, col] = f"{piuAD_samples.at[strain_id, col]} ({combined_df.at[strain_id, col]})"
                     else:
-                        combined_df.at[strain_id, col] = piuAD_samples.at[strain_id, col]
+                        if piuAD_samples.at[strain_id, col] != "" and pd.notna(piuAD_samples.at[strain_id, col]):
+                            combined_df.at[strain_id, col] = piuAD_samples.at[strain_id, col]
 
 
     return combined_df

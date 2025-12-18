@@ -98,7 +98,7 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
             for gene in GENES_STUDY:
                 gene_name = gene["name"]
 
-                logger.info("Analyzing gene %s", gene_name)
+                logger.debug("Analyzing gene %s", gene_name)
                 compare_file = os.path.join(FASTA_PATH, gene_name+".fasta")
                 output_file = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{gene_name}.json")
                 result = run_blast(sample_name, gene_name, compare_file, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS, normal_output, only_output, tblastn=False)
@@ -117,7 +117,7 @@ def gene_absence_run(project_name, config=config, only_output = False, direct_fi
                         row.append("Deleted")
                         #analize extra files
                         for extra in gene["extra"]:
-                            logger.info("Analyzing extra gene %s", extra)
+                            logger.debug("Analyzing extra gene %s", extra)
                             compare_file_extra = os.path.join(FASTA_PATH, gene_name+"_extra", extra+".fasta")
                             output_file_extra = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{extra}.json")
                             result_extra = run_blast(sample_name, extra, compare_file_extra, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS, normal_output, only_output, tblastn=False)
