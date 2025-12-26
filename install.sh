@@ -45,7 +45,7 @@ if [[ "$INSTALL_FASTQC" == "y" ]]; then
     sudo ln -sf "$INSTALL_DIR/FastQC/fastqc" /usr/local/bin/fastqc && \
     echo "✅ FastQC installed." || echo "❌ Error installing FastQC."
 fi
-fi
+
 if [[ "$INSTALL_TRIMMOMATIC" == "y" ]]; then
     # Install Trimmomatic
     echo "📥 Installing Trimmomatic..."
