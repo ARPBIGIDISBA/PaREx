@@ -119,8 +119,10 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
                                 query_to = hsps["query_to"]
                                 align_len=hsps["align_len"]
                                 cover = align_len/query_len*100
+
                     if best_hsps:
                         if cover<cover_limit:
+                            logger.warning("Coverage %.2f%% below limit %.2f%% for %s", cover, cover_limit, name)
                             return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
 
                         if query_from > 1 or query_to < query_len:
@@ -167,6 +169,8 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
+                    logger.debug("No hits found for %s", name)
+                    logger.debug("Differences are %s", differences)
                     differences = ["deleted"]
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
@@ -177,7 +181,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
 
 
 
-def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS, normal_output, only_output, tblastn=False):
+def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS=[], normal_output=False, only_output=False, tblastn=False):
         """
         Run analysis using tblastn
         
@@ -187,10 +191,10 @@ def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLA
             query_file (str): Path to the query file
             OUTPUT_PATH (str): Path for output files
             SPADES_FILE (str): Path to SPAdes assembly file
-            BLASTN_OPTIONS (list): BLAST options
-            normal_output (bool): Flag for normal output format
-            only_output (bool): Flag to only process existing output
-            tblastn (bool): Flag for tblastn vs blastn
+            BLASTN_OPTIONS (list): BLAST options as a list of strings  default empty list
+            normal_output (bool): Flag for normal output format default True
+            only_output (bool): Flag to only process existing output files
+            tblastn (bool): Flag for tblastn vs blastn (default False)
         
         Returns:
             bool: True if analysis was successful, False otherwise

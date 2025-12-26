@@ -15,7 +15,7 @@ import re
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 from typing import List, Tuple, Optional
-from modules.blast_functions import analize_sample
+from modules.blast_functions import analize_sample, run_blast, get_differences
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -187,6 +187,16 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
+            # First check with nucleotide
+            PDC1N_PATH = os.path.join(os.path.dirname(PDC_DATABASE_PATH), "PDC-1nt.fasta")
+            outputname = f"PDC-1nt"
+            result = run_blast(sample_name, outputname, PDC1N_PATH, OUTPUT_PATH, SPADES_FILE, tblastn=False, BLAST_OPTIONS=["-evalue", "10"])
+            if result:
+                output_file_nucleotide = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{outputname}.json")
+                results = analize_sample(output_file_nucleotide, outputname, "nucleotide")
+                result = get_differences(results["hsps"], outputname, results["gaps"], "nucleotide")
+                print("Nucleotide PDC-1 results:", result)
+            
             PDC1 = {}
             max_bitscore = {
                 "name": "deleted",
@@ -224,6 +234,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 # This is for protein
                 elif extra_config["protein"]:
                     command_protein = ["blastp", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                
                 
                 if extra_config["force"] or not os.path.exists(output_file):
                     logger.debug("Executing command: %s", " ".join(command_protein))
