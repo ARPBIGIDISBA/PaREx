@@ -193,7 +193,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             result = run_blast(sample_name, outputname, PDC1N_PATH, OUTPUT_PATH, SPADES_FILE, tblastn=False, BLAST_OPTIONS=["-evalue", "10"])
             if result:
                 output_file_nucleotide = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{outputname}.json")
-                results = analize_sample(output_file_nucleotide, outputname, "nucleotide")
+                results = analize_sample(output_file_nucleotide, outputname, "nucleotide", cover_limit=0)
                 result = get_differences(results["hsps"], outputname, results["gaps"], "nucleotide")
                 print("Nucleotide PDC-1 results:", result)
             
