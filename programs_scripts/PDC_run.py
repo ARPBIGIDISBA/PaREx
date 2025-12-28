@@ -194,8 +194,8 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             if result:
                 output_file_nucleotide = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{outputname}.json")
                 results = analize_sample(output_file_nucleotide, outputname, "nucleotide", cover_limit=0)
-                result = get_differences(results["hsps"], outputname, results["gaps"], "nucleotide")
-                print("Nucleotide PDC-1 results:", result)
+                logger.info("Nucleotide PDC-1 results raw: %s", results ["differences"])
+                
             
             PDC1 = {}
             max_bitscore = {
@@ -216,7 +216,6 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 # if index !=0 and index >0:
                 #     # logger.warning("Skipping file %s with index %s", file, index)
                 #     continue
-                
                 if file.find(".fasta") == -1:
                     continue
                 

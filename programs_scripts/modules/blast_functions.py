@@ -50,7 +50,7 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             hstate = False
             
         # solo miramos para protein
-        if nucleotide_protein == "protein":
+        if nucleotide_protein == "protein" or nucleotide_protein == "nucleotide":
             if h=='*':
                 if not mstate:
                     hstate = True
@@ -98,50 +98,51 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
             query_len = result["query_len"]
             
             if nucleotide_protein == "nucleotide":
+                best_match = {
+                    "bit_score": 0,
+                    "hsps": None,
+                    "identity": 0,
+                    "cover": 0,
+                    "differences": []
+                }
+
                 if len(result["hits"]) > 0:
                     if len(result["hits"]) > 1:
                         logger.warning("%s has multiple contigs (%d hits)", name, len(result["hits"]))
-                    best_hsps = None
                     bit_score = -1
-                    identity = -1
-                    gaps = -1
-                    query_from = 1
-                    query_to = query_len
-
+                    
                     for hit in result["hits"]:
                         for hsps in hit["hsps"]:
-                            if hsps["bit_score"] > bit_score:
-                                bit_score = hsps["bit_score"]
-                                best_hsps = hsps
-                                identity = hsps["identity"]/hsps["align_len"]*100
-                                gaps = hsps["gaps"]
-                                query_from = hsps["query_from"]
-                                query_to = hsps["query_to"]
-                                align_len=hsps["align_len"]
-                                cover = align_len/query_len*100
+                            bit_score = hsps["bit_score"]
+                            if bit_score >= best_match["bit_score"]:
+                                best_match["bit_score"] = bit_score
+                                best_match["hsps"] = hsps
+                                best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
+                                best_match["cover"] = hsps["align_len"]/result["query_len"]*100
 
-                    if best_hsps:
-                        if cover<cover_limit:
-                            logger.warning("Coverage %.2f%% below limit %.2f%% for %s", cover, cover_limit, name)
+                    if best_match:
+
+                        if best_match["cover"]<cover_limit:
+                            logger.warning("Coverage %.2f%% below limit %.2f%% for %s", best_match["cover"], cover_limit, name)
                             return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
 
-                        if query_from > 1 or query_to < query_len:
-                            return {
-                                "gaps": -1,
-                                "bit_score": bit_score,
-                                "identity": -1,
-                                "hsps": [],
-                                "differences": f"Not complete ({query_from}-{query_to})"
-                            }
+                        # if query_from > 1 or query_to < query_len:
+                        #     return {
+                        #         "gaps": -1,
+                        #         "bit_score": bit_score,
+                        #         "identity": -1,
+                        #         "hsps": [],
+                        #         "differences": f"Not complete ({query_from}-{query_to})"
+                        #     }
                         return {
-                            "gaps": gaps,
-                            "bit_score": bit_score,
-                            "identity": identity,
-                            "hsps": best_hsps,
-                            "differences": ""
+                            "gaps": best_match["hsps"]["gaps"],
+                            "bit_score": best_match["bit_score"],
+                            "identity": best_match["identity"],
+                            "hsps": best_match["hsps"],
+                            "differences": get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "nucleotide")
                         }
                 else:
-                    logger.debug("No hits found for %s", name)
+                    logger.info("No hits found for %s", name)
                     return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
                 
             elif nucleotide_protein == "protein":
@@ -151,7 +152,6 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
                     "identity": 0,
                     "cover": 0,
                     "differences": []
-
                 }
                 if len(result["hits"]) > 0:
                     for hit in result["hits"]:
