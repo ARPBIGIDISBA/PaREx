@@ -15,7 +15,7 @@ import re
 from modules.general_functions import read_args, execute_command
 from modules.general_functions import configure_logs, init_configs
 from typing import List, Tuple, Optional
-from modules.blast_functions import analize_sample
+from modules.blast_functions import analize_sample, run_blast, get_differences
 
 logger = logging.getLogger(__name__)
 script_path = os.path.abspath(__file__)
@@ -167,6 +167,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
     ]
     filename = None
+    
     for sample_name in samples:
         
         if direct_file:
@@ -187,118 +188,175 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
             logger.error("This file does not exist: %s", SPADES_FILE)
         
         if execute:
-            PDC1 = {}
-            max_bitscore = {
-                "name": "deleted",
-                "value": -1,
-                "gaps":-1,
-                "identity": -1,
-                "hsps": -1,
-                "differences": "",
-                "path": ""
-            }
-            
-            
-            
-            for index, file in enumerate(files):
-                file, name = files[index]
+            # First check with nucleotide
+            PDC1N_PATH = os.path.join(os.path.dirname(PDC_DATABASE_PATH), "PDC-1nt.fasta")
+            outputname = f"PDC-1nt"
+            result = run_blast(sample_name, outputname, PDC1N_PATH, OUTPUT_PATH, SPADES_FILE, tblastn=False, BLAST_OPTIONS=["-evalue", "10"])
+            if result:
+                output_file_nucleotide = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{outputname}.json")
+                results = analize_sample(output_file_nucleotide, outputname, "nucleotide", cover_limit=0)
+                differences_nt = results["differences"]
+                # Check if array or string
+                if isinstance(differences_nt, str):
+                    differences_nt = [differences_nt]
+                logger.info("Nucleotide PDC-1 results raw: %s", ",".join(differences_nt))
                 
-                # if index !=0 and index >0:
-                #     # logger.warning("Skipping file %s with index %s", file, index)
-                #     continue
+                non_functional = False
+                for diff in differences_nt:
+                    # GEt number after ins or del 
+                    # If it is ins and not multiple of 3
+                    if "ins" in diff:
+                        ins_match = re.search(r'ins(\d+)', diff)
+                        if ins_match:
+                            ins_number = int(ins_match.group(1))
+                            if ins_number % 3 != 0:
+                                non_functional = True
+                                logger.info("Nucleotide PDC-1 Non-Functional detected due to insertion: %s", diff)
+                                break
+                            else:
+                                logger.debug("Nucleotide PDC-1 Functional insertion detected: %s", diff)
+                                logger.debug("Insertion number %s is multiple of 3", ins_number)
+                    elif "del" in diff:
+                        del_match = re.search(r'del(\d+)', diff)
+                        if del_match:
+                            del_number = int(del_match.group(1))
+                            if del_number % 3 != 0:
+                                non_functional = True
+                                logger.info("Nucleotide PDC-1 Non-Functional detected due to deletion: %s", diff) 
+                                break
+                            else:
+                                logger.debug("Nucleotide PDC-1 Functional deletion detected: %s", diff)
+                                logger.debug("Deletion number %s is multiple of 3", del_number)
                 
-                if file.find(".fasta") == -1:
-                    continue
-                
-                logger.debug("Processing sample %s", name)
-                file = os.path.join(PDC_DATABASE_PATH, file)
-                logger.debug("Using protein file: %s", file)
-                
-                output_file = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
-                os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
-                logger.debug("Output file %s", output_file)
-                
-                # This is for nucleotide
-                if extra_config["nucleotide"]:
-                    command_protein = ["tblastn", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
-                # This is for protein
-                elif extra_config["protein"]:
-                    command_protein = ["blastp", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
-                
-                if extra_config["force"] or not os.path.exists(output_file):
-                    logger.debug("Executing command: %s", " ".join(command_protein))
-                    result = execute_command(command_protein)
-                else:
-                    if os.path.exists(output_file):
-                        logger.debug("Output file %s already exists", output_file)
-                        result = True
-                    else:
-                        logger.error("Output file %s does not exist", output_file)
-                        result = False
-            
-                if result:
-                    # Read the json file and get the results
-                    results = analize_sample(output_file, name, "protein")
+                if non_functional:
+                    logger.info("Nucleotide PDC-1 Non-Functional detected in sample %s", sample_name)
                     
-                    logger.debug("***********************************************")
-                    logger.debug("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
-                    logger.debug("***********************************************")
-                    
-                    gaps = results["gaps"]
-                    bit_score = results["bit_score"]
-                    identity = results["identity"]
+                    results_data.append([sample_name, "Non-Functional", ",".join(differences_nt), results["hsps"]["score"], results["identity"]])
 
-                    logger.debug("Gaps %s", gaps)
-                    logger.debug("Bit score %s", bit_score)
-                    logger.debug("Identity %s", identity)
+                else:
+                    PDC1 = {}
+                    max_bitscore = {
+                        "name": "deleted",
+                        "value": -1,
+                        "gaps":-1,
+                        "identity": -1,
+                        "hsps": -1,
+                        "differences": "",
+                        "path": ""
+                    }
                     
-                    if name == "PDC-1":
-                        logger.debug("PDC-1 found")
-                        PDC1["path"] = file
-                        PDC1["value"] = bit_score
-                        PDC1["gaps"] = gaps
-                        PDC1["identity"] = identity
-                        PDC1["differences"] = results["differences"]
+                    
+                    for index, file in enumerate(files):
+                        file, name = files[index]
                         
-                    if bit_score >= max_bitscore["value"]:
-                        # read text from protein file
-                        with open(file, "r") as f:
-                            # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
-                            protein_text = f.readline()
-                            # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
-                            full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
-
-                        # Save the max bitscore
-                        max_bitscore["name"] = full_name
-                        max_bitscore["path"] = file
-                        max_bitscore["value"] = bit_score
-                        max_bitscore["gaps"] = gaps
-                        max_bitscore["identity"] = identity
-                        max_bitscore["differences"] = results["differences"]
+                        # if index !=0 and index >0:
+                        #     # logger.warning("Skipping file %s with index %s", file, index)
+                        #     continue
+                        if file.find(".fasta") == -1:
+                            continue
+                        
+                        logger.debug("Processing sample %s", name)
+                        file = os.path.join(PDC_DATABASE_PATH, file)
+                        logger.debug("Using protein file: %s", file)
+                        
+                        output_file = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
+                        os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
+                        logger.debug("Output file %s", output_file)
+                        
+                        # This is for nucleotide
+                        if extra_config["nucleotide"]:
+                            command_protein = ["tblastn", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                        # This is for protein
+                        elif extra_config["protein"]:
+                            command_protein = ["blastp", "-query", file, "-subject", SPADES_FILE, "-out", output_file, "-outfmt", "15"] + TBLASTN_OPTIONS
+                        
+                        
+                        if extra_config["force"] or not os.path.exists(output_file):
+                            logger.debug("Executing command: %s", " ".join(command_protein))
+                            result = execute_command(command_protein)
+                        else:
+                            if os.path.exists(output_file):
+                                logger.debug("Output file %s already exists", output_file)
+                                result = True
+                            else:
+                                logger.error("Output file %s does not exist", output_file)
+                                result = False
                     
-                    if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                        logger.info("***********************************************")
-                        logger.info("PDC found '%s' on sample %s", name, sample_name)
-                        logger.info("***********************************************")
-                        break
-                else:
-                    logger.error("PDC failed assembly failed on sample %s", sample_name)
+                        if result:
+                            # Read the json file and get the results
+                            results = analize_sample(output_file, name, "protein")
+                            
+                            logger.debug("***********************************************")
+                            logger.debug("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
+                            logger.debug("***********************************************")
+                            
+                            gaps = results["gaps"]
+                            bit_score = results["bit_score"]
+                            identity = results["identity"]
 
-            differences = PDC1.get("differences", [])
-            merged_differences = merge_deletions_preserve(differences)
-            logger.debug("PDC-1 merged differences %s", ",".join(merged_differences))
-            PDC1["differences"] = merged_differences
-            if max_bitscore["gaps"] == -1:
-                logger.warning("PDC failed assembly failed on sample %s", sample_name)
-                results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
-            elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
-                logger.info("***********************************************")  
-                results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-            else:
-                if ",".join(PDC1["differences"]) == "deleted":
-                    results_data.append([sample_name, "deleted", "",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
-                else:
-                    results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                            logger.debug("Gaps %s", gaps)
+                            logger.debug("Bit score %s", bit_score)
+                            logger.debug("Identity %s", identity)
+                            
+                            if name == "PDC-1":
+                                logger.debug("PDC-1 found")
+                                PDC1["path"] = file
+                                PDC1["value"] = bit_score
+                                PDC1["gaps"] = gaps
+                                PDC1["identity"] = identity
+                                PDC1["differences"] = results["differences"]
+                                
+                            if bit_score >= max_bitscore["value"]:
+                                # read text from protein file
+                                with open(file, "r") as f:
+                                    # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
+                                    protein_text = f.readline()
+                                    # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
+                                    full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
+
+                                # Save the max bitscore
+                                max_bitscore["name"] = full_name
+                                max_bitscore["path"] = file
+                                max_bitscore["value"] = bit_score
+                                max_bitscore["gaps"] = gaps
+                                max_bitscore["identity"] = identity
+                                max_bitscore["differences"] = results["differences"]
+                            
+                            if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                                logger.info("***********************************************")
+                                logger.info("PDC found '%s' on sample %s", name, sample_name)
+                                logger.info("***********************************************")
+                                break
+                        else:
+                            logger.error("PDC failed assembly failed on sample %s", sample_name)
+
+                    differences = PDC1.get("differences", [])
+                    merged_differences = merge_deletions_preserve(differences)
+                    
+                    logger.debug("PDC-1 merged differences %s", ",".join(merged_differences))
+                    PDC1["differences"] = merged_differences
+                    
+                    if max_bitscore["gaps"] == -1:
+                        logger.warning("PDC failed assembly failed on sample %s", sample_name)
+                        results_data.append([sample_name, ",".join(results["differences"]), max_bitscore["name"], results["bit_score"], results["gaps"], results["identity"]])
+                    elif max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                        logger.info("***********************************************")  
+                        if ",".join(PDC1["differences"]) == "deleted":
+                            max_bitscore["name"] = "deleted"
+                        results_data.append([sample_name, ",".join(PDC1["differences"]), max_bitscore["name"],  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                    else:
+                        if ",".join(PDC1["differences"]) == "deleted":
+                            results_data.append([sample_name, "deleted", "deleted",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                        else:
+                            # Check if differences contains a value finished in X:
+                            for diff in PDC1["differences"]:
+                                if diff.endswith("X"):
+                                    logger.info("***********************************************")  
+                                    logger.info("PDC Non-Functional found '%s' on sample %s due to stop codon", diff, sample_name)
+                                    logger.info("***********************************************")  
+                                    results_data.append([sample_name, "Non-Functional", ",".join(PDC1["differences"]),  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                                    break
+                            results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
             # Crear y escribir en el archivo CSV usando punto y coma como delimitador
             filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
