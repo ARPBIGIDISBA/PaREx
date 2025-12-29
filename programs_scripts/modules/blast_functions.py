@@ -21,6 +21,8 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
     hstate = False
     mstate = False
     query_from = hsps.get("query_from", 1)
+    gaps_internal = 0 
+    gaps_internal2 = 0 
     for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
         q = q.upper()
         m = m.upper()
@@ -30,27 +32,35 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
         else:
             index = i
         if q == "-":
+            gaps_internal +=1
             if not qstate:
                 qstate = True
-                if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{index}ins{gaps}")
-                else:
-                    differences.append(f"X{index+1}{h}")
+                # if nucleotide_protein != "nucleotide":
+                #     differences.append(f"X{index+1}{h}")
         else:
-            qstate = False
-        if h =="-":
-            if not hstate:
-                hstate = True
+            if qstate:
                 if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{index}del{gaps}")
-                # else:
+                    differences.append(f"nt{index}ins{gaps_internal}")
+            qstate = False
+            gaps_internal =0
+
+        
+        if h =="-":
+            gaps_internal2 +=1
+            if not hstate:
+                hstate = True                
                 #     print(f"{q}{index+1}X" )
                 #     # differences.append(f"{q}{index+1}X")
         else:
+            if hstate:
+                if nucleotide_protein == "nucleotide":
+                    differences.append(f"nt{index}del{gaps_internal2}")
+            gaps_internal2 =0
             hstate = False
             
-        # solo miramos para protein
-        if nucleotide_protein == "protein" or nucleotide_protein == "nucleotide":
+        # solo miramos para protein  or nucleotide_protein == "nucleotide"
+        if nucleotide_protein == "protein":
+            
             if h=='*':
                 if not mstate:
                     hstate = True
@@ -58,7 +68,10 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             elif m==" " or m=="+":
                 if not mstate:
                     hstate = True
-                    differences.append(f"{q}{index+1}{h}")
+                    if(q!="-"):
+                        differences.append(f"{q}{index+1}{h}")
+                    else:
+                        differences.append(f"X{index+1}{h}")
             else:
                 hstate = False
 
