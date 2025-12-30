@@ -231,7 +231,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 if non_functional:
                     logger.info("Nucleotide PDC-1 Non-Functional detected in sample %s", sample_name)
                     
-                    results_data.append([sample_name, "Non-Functional", ",".join(differences_nt), results["hsps"]["score"], results["identity"]])
+                    results_data.append([sample_name, f"Non-Functional ({','.join(differences_nt)})","Non-Functional", results["hsps"]["score"], results["identity"]])
 
                 else:
                     PDC1 = {}
@@ -355,7 +355,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                                     logger.info("***********************************************")  
                                     logger.info("PDC Non-Functional found '%s' on sample %s due to stop codon", diff, sample_name)
                                     logger.info("***********************************************")  
-                                    results_data.append([sample_name, "Non-Functional", ",".join(PDC1["differences"]),  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                                    results_data.append([sample_name, f"Non-Functional({','.join(PDC1['differences'])})", "Non-Functional",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
                                     added = True
                                     break
                             if not added:
