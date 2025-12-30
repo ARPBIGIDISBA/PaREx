@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')
     parser.add_argument('operation', type=str, help=f"Existing operations: {' | '.join(OPERATIONS_DEVELOPED)}")
     parser.add_argument('--log-level', type=str, help='Log levels DEBUG, INFO, WARNING, ERROR', default="INFO")
-    parser.add_argument('--force', action='store_true', help='Force the execution of the program')
+    parser.add_argument('--force', action='store_true', help='Force the execution of the program even if the output already exists')
     parser.add_argument('--keep_output', action='store_true', help='Keep the output of the program')
     parser.add_argument('--clean_output', action='store_true', help='Clean the output of the program')
     parser.add_argument('--file', type=str, help='Direct Path to the file not use sample list', default=None)
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     
     if PROJECT_NAME != "list":
         check_project(project_path)
-        logging.basicConfig(level=args.log_level,
+        logging.basicConfig(level=args.log_level.upper(),
                         format='%(asctime)s - %(levelname)s - %(message)s - %(filename)s:%(lineno)d',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         handlers=[
@@ -188,13 +188,15 @@ if __name__ == "__main__":
 
         elif operation == "resistome" or operation == "analyze":
             logger.info(f"Running all for project {PROJECT_NAME}")
-            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, generate_excel, generate_pdf")
+            logger.info(f"short for SPAdes, resfinder, oprD, PDC, mlst, snippy, gene_absence, piuAD, generate_excel, generate_pdf")
             SPAdes_run(PROJECT_NAME, extra_config=extra_config)
             resfinder_run(PROJECT_NAME, extra_config=extra_config)
             oprD_run(PROJECT_NAME, extra_config=extra_config)
             PDC_run(PROJECT_NAME, extra_config=extra_config)
             mlst_run(PROJECT_NAME, extra_config=extra_config)
             snippy_run(PROJECT_NAME, extra_config=extra_config)
+            gene_absence_run(PROJECT_NAME, extra_config=extra_config)
+            piuAD_run(PROJECT_NAME, extra_config=extra_config)
             generate_excel_run(PROJECT_NAME, extra_config=extra_config)
             generate_pdf_from_excel(PROJECT_NAME, extra_config=extra_config)
 

@@ -26,8 +26,8 @@ amino_acids = {
     'Asp': 'D', 'Ile': 'I', 'Pro': 'P', 'Val': 'V',
     'Glu': 'E', 'Lys': 'K', 'Gln': 'Q', 'Trp': 'W',
     'Phe': 'F', 'Leu': 'L', 'Arg': 'R', 'Tyr': 'Y',
-    'fs':'X', 'del':'del', 'ins':'ins', 'dup':'dup',
-    'Ter':'Stop', "?": "", "ext": "", "*":"Stop"
+    'fs':'fs', 'del':'del', 'ins':'ins', 'dup':'dup',
+    'Ter':'Ter', "?": "", "ext": "ext", "*":"Stop", "Stop":"Stop"
 }
 
 def update_dataframe(df, sample_name, name, value):
@@ -47,15 +47,16 @@ def update_dataframe(df, sample_name, name, value):
         df.loc[sample_name, name] = value
 
 def translate_amino_acid(value, value_c=""):
+
     for key, translate in amino_acids.items():
         # Replace all the ocurrencies of the key in the string by its corresponding value
         value = value.replace(key, translate)
-        
+    
     try:
         if value.find("del") > 0 or value.find("ins") > 0:
             value = value.replace("p.", "")
             # Check if it is a deletion
-            logger.info("Processing deletion or insertion %s", value)
+            logger.debug("Processing deletion or insertion %s", value)
             if value.find("del") > 0:
                 replace = "del"
 
@@ -83,10 +84,42 @@ def translate_amino_acid(value, value_c=""):
             elif value.find("dup") > 0:
                 value = f"nt{value}"
             return [value]
-        else:
+        elif value.find("?")>0 or value.find("ext")>0 or value.find("Stop")>0:
+            # Review with carla
+            if value.find("extStop")>0:
+                value = value.replace("extStop", "ext")
             value = value.replace("p.","")
             return [value]
-        
+        else:
+            value = value.replace("p.","")
+            parts = re.findall(r'(\d+)|([A-Za-z]{1}|\?)', value)
+            if parts:
+                previous = []
+                after = []
+                number = None
+                for index, part in enumerate(parts):
+                    if part[0]:
+                        number = int(part[0])
+                    if part[1]:
+                        if number is None:
+                            previous.append(part[1])
+                        else:
+                            after.append(part[1])
+
+                result = []
+                for index, part in enumerate(previous):
+                    if index>=len(after):
+                        result.append(f"{previous[index]}{number}")
+                    else:
+                        result.append(f"{previous[index]}{number}{after[index]}")
+                    number+=1
+                if len(result)>2:
+                    result = [result[0], result[-1]]
+
+                return result
+            else:
+                print("No match found", value)
+                return value
     except Exception as e:
         traceback.print_exc()
         import sys
@@ -280,6 +313,7 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     direct_file = None
     if extra_config["file"] is not None:
         direct_file = extra_config["file"]
+        logger.debug("Direct file to process %s", direct_file)
     
     
     # Read command line arguments, sample list and config file  or direct file
@@ -307,24 +341,53 @@ def snippy_run(project_name, only_output=False,  config=config, extra_config={"f
     PROJECT_PATH = os.path.join(PROJECTS_PATH, project_name)
     os.makedirs(PROJECT_PATH, exist_ok=True)
 
+    TRIMMOMATIC_FILES_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "FASTQ_Trimmomatic")
+
     OUTPUT_PATH = os.path.join(PROJECT_PATH, f"ANALYSIS_{project_name}", "snippy_results")
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
     for sample_name in samples:
         # Limpiar por si hay espacios en blanco
-        sample_name = sample_name.strip()
-        logger.info("Processing %s", sample_name)
+        if direct_file:
+            ORIGINAL_FILE = sample_name
+            sample_name = os.path.basename(sample_name)
+            sample_name = sample_name[0:-len(".fasta")]
+        else:
+            sample_name = sample_name.strip()
+            logger.info("Processing %s", sample_name)
 
-        # Crear los paths de entrada y salida
-        input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
-        input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+        # Definir los ficheros de entrada 1 y 2 
+        input_r1_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R1.fastq")
+        input_r2_path = os.path.join(TRIMMOMATIC_FILES_PATH, f"{sample_name}_trim_R2.fastq")
+        execute = True
         if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
-            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
-            if not os.path.exists(input_r1_path) or not os.path.exists(input_r2_path):
-                logger.error(f"The fastq.gz file for {sample_name} don't exist")
-                logger.error(f"One of this files does not exist:\n {input_r1_path}\n {input_r2_path}")
+            logger.debug("You have to run first the trimmomatic process")
+            if not os.path.exists(input_r1_path):
+                execute = False
+                logger.debug("This file does not exist: %s", input_r1_path)
+            
+            if not os.path.exists(input_r2_path):
+                execute = False
+                logger.debug("This file does not exist: %s", input_r2_path)
+        
+        if not execute:
+            # Crear los paths de entrada y salida
+            input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq.gz")
+            input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq.gz")
+            logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
+            if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                execute = True      
+            else:
+                input_r1_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R1_001.fastq")
+                input_r2_path = os.path.join(PROJECT_PATH, f"FASTQ_{project_name}", f"{sample_name}_R2_001.fastq")
+                logger.debug("Files used: %s %s", input_r1_path, input_r2_path)
+                if os.path.exists(input_r1_path) and os.path.exists(input_r2_path):
+                    execute = True
+                else:
+                    logger.warning("Files used: %s %s", input_r1_path, input_r2_path)
+                    execute = False
 
+        
         OUTPUT_RESULTS = os.path.join(OUTPUT_PATH, "output", sample_name)
         os.makedirs(OUTPUT_RESULTS, exist_ok=True)
         VCF_FILE = os.path.join(OUTPUT_RESULTS, f"snps.vcf")

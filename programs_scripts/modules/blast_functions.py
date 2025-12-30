@@ -21,6 +21,8 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
     hstate = False
     mstate = False
     query_from = hsps.get("query_from", 1)
+    gaps_internal = 0 
+    gaps_internal2 = 0 
     for i, (q, m, h) in enumerate(zip(qseq, midline, hseq)):
         q = q.upper()
         m = m.upper()
@@ -30,25 +32,33 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
         else:
             index = i
         if q == "-":
+            gaps_internal +=1
             if not qstate:
                 qstate = True
-                if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{index}ins{gaps}")
-                else:
-                    differences.append(f"X{index+1}{h}")
+                # if nucleotide_protein != "nucleotide":
+                #     differences.append(f"X{index+1}{h}")
         else:
+            if qstate:
+                if nucleotide_protein == "nucleotide":
+                    differences.append(f"nt{index}ins{gaps_internal}")
             qstate = False
+            gaps_internal =0
+
+        
         if h =="-":
+            gaps_internal2 +=1
             if not hstate:
-                hstate = True
-                if nucleotide_protein == "nucleotide":
-                    differences.append(f"nt{index}del{gaps}")
-                else:
-                    differences.append(f"{q}{index+1}X")
+                hstate = True                
+                #     print(f"{q}{index+1}X" )
+                #     # differences.append(f"{q}{index+1}X")
         else:
+            if hstate:
+                if nucleotide_protein == "nucleotide":
+                    differences.append(f"nt{index}del{gaps_internal2}")
+            gaps_internal2 =0
             hstate = False
             
-        # solo miramos para protein
+        # solo miramos para protein  or nucleotide_protein == "nucleotide"
         if nucleotide_protein == "protein":
             if h=='*':
                 if not mstate:
@@ -57,7 +67,14 @@ def get_differences(hsps, name, gaps=0, nucleotide_protein= "nucleotide"):
             elif m==" " or m=="+":
                 if not mstate:
                     hstate = True
-                    differences.append(f"{q}{index+1}{h}")
+                    if(q!="-"):
+                        differences.append(f"{q}{index+1}{h}")
+                    else:
+                        index_local = index - query_from +1
+                        if(index_local>0):                            
+                            differences.append(f"{qseq[index_local-1]}{index}ins{h}")
+                        else:
+                            differences.append(f"X1ins{h}")
             else:
                 hstate = False
 
@@ -97,48 +114,51 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
             query_len = result["query_len"]
             
             if nucleotide_protein == "nucleotide":
+                best_match = {
+                    "bit_score": 0,
+                    "hsps": None,
+                    "identity": 0,
+                    "cover": 0,
+                    "differences": []
+                }
+
                 if len(result["hits"]) > 0:
                     if len(result["hits"]) > 1:
                         logger.warning("%s has multiple contigs (%d hits)", name, len(result["hits"]))
-                    best_hsps = None
                     bit_score = -1
-                    identity = -1
-                    gaps = -1
-                    query_from = 1
-                    query_to = query_len
-
+                    
                     for hit in result["hits"]:
                         for hsps in hit["hsps"]:
-                            if hsps["bit_score"] > bit_score:
-                                bit_score = hsps["bit_score"]
-                                best_hsps = hsps
-                                identity = hsps["identity"]/hsps["align_len"]*100
-                                gaps = hsps["gaps"]
-                                query_from = hsps["query_from"]
-                                query_to = hsps["query_to"]
-                                align_len=hsps["align_len"]
-                                cover = align_len/query_len*100
-                    if best_hsps:
-                        if cover<cover_limit:
+                            bit_score = hsps["bit_score"]
+                            if bit_score >= best_match["bit_score"]:
+                                best_match["bit_score"] = bit_score
+                                best_match["hsps"] = hsps
+                                best_match["identity"] = hsps["identity"]/hsps["align_len"]*100
+                                best_match["cover"] = hsps["align_len"]/result["query_len"]*100
+
+                    if best_match:
+
+                        if best_match["cover"]<cover_limit:
+                            logger.warning("Coverage %.2f%% below limit %.2f%% for %s", best_match["cover"], cover_limit, name)
                             return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
 
-                        if query_from > 1 or query_to < query_len:
-                            return {
-                                "gaps": -1,
-                                "bit_score": bit_score,
-                                "identity": -1,
-                                "hsps": [],
-                                "differences": f"Not complete ({query_from}-{query_to})"
-                            }
+                        # if query_from > 1 or query_to < query_len:
+                        #     return {
+                        #         "gaps": -1,
+                        #         "bit_score": bit_score,
+                        #         "identity": -1,
+                        #         "hsps": [],
+                        #         "differences": f"Not complete ({query_from}-{query_to})"
+                        #     }
                         return {
-                            "gaps": gaps,
-                            "bit_score": bit_score,
-                            "identity": identity,
-                            "hsps": best_hsps,
-                            "differences": ""
+                            "gaps": best_match["hsps"]["gaps"],
+                            "bit_score": best_match["bit_score"],
+                            "identity": best_match["identity"],
+                            "hsps": best_match["hsps"],
+                            "differences": get_differences(best_match["hsps"], name, best_match["hsps"]["gaps"], "nucleotide")
                         }
                 else:
-                    logger.debug("No hits found for %s", name)
+                    logger.info("No hits found for %s", name)
                     return {"gaps": -1, "bit_score": -1, "identity": -1, "hsps": [], "differences": "deleted"}
                 
             elif nucleotide_protein == "protein":
@@ -148,7 +168,6 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
                     "identity": 0,
                     "cover": 0,
                     "differences": []
-
                 }
                 if len(result["hits"]) > 0:
                     for hit in result["hits"]:
@@ -166,6 +185,8 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
                 else:
+                    logger.debug("No hits found for %s", name)
+                    logger.debug("Differences are %s", differences)
                     differences = ["deleted"]
                     return {"name": name, "differences": differences, "bit_score": best_match["bit_score"], 
                             "gaps": best_match["hsps"]["gaps"], "identity": best_match["identity"]}
@@ -176,7 +197,7 @@ def analize_sample(json_file, name, nucleotide_protein = "nucleotide", cover_lim
 
 
 
-def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS, normal_output, only_output, tblastn=False):
+def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLAST_OPTIONS=[], normal_output=False, only_output=False, tblastn=False):
         """
         Run analysis using tblastn
         
@@ -186,10 +207,10 @@ def run_blast(sample_name, query_name, query_file, OUTPUT_PATH, SPADES_FILE, BLA
             query_file (str): Path to the query file
             OUTPUT_PATH (str): Path for output files
             SPADES_FILE (str): Path to SPAdes assembly file
-            BLASTN_OPTIONS (list): BLAST options
-            normal_output (bool): Flag for normal output format
-            only_output (bool): Flag to only process existing output
-            tblastn (bool): Flag for tblastn vs blastn
+            BLASTN_OPTIONS (list): BLAST options as a list of strings  default empty list
+            normal_output (bool): Flag for normal output format default True
+            only_output (bool): Flag to only process existing output files
+            tblastn (bool): Flag for tblastn vs blastn (default False)
         
         Returns:
             bool: True if analysis was successful, False otherwise

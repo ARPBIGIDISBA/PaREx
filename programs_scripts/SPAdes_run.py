@@ -126,6 +126,7 @@ def SPAdes_run(project_name, config=config, extra_config={"force": False, "keep_
                     os.remove(file_path)
             
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Procesa algunos argumentos.')
     parser.add_argument('PROJECT_NAME', type=str, help='Nombre del projecto')

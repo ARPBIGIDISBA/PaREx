@@ -45,7 +45,7 @@ if [[ "$INSTALL_FASTQC" == "y" ]]; then
     sudo ln -sf "$INSTALL_DIR/FastQC/fastqc" /usr/local/bin/fastqc && \
     echo "✅ FastQC installed." || echo "❌ Error installing FastQC."
 fi
-fi
+
 if [[ "$INSTALL_TRIMMOMATIC" == "y" ]]; then
     # Install Trimmomatic
     echo "📥 Installing Trimmomatic..."
@@ -131,8 +131,9 @@ fi
 #     tar -xzf seqmonk_v1.48.1_linux64.tar.gz && \
 #     sudo ln -sf "$INSTALL_DIR/SeqMonk/seqmonk" /usr/local/bin/seqmonk && \
 #     echo "✅ SeqMonk installed." || echo "❌ Error installing SeqMonk."
-fi
+# fi
 
+# Install Snippy
 if [[ "$INSTALL_SNIPPY" == "y" ]]; then
     # Install Snippy
     echo "📥 Installing Snippy..."
