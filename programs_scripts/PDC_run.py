@@ -349,14 +349,17 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                             results_data.append([sample_name, "deleted", "deleted",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
                         else:
                             # Check if differences contains a value finished in X:
+                            added = False
                             for diff in PDC1["differences"]:
                                 if diff.endswith("X"):
                                     logger.info("***********************************************")  
                                     logger.info("PDC Non-Functional found '%s' on sample %s due to stop codon", diff, sample_name)
                                     logger.info("***********************************************")  
                                     results_data.append([sample_name, "Non-Functional", ",".join(PDC1["differences"]),  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                                    added = True
                                     break
-                            results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
+                            if not added:
+                                results_data.append([sample_name, ",".join(PDC1["differences"]), "new type",  max_bitscore["value"], max_bitscore["gaps"], max_bitscore["identity"]])
             
             # Crear y escribir en el archivo CSV usando punto y coma como delimitador
             filename = os.path.join(OUTPUT_PATH, f"{project_name}_PDC_results.csv")
