@@ -17,7 +17,7 @@ Here are the steps to install *Pa*REx from the GitHub repository:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/project.git  CAMBIAR POR: https://github.com/ARPBIG/PaREx.git
+   git clone https://github.com/ARPBIG/parex-databases.git
    cd parex
    ```
 
