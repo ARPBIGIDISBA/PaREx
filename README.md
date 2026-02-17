@@ -1,7 +1,9 @@
  
 # *Pa*REx: an open‑source pipeline for the automated analysis of *Pseudomonas aeruginosa* resistomes from whole‑genome sequences
 
-The *Pseudomonas aeruginosa* Resistome Explorer (*Pa*REx) is an open-source Python-based customizable pipeline that has been specifically designed for the automated analysis of *P. aeruginosa* resistomes from Illumina® paired-end reads. *Pa*REx uses different open-source bioinformatics tools, software and publicly available databases along with custom-built databases, scripts and tools and is composed by two main components the PaREx pipeline and the PaREx databases.
+The *Pseudomonas aeruginosa* Resistome Explorer (*Pa*REx) is an open-source, Python-based pipeline designed for the automated analysis of *P. aeruginosa* resistomes from Illumina® paired-end whole-genome sequencing reads. 
+
+*Pa*REx integrates multiple open-source bioinformatics tools, software and publicly available databases along with custom-built databases and scripts. It consists of two main components: the *Pa*REx pipeline and the *Pa*REx databases.
 
 ## Requirements
 
@@ -10,14 +12,12 @@ Parex requires:
 - Python 3.8 or higher
 - Other packages listed in `requirements.txt`
 
-## Installation of *Pa*REx custom-built scripts and tools
-
-Here are the steps to install *Pa*REx from the GitHub repository:
+## Installation guide of *Pa*REx 
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/ARPBIG/parex-databases.git
+   git clone https://github.com/ARPBIGIDISBA/parex.git
    cd parex
    ```
 
@@ -27,36 +27,36 @@ Here are the steps to install *Pa*REx from the GitHub repository:
    pip install -r requirements.txt
    ```
 
-## Installation of *Pa*REx custom-built databases
+## Installation guide of *Pa*REx databases
 
-There is a repository including all custom-built databases [parex-databases](https://github.com/ARPBIG/parex-databases.git). 
+The *Pa*REx databases are hosted in a separate repository:[parex-databases](https://github.com/ARPBIGIDISBA/parex-databases.git). 
 
  ```bash
    cd ..
-   git clone https://github.com/yourusername/project.git  CAMBIAR POR: https://github.com/ARPBIG/parex-databases.git
+   git clone https://github.com/ARPBIGIDISBA/parex-databases.git
    cd parex
    ```
 
-## Installation of third-party bioinformatic tools, software and databases 
-We have included an `install.sh` script to facilitate the installation of the required third-party tools and databases. Whith the versions tested for *Pa*REx. You can use the install.sh:  
+## Installation guide of third-party bioinformatic tools
+
+*Pa*REx includes an `install.sh` script to facilitate installation of tested third-party tools and databases.
 
    ```bash
    chmod 755 install.sh
    sh install.sh 
    ```
 
-
-OR alternatively you can install them by your own or use your installed versions
+OR alternatively you can install them manually as described below.
 
 1. **Trimmomatic**
-   - Download and extract from the official source:
+   - Download and extract:
      ```bash
      wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip
      unzip Trimmomatic-0.39.zip
      ```
 
-2. **SPAdes**
-   - Download and extract the Linux version from the official source:
+2. **SPAdes (v3.15.3 – tested version)**
+   - Download and extract:
      ```bash
      CAMBIAR URL! :  wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
      tar -xzf SPAdes-3.15.3-Linux.tar.gz
@@ -76,64 +76,61 @@ OR alternatively you can install them by your own or use your installed versions
    - Resfinder requires a specific download setup based on system. Instructions are available at its [official source](https://bitbucket.org/genomicepidemiology/resfinder.git)
    - *Pa*REx uses the version 2.1.0 of the resfinder database.
      
-
 ## Configuration 
 
-We have to configure the paths for the databases and tools used in the pipeline.
-Configure the `.json` files are located in the `programs_scripts/configs/` folder. 
-You can see samples files in the folder `/programs_scripts/configs/samples/*.json.sample`.
-You need to adjust the paths for the following configuration files: 
+Before running PaREx, you must configure the paths to all required databases and third-party tools.
+
+Configuration `.json` files are located in the `programs_scripts/configs/` folder. 
+Sample configuration templates are available at: `/programs_scripts/configs/samples/*.json.sample`.
+Copy the sample files, remove the .sample extension, and adjust the paths according to your system.
 
 ### Configuration Files
 
-- **general.json**: Contains global settings, including the path to the projects and to PaREx databases.
-- **trimmomatic.json**, **SPAdes.json**, **snippy.json**, **mlst.json**, **resfinder.json**: Specific configurations for each third-party tool used in the parex software.
+You must update the following files:
 
+- **general.json**: Contains global settings, including the PROJECTS_PATH (Directory where all projects will be created) and the path to PaREx custom databases
+- **trimmomatic.json**, **SPAdes.json**, **snippy.json**, **mlst.json**, **resfinder.json**: Each of these files contains the executable path and relevant parameters for the corresponding tool.
 
 ## *Pa*REx general usage 
 
- --> INTRODUCIR create_project, create_sample_list, novaseq, trimmomatic, resistome, single file! 
+The pipeline is fully command-line based and modular. You can execute individual steps or chain multiple operations together.
 
-### How to run the pipeline
+Important Project Variables:
 
-The pipeline is designed to be run from the command line. You can execute individual steps or the entire pipeline as needed.
+- **PROJECTS_PATH**: Defined in general.json. This is the root directory where all project data will be stored.
+- **PROJECT_NAME**: Each new project will have its own folder inside `PROJECTS_PATH`.
+- **SAMPLES_PATH**: Each project will have a `samples/` folder where the input FASTQ files should be placed. 
 
-Once you have defined the configuration files, you can start using the pipeline.
-The important folders to consider are:
-- **PROJECTS_PATH**: Defined in `general.json`, this is where all project data
-   will be stored.
-- **PROJECT_NAME**: Each project will have its own folder within `PROJECTS_PATH`.
-- **SAMPLES_PATH**: Each project will have a `samples/` folder where the input FASTQ files should be placed. See section input files for more details.
-### Running the Complete Resistome Analysis Pipeline
+### How to run the *Pa*REx Resistome Explorer Pipeline: standard workflow
 
-The resistome pipeline can be executed from the command line with the following parameters:
+General syntax: python parex.py PROJECT_NAME "operation1,operation2,..."
 
-python parex.py PROJECT_NAME "operation1,operation2,..."
+where project_name is the name of your project (which will be created in the `PROJECTS_PATH` defined in `general.json`), and operation1, operation2, etc. are the list of  operations. 
 
-where project_name is the name of the project (which will be created in the `PROJECTS_PATH` defined in `general.json`), and operation1, operation2, etc. are the specific operations to be performed. You can specify multiple operations separated by commas. 
+First operation: Create the Project Structure
 
-First command will be to create the project structure:
+Before running any analysis, you must create a new project. This step creates the complete folder structure required by *Pa*REx inside the directory defined as PROJECTS_PATH in general.json.
 
 ```bash
 python parex.py PROJECT_NAME create_project
 ```
 
-Then you add you sample FASTQ files to the `samples/` folder within the created project directory with the PROJECT_NAME as specified above.
+Second operation: Create the Sample List
 
-Then, you can create the sample list automatically with the following command:
+Once the project structure has been created, place your input FASTQ files inside the corresponding FAST_Q folder and create the sample list automatically with the following command:
 
 ```bash
 python parex.py PROJECT_NAME create_sample_list
 ```
 
-Finally, you can run the desired operations, in this case resistome analysis:
+Third operation: Run the Resistome Analysis 
 
 ```bash
 python parex.py PROJECT_NAME resistome
 ```
 
 ### Optional Arguments
-You can also specify optional arguments:
+You may append optional flags:
 - `--log-level`: Set the logging level (e.g., `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`). Default is `INFO`.
 - `--force`: Force the execution of the program even if previous steps have not been completed.
 - `--keep_output`: Keep the output of the program.
@@ -142,40 +139,30 @@ You can also specify optional arguments:
 
 ### Special operations:
 
-you can add **trimmomatic** to the process of resistome analysis:
-
-```bash
-python parex.py PROJECT_NAME trimomatic,resistome
-```
-
-You can also unzip the files if you have them in `.gz` to speed up the process:
-
-```bash
-python parex.py PROJECT_NAME unzip,resistome
-```
-
-You can also run the analysis from NovaSeq files:
+Merge L1 and L2 NovaSeq files:
 
 ```bash
 python parex.py PROJECT_NAME novaseq,resistome
 ```
 
+Unzip `.gz` before analysis to speed up the process:
+
+```bash
+python parex.py PROJECT_NAME unzip,resistome
+```
+
+Include **trimmomatic** preprocessing:
+
+```bash
+python parex.py PROJECT_NAME trimomatic,resistome
+```
+
 Or you can you can run all together:
 
 ```bash
-python parex.py PROJECT_NAME novaseq,trimmomatic,resistome
+python parex.py PROJECT_NAME novaseq,unzip,trimmomatic,resistome
 
 ```
-
-
-## Logs
-
-A folder with all the logs will be generated in the `logs/` folder. Each project will have its own log file named `Pparex_execution.log`.  
-based on your defined `--log-level` argument.
-
-## Contact
-
-For questions or issues, open an *issue*
 
 ## Code Structure
 
@@ -198,24 +185,6 @@ When you run a new project the following folder structure will be generated with
    - **logs/**: Subfolder for logs related to the analysis.
    - **$PROJECT_NAME_summary.xlsx**: Summary Excel file containing results from all analyses.
 
-Each process generates a excel output individual and also a full summary excel file in the `ANALYSIS_$PROJECT_NAME/` folder.
+## Contact
 
-The global summary file is named `$PROJECT_NAME_summary.xlsx`. In the PDF folder you will have a result for every inidiviaul sample.
-
-
-## Input Files
-
-The project is designed to handle a variety of input file formats, ensuring flexibility and compatibility with different sequencing workflows:
-
-- **FASTQ Files**: Raw sequencing reads in FASTQ format are the primary input for processing workflows. These files typically contain paired-end reads (`R1` and `R2`) generated from Illumina or similar platforms.
-
-- **NovaSeq Files**: High-throughput NovaSeq files are supported, allowing seamless integration with modern sequencing technologies. It converts in the output into FASTQ files R1/R2
-
-- **De Novo Assembly Files**: For workflows that bypass raw read processing, preassembled de novo files can be directly utilized. This is particularly useful for tools and analyses that focus on assembled genomes, reducing the computational overhead of preprocessing.
-
-This multi-format compatibility enables the project to adapt to different experimental setups, whether working with raw sequencing data or preassembled genomes, enhancing its usability and flexibility across genomic research pipelines.
-
-
-Log files are stored in the `logs/` folder. They are automatically generated with each run and saved in the `Logs/` subdirectory within each project.
-
- in the repository or contact the development team at [matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)
+For questions or issues, open an *issue* in the repository or contact the development team at [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)[matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). 
