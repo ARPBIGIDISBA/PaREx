@@ -29,7 +29,7 @@ Here are the steps to install *Pa*REx from the GitHub repository:
 
 ## Installation of *Pa*REx custom-built databases
 
-There is a repository including all custom-built databases [parex-databases](https://github.com/matiasbonet/References4alignment  CAMBIAR POR: https://github.com/ARPBIG/parex-databases.git). 
+There is a repository including all custom-built databases [parex-databases](https://github.com/ARPBIG/parex-databases.git). 
 
  ```bash
    cd ..
