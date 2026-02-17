@@ -58,7 +58,7 @@ OR alternatively you can install them manually as described below.
 2. **SPAdes (v3.15.3 – tested version)**
    - Download and extract:
      ```bash
-     CAMBIAR URL! :  wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
+     wget http://cab.spbu.ru/files/release3.15.3/SPAdes-3.15.3-Linux.tar.gz
      tar -xzf SPAdes-3.15.3-Linux.tar.gz
      ```
 
