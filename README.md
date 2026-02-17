@@ -185,6 +185,13 @@ When you run a new project the following folder structure will be generated with
    - **logs/**: Subfolder for logs related to the analysis.
    - **$PROJECT_NAME_summary.xlsx**: Summary Excel file containing results from all analyses.
 
+## 📖 How to cite
+
+If you use this softwRE in your work, please cite the following:
+
+> López-Causapé C, et al. *Pa*REx: an open-source pipeline for the automated analysis of Pseudomonas aeruginosa resistomes from whole-genome sequences. Antimicrob Agents Chemother. 2026; in press.
+---
+
 ## Contact
 
 For questions or issues, open an *issue* in the repository or contact the development team at [carla.lopez@ssib.es](mailto:carla.lopez@ssib.es)[matiasbonet@oceandrivers.com](mailto:matiasbonet@oceandrivers.com). 
