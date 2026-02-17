@@ -234,7 +234,6 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                 
                 if non_functional:
                     logger.info("Nucleotide PDC-1 Non-Functional detected in sample %s", sample_name)
-                    
                     results_data.append([sample_name, f"Non-Functional ({','.join(differences_nt)})","Non-Functional", results["hsps"]["score"], results["identity"]])
 
                 else:
@@ -253,9 +252,6 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     for index, file in enumerate(files):
                         file, name = files[index]
                         
-                        # if index !=0 and index >0:
-                        #     # logger.warning("Skipping file %s with index %s", file, index)
-                        #     continue
                         if file.find(".fasta") == -1:
                             continue
                         
@@ -263,8 +259,8 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                         file = os.path.join(PDC_DATABASE_PATH, file)
                         logger.debug("Using protein file: %s", file)
                         
-                        output_file = os.path.join(OUTPUT_PATH, "output", f"{sample_name}_{name}.json")
-                        os.makedirs(os.path.join(OUTPUT_PATH, "output"), exist_ok=True)
+                        output_file = os.path.join(OUTPUT_PATH, "outputs", f"{sample_name}_{name}.json")
+                        os.makedirs(os.path.join(OUTPUT_PATH, "outputs"), exist_ok=True)
                         logger.debug("Output file %s", output_file)
                         
                         # This is for nucleotide
@@ -288,16 +284,16 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                     
                         if result:
                             # Read the json file and get the results
-                            results = analize_sample(output_file, name, "protein")
+                            results = analize_sample(output_file, name, "protein", cover_limit=90)
                             
                             logger.debug("***********************************************")
                             logger.debug("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
                             logger.debug("***********************************************")
                             
-                            gaps = results["gaps"]
                             bit_score = results["bit_score"]
+                            gaps = results["gaps"]
                             identity = results["identity"]
-
+                            
                             logger.debug("Gaps %s", gaps)
                             logger.debug("Bit score %s", bit_score)
                             logger.debug("Identity %s", identity)
@@ -326,7 +322,20 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                                 max_bitscore["identity"] = identity
                                 max_bitscore["differences"] = results["differences"]
                             
-                            if max_bitscore["gaps"] == 0 and max_bitscore["identity"] == 100:
+                            if gaps == 0 and identity == 100:
+                                # read text from protein file
+                                with open(file, "r") as f:
+                                    # From first line >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 
+                                    protein_text = f.readline()
+                                    # Example >WP_063864573.1 extended-spectrum class C beta-lactamase PDC-2 [Pseudomonas aeruginosa] extract WP_063864573.1 firts oart if split(" ")[0]
+                                    full_name = "{} ({})".format(name, protein_text.split(" ")[0][1:])
+                                    
+                                max_bitscore["name"] = full_name
+                                max_bitscore["path"] = file
+                                max_bitscore["value"] = bit_score
+                                max_bitscore["gaps"] = gaps
+                                max_bitscore["identity"] = identity
+                                max_bitscore["differences"] = results["differences"]
                                 logger.info("***********************************************")
                                 logger.info("PDC found '%s' on sample %s", name, sample_name)
                                 logger.info("***********************************************")
