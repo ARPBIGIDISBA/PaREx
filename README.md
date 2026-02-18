@@ -187,7 +187,7 @@ When you run a new project the following folder structure will be generated with
 
 ## How to cite
 
-If you use this softwRE in your work, please cite the following:
+If you use this software in your work, please cite the following:
 
 López-Causapé C, et al. *Pa*REx: an open-source pipeline for the automated analysis of Pseudomonas aeruginosa resistomes from whole-genome sequences. Antimicrob Agents Chemother. 2026; in press.
 
