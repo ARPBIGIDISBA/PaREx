@@ -156,16 +156,18 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     files_protein = os.listdir(PDC_DATABASE_PATH)
     # Get only files with extension .fasta
     files_protein = [file for file in files_protein if file.endswith(".fasta")]
-    pattern = r"(PDC-\d+)"
+    pattern =  r"^PDC-(.+?)\.fasta$" # Get everything after the - until the .fasta
+
     # Usar re.search para encontrar el patrón
     files = []    
     for name in files_protein:
-        match = re.search(pattern, name)                        
+        match = re.search(pattern, name) 
         pdc_name = match.group(0) if match else None
+        pdc_name = pdc_name.replace(".fasta", "") if pdc_name else None
         files.append([name, pdc_name])
         
     # sort files by pdc_name
-    files = sorted(files, key=lambda x: int(x[1].split("-")[1]))
+    files = sorted(files, key=lambda x: (x[1].split("-")[1]))
 
     results_data = [
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
