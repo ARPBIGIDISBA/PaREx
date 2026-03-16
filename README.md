@@ -189,7 +189,7 @@ When you run a new project the following folder structure will be generated with
 
 If you use this software in your work, please cite the following:
 
-López-Causapé C, et al. *Pa*REx: an open-source pipeline for the automated analysis of Pseudomonas aeruginosa resistomes from whole-genome sequences. Antimicrob Agents Chemother. 2026; in press.
+López-Causapé C, et al. *Pa*REx: an open-source pipeline for the automated analysis of Pseudomonas aeruginosa resistomes from whole-genome sequences. Antimicrob Agents Chemother 0:e01326-25.https://doi.org/10.1128/aac.01326-25
 
 ## License
 
