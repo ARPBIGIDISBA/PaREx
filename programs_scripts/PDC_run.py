@@ -4,7 +4,6 @@ More details: https://creativecommons.org/licenses/by-nc/4.0/"
 
 This script is used to run the PDC program to compare the nucleotide sequences with the protein sequences
 """
-
 import os
 import sys
 import argparse
@@ -159,15 +158,20 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
     pattern =  r"^PDC-(.+?)\.fasta$" # Get everything after the - until the .fasta
 
     # Usar re.search para encontrar el patrón
-    files = []    
+    files = []
     for name in files_protein:
-        match = re.search(pattern, name) 
-        pdc_name = match.group(0) if match else None
-        pdc_name = pdc_name.replace(".fasta", "") if pdc_name else None
-        files.append([name, pdc_name])
+        # Buscamos el primer bloque de números que aparezca después de PDC-
+        match = re.search(r"PDC-(\d+)", name)
+        if match:
+            pdc_number = int(match.group(1))
+            pdc_name = name.replace(".fasta", "")
+            files.append([name, pdc_name, pdc_number])
         
-    # sort files by pdc_name
-    files = sorted(files, key=lambda x: (x[1].split("-")[1]))
+    # Ordenamos estrictamente por el número extraído
+    files.sort(key=lambda x: x[2])
+
+    # Limpiamos la lista para dejarla en el formato [archivo, nombre]
+    files = [[f[0], f[1]] for f in files]
 
     results_data = [
         ["sample_name","PDC", "PDC_REFERENCE", "bit_score", "gaps", "identity"]
@@ -289,7 +293,7 @@ def PDC_run(project_name, config=config, direct_file = None, extra_config={"forc
                             results = analize_sample(output_file, name, "protein", cover_limit=90)
                             
                             logger.debug("***********************************************")
-                            logger.debug("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
+                            logger.info("(%s/%s)) gaps: %s identity:%.2f  pdc %s againts %s ",index, len(files_protein), results["gaps"], results["identity"], name, sample_name)
                             logger.debug("***********************************************")
                             
                             bit_score = results["bit_score"]
